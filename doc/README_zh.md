@@ -14,7 +14,7 @@
 ---
 
 ## 二、代码结构
-
+```text
 SEC/
 ├── src/                  # 核心 Fortran 源代码
 │   ├── main.f90
@@ -34,6 +34,7 @@ SEC/
 ├── build.sh              # 一键构建脚本
 ├── README.md
 └── LICENSE
+```
 
 ---
 

@@ -15,7 +15,7 @@ It is compiled using **NVHPC (`nvfortran`)** and linked against **netCDF (C + Fo
 ---
 
 ## 2. Code Structure and Design
-
+```text
 SEC/
 ├── src/                  # Core Fortran source code
 │   ├── main.f90          # main program or test program
@@ -35,6 +35,7 @@ SEC/
 ├── build.sh              # One-command build script
 ├── README.md
 └── LICENSE
+```
 
 ---
 
