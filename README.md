@@ -1,4 +1,4 @@
-📘 **English** | 📕 [中文说明](doc/README_zh.md)
+📘 **English** | 📕 [中文](doc/README_zh.md)
 
 # SEC 
 *A Fortran-based pmicrobial-explicit soil carbon cycle model.*
@@ -7,7 +7,7 @@
 
 ## 1. Overview
 
-The **SEC model** is a is a process-oriented soil carbon model that explicitly represents microbial decomposition processes (using Michaelis-Menten kinetics) implemented in **Fortran**, designed to simulate soil and ecosystem carbon dynamics and their controlling mechanisms.
+The **SEC model** is a process-oriented soil carbon model that explicitly represents microbial decomposition processes (using Michaelis-Menten kinetics) implemented in **Fortran**, designed to simulate soil and ecosystem carbon dynamics and their controlling mechanisms.
 
 The model adopts a **modular architecture**, clearly separating core process representation, input/output handling, and model control logic.  
 It is compiled using **NVHPC (`nvfortran`)** and linked against **netCDF (C + Fortran)**, enabling efficient handling of structured scientific data and deployment on **high-performance computing (HPC) systems**.
