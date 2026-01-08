@@ -361,7 +361,7 @@
              micparam%fr2p(np,ns) =  0.30 * exp(1.3*micinput%clay(np,ns))                    ! 3.0
              micparam%fk2p(np,ns) =  0.20 * exp(0.8*micinput%clay(np,ns))                    ! 3.0
              micparam%fr2c(np,ns) = min(1.0, micparam%fr2p(np,ns) + 0.10 * exp(-3.0 * micparam%fmetave(np,ns)))     ! 9.0   to invoid a negative value of fr2a  ZHC
-             micparam%fk2c(np,ns) = min(1.0, micparam%fr2p(np,ns) + 0.30 * exp(-3.0 * micparam%fmetave(np,ns)))     ! 9.0   to invoid a negative value of fk2a ZHC
+             micparam%fk2c(np,ns) = min(1.0, micparam%fk2p(np,ns) + 0.30 * exp(-3.0 * micparam%fmetave(np,ns)))     ! 9.0   to invoid a negative value of fk2a ZHC
              micparam%fr2p(np,ns) =  0.0
              micparam%fk2p(np,ns) =  0.0
              micparam%fr2a(np,ns) = max(0.0,1.00 - micparam%fr2c(np,ns))
