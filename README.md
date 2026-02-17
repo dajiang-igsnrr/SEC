@@ -32,6 +32,9 @@ SEC/
 │   └── readme            
 │
 ├── test/                 # Test and example runs
+│   ├── input             # input data
+│   ├── output            # ouput
+│   └── readme      
 │
 ├── CMakeLists.txt        # Build configuration
 ├── build.sh              # One-command build script
