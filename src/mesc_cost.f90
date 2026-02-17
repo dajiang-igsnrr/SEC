@@ -4,8 +4,7 @@
 !! cost function SOC fraction
 !! cost function for hwsd_SOC profiles
 !!
-! ##############mesc_cost.f90###########################
-    subroutine calcost_c14(nx,isoc14,bgcopt,xopt,micparam,miccpool,micinput,zse,totcost)
+subroutine calcost_c14(nx,isoc14,bgcopt,xopt,micparam,miccpool,micinput,zse,totcost)
     use mic_constant
     use mic_variable
     implicit none
@@ -118,10 +117,10 @@
 
 901   format(i5,2x,3(i4,2x),12(f10.4,2x))
 921   format(i7,2x,2(i4,2x),10(f12.4,1x))
-    end subroutine calcost_c14
+end subroutine calcost_c14
 
 
-    SUBROUTINE calcost_frc1(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost)
+subroutine calcost_frc1(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost)
     use mic_constant
     use mic_variable
     implicit none
@@ -234,9 +233,9 @@
 921   format(i6,1x,2(i3,1x),f8.3,1x,i2,1x,2(f7.3,1x),14(f12.4,1x))
 
 
-    end SUBROUTINE calcost_frc1
+end subroutine calcost_frc1
 
-    subroutine calcost_hwsd2(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost)
+subroutine calcost_hwsd2(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost)
     use mic_constant
     use mic_variable
     implicit none
@@ -333,5 +332,4 @@
 
 901   format(i6,1x,4(i3,1x),f8.3,1x,i2,1x,10(f12.4,1x))
 921   format(i6,1x,4(i3,1x),f8.3,1x,i2,1x,20(f12.4,1x))
-    end subroutine calcost_hwsd2        
-! ##############mesc_cost.f90###########################
+end subroutine calcost_hwsd2        

@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"structmic__variable_1_1mic__parameter.html#ab6dc94e30db69f01a1bb7554b1372047":[0,0,1,2,60],
 "structmic__variable_1_1mic__parameter.html#ab6dc94e30db69f01a1bb7554b1372047":[1,0,0,2,60],
 "structmic__variable_1_1mic__parameter.html#ac13292699b71271dd42429bc185f0746":[0,0,1,2,46],
 "structmic__variable_1_1mic__parameter.html#ac13292699b71271dd42429bc185f0746":[1,0,0,2,46],
