@@ -29,7 +29,7 @@ SEC/
 │
 ├── doc/                  # Documentation
 │   ├── html              # html
-│   └── latex             # pdf
+│   └── readme            
 │
 ├── test/                 # Test and example runs
 │
