@@ -1,0 +1,661 @@
+\doxysection{mesc\+\_\+variable.\+f90}
+\label{mesc__variable_8f90_source}\index{SEC/src/mesc\_variable.f90@{SEC/src/mesc\_variable.f90}}
+\textbf{ Go to the documentation of this file.}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{!>\ declarre\ all\ variables\ and\ assign\ values\ to\ model\ constants}}
+\DoxyCodeLine{00002\ \textcolor{comment}{!!\ allocate\ \ \ variables}}
+\DoxyCodeLine{00003\ \textcolor{comment}{!!\ deallocate\ variables\ }}
+\DoxyCodeLine{00004\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{comment}{!\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#mesc\_variable.f90\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#}}
+\DoxyCodeLine{00007\ \textcolor{comment}{!}}
+\DoxyCodeLine{00008\ \textcolor{comment}{!\ this\ version\ is\ designed\ to\ work\ with\ monthly\ focings\ from\ CABLE/ORCHIDEE\ model}}
+\DoxyCodeLine{00009\ \textcolor{comment}{!+==========github\ checked\ version\ 0.0}}
+\DoxyCodeLine{00010\ \textcolor{comment}{!\ tasks\ to\ do}}
+\DoxyCodeLine{00011\ \textcolor{comment}{!\ (6)\ add\ comments\ and\ tidy\ up\ the\ codes}}
+\DoxyCodeLine{00012\ \textcolor{comment}{!}}
+\DoxyCodeLine{00013\ \textcolor{comment}{!\ tasks\ done}}
+\DoxyCodeLine{00014\ \textcolor{comment}{!\ (1)\ modify\ "{}bgc\_fractions"{}\ to\ include\ woody\ litter}}
+\DoxyCodeLine{00015\ \textcolor{comment}{!\ (1)\ write/read\ RESTART\ file}}
+\DoxyCodeLine{00016\ \textcolor{comment}{!\ (3)\ add\ dimension\ (mpft)\ to\ "{}mic\_param\_xscale"{}}}
+\DoxyCodeLine{00017\ \textcolor{comment}{!\ (5)\ assigm\ the\ default\ "{}micpxdef"{}\ values\ in\ "{}function\ funct"{}}}
+\DoxyCodeLine{00018\ \textcolor{comment}{!\ (2)\ write\ output\ file}}
+\DoxyCodeLine{00019\ \textcolor{comment}{!\ (4)\ read\ in\ a\ PFT-\/dependent\ parameter\ table}}
+\DoxyCodeLine{00020\ \textcolor{comment}{!\ (7)\ check\ the\ CUE\ \_T\ depenendence\ (switch\ it\ off)}}
+\DoxyCodeLine{00021\ \textcolor{comment}{!\ (8)\ check\ the\ soil\ moisture:\ MIMICS\ used\ MILLENNIAL2\ function;\ the\ combined\ model\ uses\ Yan\ et\ al.\ (2018)1G}}
+\DoxyCodeLine{00022\ \textcolor{comment}{!\ (9)\ microbial\ turnover\ rates:\ varying\ with\ NPP\ (MIMICS);\ not\ varying\ with\ NPP\ (the\ combined\ model)}}
+\DoxyCodeLine{00023\ \textcolor{comment}{!\ (10)\ use\ bgctype\ based\ cluster\ analysis\ to\ group\ soils\ "{}micglobal\%bgctype(mbgc)"{}}}
+\DoxyCodeLine{00024\ \textcolor{comment}{!\ (11)\ need\ to\ "{}functn\_frc"{}\ and\ "{}functn\_c14"{}\ working\ with\ new\ approach}}
+\DoxyCodeLine{00025\ \textcolor{comment}{!}}
+\DoxyCodeLine{00026\ \textcolor{comment}{!\ this\ version\ run\ the\ model\ for\ global\ sensitivity\ analysis\ for\ }}
+\DoxyCodeLine{00027\ \textcolor{comment}{!\ for\ kinetcs=3\ (the\ combined\ model)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [defualt\ values]\ (scaling\ factor\ range)}}
+\DoxyCodeLine{00028\ \textcolor{comment}{!\ \ 1:\ xav:\ \ \ \ \ \ scaling\ factor\ for\ V\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ \ \ (0-\/30)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 8.0e-\/6}}
+\DoxyCodeLine{00029\ \textcolor{comment}{!\ \ 2:\ xak:\ \ \ \ \ \ scaling\ factor\ for\ K\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ \ \ (0-\/30)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 10.0}}
+\DoxyCodeLine{00030\ \textcolor{comment}{!\ \ 3:\ xfm:\ \ \ \ \ \ scaling\ factor\ for\ fm\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ \ \ (0.1-\/5.0)\ \ \ \ \ \ \ \ \ \ \ \ 0.05}}
+\DoxyCodeLine{00031\ \textcolor{comment}{!\ \ 4:\ xfs:\ \ \ \ \ \ scaling\ factor\ for\ fs\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ \ \ (0.1-\/5.0)\ \ \ \ \ \ \ \ \ \ \ \ 0.05}}
+\DoxyCodeLine{00032\ \textcolor{comment}{!\ \ 5:\ xtvmic:\ \ \ scaling\ factor\ for\ tvmicR\ (0-\/10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ \ \ (0.1,10)\ \ \ \ \ \ \ \ \ \ \ \ \ sqrt(NPPP)}}
+\DoxyCodeLine{00033\ \textcolor{comment}{!\ \ 5:\ xtvmic\ :\ \ scaling\ factor\ for\ tvmicK\ (0-\/10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ \ \ =xtvmicR\ \ \ \ \ \ \ \ \ \ \ \ \ sqrt(NPPP)}}
+\DoxyCodeLine{00034\ \textcolor{comment}{!\ \ 6:\ xtvp:\ \ \ \ \ scaling\ factor\ for\ tvppool(0-\/10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.1,10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 1/25\ \ year-\/1\ \ \ \ !\ rate\ of\ disaggregation}}
+\DoxyCodeLine{00035\ \textcolor{comment}{!\ \ 7:\ xtvc:\ \ \ \ \ scaling\ factor\ for\ tvcpool(0-\/10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.1,10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 1/100\ year-\/1\ \ \ \ !\ rate\ of\ MAOC\ breakdown}}
+\DoxyCodeLine{00036\ \textcolor{comment}{!\ \ 8:\ xtvac:\ \ \ \ scaling\ factor\ for\ tvac\ \ \ (0-\/10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.1,10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 1/2.0\ year-\/1\ \ \ \ !\ leaching\ rate}}
+\DoxyCodeLine{00037\ \textcolor{comment}{!\ \ 9:\ xkba:\ \ \ \ \ scaling\ factor\ for\ kba\ \ \ \ (0.2-\/5)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.5,10)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 2.0\ \ \ \ \ \ \ \ \ \ \ \ \ !\ ratio\ of\ adsorption/desoprtion}}
+\DoxyCodeLine{00038\ \textcolor{comment}{!\ 10:\ xqmaxcoeff:coefficient\ of\ Qmax\ on\ clay+silt\ (0.4-\/0.8)\ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.5,5.0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ 0.6}}
+\DoxyCodeLine{00039\ \textcolor{comment}{!\ 11:\ xdiffsoc:\ \ SOC\ diffusion/bioturbation\ rate\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.1,10.0)\ \ \ \ \ \ \ \ \ \ \ \ \ (1.0/24.0)*\ 2.74e-\/3\ (1/day)}}
+\DoxyCodeLine{00040\ \textcolor{comment}{!\ 12:\ xNPP:\ \ \ \ \ \ carbon\ input\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.5,2.0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ NPP}}
+\DoxyCodeLine{00041\ \textcolor{comment}{!\ 13:\ xrootbeta:\ scaling\ for\ depth-\/dependent\ of\ root\ C\ input\ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.5,5.0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ 2.0}}
+\DoxyCodeLine{00042\ \textcolor{comment}{!\ 14:\ xvmaxbeta:\ scaling\ for\ depth-\/dependent\ of\ vmax\ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.5,5.0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ 2.0}}
+\DoxyCodeLine{00043\ \textcolor{comment}{!\ 15:\ xfp2ax:\ \ \ \ scaling\ factor\ for\ fp2ax\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.5-\/2.0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ not\ used\ }}
+\DoxyCodeLine{00044\ \textcolor{comment}{!\ 16:\ xdesorp:\ \ \ desorption\ coefficient\ (kinetics=1,2)\ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.1,10.0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ not\ used\ \ \ }}
+\DoxyCodeLine{00045\ \textcolor{comment}{!\ 17:\ xbeta:\ \ \ \ \ beta\ parameter\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1]\ \ \ \ \ \ \ \ \ \ \ \ (0.55,1.0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ fixed\ to\ 2}}
+\DoxyCodeLine{00046\ \textcolor{keyword}{module}\ mic\_constant}
+\DoxyCodeLine{00047\ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00048\ \ \ \textcolor{keywordtype}{integer},\ \ \textcolor{keywordtype}{parameter}\ \ ::\ r\_2\ =\ selected\_real\_kind(12,\ 60)}
+\DoxyCodeLine{00049\ \ \ \textcolor{keywordtype}{integer},\ \ \textcolor{keywordtype}{parameter}\ \ ::\ diag=0\ \ \ \ \ \ \ \textcolor{comment}{!\ =1\ for\ printout\ 0\ no\ prinout}}
+\DoxyCodeLine{00050\ \ \ \textcolor{keywordtype}{integer},\ \ \textcolor{keywordtype}{parameter}\ \ ::\ outp=1\ \ \ \ \ \ \ \textcolor{comment}{!\ output\ site}}
+\DoxyCodeLine{00051\ \ \ \textcolor{comment}{!integer,\ \ parameter\ \ ::\ msite=213\ \ \ !\ number\ of\ sites}}
+\DoxyCodeLine{00052\ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mp\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ number\ of\ site\ the\ model\ runs\ for}}
+\DoxyCodeLine{00053\ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ntime\ \ \ \ \ \ \ \ \textcolor{comment}{!\ 365\ \ !12\ *\ 4\ !\ 4\ year's\ monthly\ global\ forcings}}
+\DoxyCodeLine{00054\ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mpft\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ =17\ !15\ \ \ \ \ \ !\ number\ of\ PFTs\ =17\ FOR\ cable\ AND\ =19\ FOR\ orchidee\ }}
+\DoxyCodeLine{00055\ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mbgc\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ number\ of\ soil\ categories}}
+\DoxyCodeLine{00056\ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ms}
+\DoxyCodeLine{00057\ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ nlon\ \ \ \ \ \ }
+\DoxyCodeLine{00058\ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ nlat\ \ \ \ \ }
+\DoxyCodeLine{00059\ \textcolor{comment}{!\ \ integer,\ \ parameter\ \ ::\ ms=\ 10\ \ \ \ \ \ \ !7\ \ \ \ \ \ \ !\ soil\ layers}}
+\DoxyCodeLine{00060\ \textcolor{comment}{!\ \ real(r\_2)\ zse(ms)}}
+\DoxyCodeLine{00061\ \textcolor{comment}{!\ \ data\ zse/0.2,0.2,0.2,0.2,0.2,0.5,0.5/}}
+\DoxyCodeLine{00062\ \textcolor{comment}{!\ \ data\ zse/0.02,0.04,0.06,0.08,0.2,0.2,0.2,0.2,0.5,0.5/}}
+\DoxyCodeLine{00063\ \textcolor{comment}{!\ \ integer,\ \ parameter\ \ ::\ nlon\ =180}}
+\DoxyCodeLine{00064\ \textcolor{comment}{!\ \ integer,\ \ parameter\ \ ::\ nlat\ =90}}
+\DoxyCodeLine{00065\ \ \ \textcolor{keywordtype}{integer},\ \ \textcolor{keywordtype}{parameter}\ \ ::\ mcpool=10\ \ \ \ \textcolor{comment}{!\ number\ of\ C\ pools}}
+\DoxyCodeLine{00066\ \ \ \textcolor{keywordtype}{integer},\ \ \textcolor{keywordtype}{parameter}\ \ ::\ nfvar=22\ \ \ \ \ \textcolor{comment}{!\ number\ of\ data\ input\ variables}}
+\DoxyCodeLine{00067\ \textcolor{keywordtype}{\ \ real}(r\_2),\textcolor{keywordtype}{parameter}\ \ ::\ delt=\ 1.0\ \ \ \ \textcolor{comment}{!\ one\ hour}}
+\DoxyCodeLine{00068\ \textcolor{keywordtype}{\ \ real}(r\_2),\textcolor{keywordtype}{PARAMETER}\ \ ::\ tvc14\ =\ (1.0/(24.0*365.0))*\ alog(2.0)/5730.0\ \ \ \ \textcolor{comment}{!\ 1/hour\ }}
+\DoxyCodeLine{00069\ \ \ \textcolor{keywordtype}{integer},\ \ \textcolor{keywordtype}{parameter}\ \ ::\ nyic14=1940\ \ \textcolor{comment}{!\ year\ 0\ of\ 14C\ record\ }}
+\DoxyCodeLine{00070\ \ \ \textcolor{keywordtype}{integer},\ \ \textcolor{keywordtype}{parameter}\ \ ::\ nyec14=2020\ \ \textcolor{comment}{!\ last\ yr\ of\ 14C\ calculation\ \ \ }}
+\DoxyCodeLine{00071\ \textcolor{keywordtype}{\ \ real}(r\_2),\textcolor{keywordtype}{parameter}\ \ ::\ thresh\_patchfrac=1.0e-\/6\ \ \ \textcolor{comment}{!\ minimial\ patch\ area\ fraction}}
+\DoxyCodeLine{00072\ \textcolor{comment}{!\ \ real(r\_2),PARAMETER\ \ ::\ diffsoc\ \ =(1.0/24.0)*\ 2.74e-\/3\ \ !cm2/hour\ \ \ }}
+\DoxyCodeLine{00073\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ m2/hour\ \ !\ see\ Table\ 1,Camino-\/Serrano\ et\ al.\ (2018)}}
+\DoxyCodeLine{00074\ \ \ \textcolor{comment}{!\ CABLE\ PFT-\/dependent\ parameter\ values}}
+\DoxyCodeLine{00075\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(17)}\ \ \ \ \ \ \ \ \ ::\ cnleaf1,cnroot1,cnwood1,ligleaf1,ligroot1,ligwood1}
+\DoxyCodeLine{00076\ \ \ \textcolor{keyword}{data}\ cnleaf1/99.60,46.20,118.60,62.80,75.20,69.60,88.00,98.40,43.20,50.00,99.60,46.20,62.80,100.00,80.00,80.00,80.00/}
+\DoxyCodeLine{00077\ \ \ \textcolor{keyword}{data}\ cnwood1/250.63,142.00,256.63,164.42,149.58,157.89,157.89,155.05,157.89,131.58,250.63,142.00,164.42,157.89,157.89,142.11,157.89/}
+\DoxyCodeLine{00078\ \ \ \textcolor{keyword}{data}\ cnroot1/81.89,68.00,83.33,70.22,74.56,71.67,69.67,76.67,67.44,78.89,81.89,68.00,70.22,78.89,78.89,78.89,78.89/}
+\DoxyCodeLine{00079\ \ \ \textcolor{keyword}{data}\ ligleaf1/0.25,0.20,0.20,0.20,0.20,0.10,0.10,0.10,0.10,0.10,0.25,0.20,0.20,0.15,0.15,0.25,0.10/}
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{data}\ ligwood1/0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40,0.40/}
+\DoxyCodeLine{00081\ \ \ \textcolor{keyword}{data}\ ligroot1/0.25,0.20,0.20,0.20,0.20,0.10,0.10,0.10,0.10,0.10,0.25,0.20,0.20,0.15,0.15,0.25,0.10/}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{!\ ORCHIDEE\ PFT-\/dependent\ parameter\ values}}
+\DoxyCodeLine{00084\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(18)}\ \ \ \ \ \ \ \ \ ::\ cnleaf2,cnroot2,cnwood2,ligleaf2,ligroot2,ligwood2}
+\DoxyCodeLine{00085\ \ \ \textcolor{keyword}{data}\ cnleaf2/47.12,51.42,94.78,49.99,54.55,94.78,54.55,94.78,75.29,101.21,75.29,93.80,75.29,101.21,75.29,101.21,75.29,101.21/}
+\DoxyCodeLine{00086\ \ \ \textcolor{keyword}{data}\ cnwood2/115.74,113.64,208.96,125.00,145.45,208.96,145.45,36.36,16.00,22.00,16.00,16.00,16.00,22.00,16.00,22.00,16.00,22.00/}
+\DoxyCodeLine{00087\ \ \ \textcolor{keyword}{data}\ cnroot2/81.43,82.53,151.87,87.49,100.00,151.87,100.00,65.57,45.64,61.60,45.64,54.90,45.64,61.60,45.64,61.60,45.64,61.60/}
+\DoxyCodeLine{00088\ \ \ \textcolor{keyword}{data}\ ligleaf2/0.20,0.20,0.25,0.20,0.20,0.25,0.20,0.25,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10/}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{data}\ ligwood2/0.25,0.25,0.30,0.25,0.25,0.30,0.25,0.30,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10/}
+\DoxyCodeLine{00090\ \ \ \textcolor{keyword}{data}\ ligroot2/0.20,0.20,0.25,0.20,0.20,0.25,0.20,0.25,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10/\ \ }
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(17)}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ xrootcable}
+\DoxyCodeLine{00093\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(18)}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ xrootorchidee\ \ \ }
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{data}\ xrootcable/1.43,0.94,1.43,1.04,0.77,0.85,0.62,1.77,0.94,0.94,1.43,0.94,1.04,0.53,1.00,1.00,1.00/}
+\DoxyCodeLine{00095\ \ \ \textcolor{keyword}{data}\ xrootorchidee/0.94,0.94,1.04,1.04,1.04,1.43,1.43,1.43,0.85,0.62,0.94,0.94,0.85,0.85,0.85,0.85,0.85,0.85/}
+\DoxyCodeLine{00096\ \ \ }
+\DoxyCodeLine{00097\ \textcolor{keyword}{end\ module\ }mic\_constant}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \textcolor{keyword}{module}\ mic\_variable}
+\DoxyCodeLine{00100\ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00101\ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00102\ \ \ \textcolor{keywordtype}{SAVE}}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \ \ \textcolor{keyword}{TYPE}\ mic\_param\_xscale}
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{comment}{!\ parameter\ scaling}}
+\DoxyCodeLine{00106\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ ::\ \&}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ xav,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ xak,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00109\ \ \ \ \ \ \ xfp2ax,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ xfm,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ xfs,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ xtvmic,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ xtvp,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ xtvc,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ xtvac,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ xkba,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ xqmaxcoeff,\ \ \&}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ xbeta,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ xdiffsoc,\ \ \ \ \&}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ xnpp,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ xdesorp,\ \ \ \ \ \&}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ xrootbeta,\ \ \ \&}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ xvmaxbeta\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00124\ \ \ \textcolor{keyword}{END\ TYPE\ }mic\_param\_xscale}
+\DoxyCodeLine{00125\ \ \ }
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{TYPE}\ mic\_param\_default}
+\DoxyCodeLine{00127\ \ \ \ \ \ \textcolor{comment}{!default\ values\ for\ Michaelis-\/Menten\ K}}
+\DoxyCodeLine{00128\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ ::\ \ \ \&}
+\DoxyCodeLine{00129\ \ \ \ \ \ sk\ =0.017,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00130\ \ \ \ \ \ skx=0.027,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00131\ \ \ \ \ \ ak\ =\ 10.0,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00132\ \ \ \ \ \ bk\ =\ 3.19,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00133\ \ \ \ \ \ xk1\ =8.0,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00134\ \ \ \ \ \ xk2\ =2.0,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00135\ \ \ \ \ \ xk3\ =4.0,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00136\ \ \ \ \ \ xj1\ =2.0,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00137\ \ \ \ \ \ xj2\ =4.0,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00138\ \ \ \ \ \ xj3\ =6.0\ }
+\DoxyCodeLine{00139\ \ \ \ \ \ \textcolor{comment}{!default\ values\ for\ Michaelis-\/Menten\ Vmax}}
+\DoxyCodeLine{00140\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ ::\ \ \ \&\ \ \ \ \ }
+\DoxyCodeLine{00141\ \ \ \ \ \ sv\ =\ 0.063,\ \ \ \ \ \&}
+\DoxyCodeLine{00142\ \ \ \ \ \ av\ =\ 10.0*8.0e-\/6,\ \ \ \ \&}
+\DoxyCodeLine{00143\ \ \ \ \ \ bv\ =\ 5.47,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00144\ \ \ \ \ \ xv1=\ 10.0,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00145\ \ \ \ \ \ xv2=\ 2.0,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00146\ \ \ \ \ \ xv3=\ 10.0,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00147\ \ \ \ \ \ xw1=\ 3.0,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00148\ \ \ \ \ \ xw2=\ 3.0,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00149\ \ \ \ \ \ xw3=\ 2.0}
+\DoxyCodeLine{00150\ \ \ \ \ \ \textcolor{comment}{!\ default\ values\ of\ MM\ kinetics\ (Wieder\ et\ al.\ 2015)}}
+\DoxyCodeLine{00151\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ ::\ \ \ \&\ }
+\DoxyCodeLine{00152\ \ \ \ \ \ q1=4.0,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00153\ \ \ \ \ \ q2=4.0,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00154\ \ \ \ \ \ fm=0.1,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00155\ \ \ \ \ \ fs=0.1}
+\DoxyCodeLine{00156\ \ \ \ \ \ \textcolor{comment}{!\ microbial\ turnover\ rate\ parameter\ values\ (Wieder\ et\ al.\ (2015))}}
+\DoxyCodeLine{00157\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ ::\ \ \ \ \ \ \ \ \&\ \ \ }
+\DoxyCodeLine{00158\ \ \ \ \ \ xtv\ \ \ \ \ \ =\ 100.0,\ \ \ \ \&}
+\DoxyCodeLine{00159\ \ \ \ \ \ betamic\ \ =\ 2.0,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00160\ \ \ \ \ \ tvmicr\ \ \ =\ 0.00052,\ \ \&}
+\DoxyCodeLine{00161\ \ \ \ \ \ tvmick\ \ \ =\ 0.00024\ \ \ \ \ }
+\DoxyCodeLine{00162\ \ \ \ \ \ \textcolor{comment}{!dependence\ on\ the\ partitioning\ of\ necromass\ on\ soil\ clay\ and\ substrate\ quality}}
+\DoxyCodeLine{00163\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ ::\ \ \ \&\ \ \ \ }
+\DoxyCodeLine{00164\ \ \ \ \ \ fmicsom1=0.432,\ \&}
+\DoxyCodeLine{00165\ \ \ \ \ \ fmicsom2=0.098,\ \&}
+\DoxyCodeLine{00166\ \ \ \ \ \ fmicsom3=10.56,\ \&}
+\DoxyCodeLine{00167\ \ \ \ \ \ fmicsom4=29.78,\ \&}
+\DoxyCodeLine{00168\ \ \ \ \ \ fmicsom5=2.61}
+\DoxyCodeLine{00169\ \ \ \ \ \ \textcolor{comment}{!microbial\ carbon\ use\ efficiency}}
+\DoxyCodeLine{00170\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ ::\ \ \ \ \ \ \ \ \ \ \&\ \ \ \ }
+\DoxyCodeLine{00171\ \ \ \ \ \ cuemax\ \ \ \ =\ 0.80,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00172\ \ \ \ \ \ cue\_coef1\ =\ 0.66,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00173\ \ \ \ \ \ cue\_coef2\ =\ 1.23,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00174\ \ \ \ \ \ epislon1\ =\ 0.5,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00175\ \ \ \ \ \ epislon2\ =\ 0.25,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00176\ \ \ \ \ \ epislon3\ =\ 0.7,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00177\ \ \ \ \ \ epislon4\ =\ 0.35}
+\DoxyCodeLine{00178\ \ \ \ \ \ \textcolor{comment}{!adsorption\ dependence\ on\ soil\ pH\ (!Table\ A1\ Abramoff\ et\ al.\ (2022))}}
+\DoxyCodeLine{00179\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ ::\ \ \ \ \ \ \ \ \ \ \&\ }
+\DoxyCodeLine{00180\ \ \ \ \ \ phcoeff1\ =\ 0.2429,\ \ \ \ \ \ \&\ \ \ \ \ \ }
+\DoxyCodeLine{00181\ \ \ \ \ \ phcoeff2\ =\ -\/0.3632\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00182\ \textcolor{comment}{!\ \ \ \ \ phcoeff1\ =\ 0.186,\ \ \ \ \ \ \&\ \ \ \ \ \ }}
+\DoxyCodeLine{00183\ \textcolor{comment}{!\ \ \ \ \ phcoeff2\ =\ 0.216\ \ \ }}
+\DoxyCodeLine{00184\ \ \ \ \ \ \textcolor{comment}{!dependence\ on\ soil\ moisture\ \ Yan\ et\ al\ (2018)}}
+\DoxyCodeLine{00185\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ ::\ \ \ \ \ \ \ \ \ \ \&\ }
+\DoxyCodeLine{00186\ \ \ \ \ \ smkdesorp\ =\ 0.1,\ \ \ \ \ \ \ \&\ }
+\DoxyCodeLine{00187\ \ \ \ \ \ smexpns\ \ \ =\ 2.0,\ \ \ \ \ \ \ \&\ }
+\DoxyCodeLine{00188\ \ \ \ \ \ smexpb\ \ \ \ =\ 0.75\ }
+\DoxyCodeLine{00189\ \ \ \ \ \ \textcolor{comment}{!\ dependence\ of\ Qmax\ on\ soil\ texture}}
+\DoxyCodeLine{00190\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ ::\ qmaxcoeff\ =\ 0.4\ *\ 0.5\ \ \ \textcolor{comment}{!\ Georgiou\ et\ al.\ (2022)}}
+\DoxyCodeLine{00191\ \ \ \ \ \ \textcolor{comment}{!\ SOC\ diffusion\ coefficient.\ see\ Table\ 1,Camino-\/Serrano\ et\ al.\ (2018)}}
+\DoxyCodeLine{00192\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)::\ diffsoc\ \ =(\ 5.0/24.0)*\ 2.74e-\/3\ \ \textcolor{comment}{!cm2/hour}}
+\DoxyCodeLine{00193\ \ \ \ \ \ \textcolor{comment}{!\ kinetic\ parameter\ values\ of\ rkinetics=3.\ Table\ A1\ \ Abramoff2022}}
+\DoxyCodeLine{00194\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ ::\ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00195\ \ \ \ \ \ kadsorpx\ =\ 0.001,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00196\ \ \ \ \ \ kbax\ \ \ \ \ =\ 6.0,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00197\ \ \ \ \ \ fp2ax\ \ \ \ =\ 1.143\ *\ 0.33,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00198\ \ \ \ \ \ tvcpoolx\ =\ 0.02*(1.0/1.60)*1.0/(365.0*24.0),\ \&}
+\DoxyCodeLine{00199\ \ \ \ \ \ tvppoolx\ =\ 0.10*(1.0/0.44)*1.0/(365.0*24.0),\ \&}
+\DoxyCodeLine{00200\ \ \ \ \ \ tvacx\ =\ 0.0015/24.0,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00201\ \ \ \ \ \ rootbeta\ =\ 1.0,\ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00202\ \ \ \ \ \ vmaxbeta\ =\ 0.5}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \ \ \ \textcolor{comment}{!\ previous\ values}}
+\DoxyCodeLine{00205\ \ \ \ \textcolor{comment}{!\ \ \ rootbeta\ =\ 2.0,\ \ \ \ \ \ \ \ \ \ \&}}
+\DoxyCodeLine{00206\ \ \ \ \textcolor{comment}{!\ \ \ tvcpoolx\ =\ 0.102\ *\ 0.02/24.0/2.0,\ \ \&}}
+\DoxyCodeLine{00207\ \ \ \ \textcolor{comment}{!\ \ \ tvppoolx\ =\ 4.705\ *\ 0.019/24./10.00,\ \&}}
+\DoxyCodeLine{00208\ \ \ \ \textcolor{comment}{!\ \ \ tvacx\ \ \ \ =\ 0.1\ \ \ *\ 0.0015/24.0,\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{00209\ \ \ \textcolor{keyword}{END\ TYPE\ }mic\_param\_default}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \ \ \textcolor{keyword}{TYPE}\ mic\_parameter}
+\DoxyCodeLine{00212\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ k1,k2,k3,j1,j2,j3}
+\DoxyCodeLine{00213\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ v1,v2,v3,w1,w2,w3}
+\DoxyCodeLine{00214\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ desorp}
+\DoxyCodeLine{00215\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ q1,q2,fm,fs}
+\DoxyCodeLine{00216\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ mger1,mger2,mger3,mgek1,mgek2,mgek3}
+\DoxyCodeLine{00217\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ tvmicr,tvmick,betamicr,betamick}
+\DoxyCodeLine{00218\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ fmetave}
+\DoxyCodeLine{00219\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:,:)},\ \ \textcolor{keywordtype}{allocatable}\ \ ::\ cn\_r}
+\DoxyCodeLine{00220\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ fr2p,fk2p,fr2c,fk2c,fr2a,fk2a}
+\DoxyCodeLine{00221\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ xcnleaf,xcnroot,xcnwood,fligleaf,fligroot,fligwood}
+\DoxyCodeLine{00222\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ diffsocx}
+\DoxyCodeLine{00223\ \ \ \textcolor{comment}{!\ additional\ parameters\ for\ kinetics3\ }}
+\DoxyCodeLine{00224\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ kdesorp\ \ \ \textcolor{comment}{!mg\ C\ cm-\/3\ hour-\/1}}
+\DoxyCodeLine{00225\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ kadsorp\ \ \ \textcolor{comment}{!1/hour}}
+\DoxyCodeLine{00226\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ fp2a}
+\DoxyCodeLine{00227\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ tvcpool\ \ \ \textcolor{comment}{!1/hour}}
+\DoxyCodeLine{00228\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ tvppool\ \ \ \textcolor{comment}{!1/hour}}
+\DoxyCodeLine{00229\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ tvac\ \ \ \ \ \ \textcolor{comment}{!1/hour\ (leaching\ rate\ coefficient)}}
+\DoxyCodeLine{00230\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ qmaxcoeff\ \textcolor{comment}{!coefficient\ relating\ qmax\ to\ soil\ clay+silt\ }}
+\DoxyCodeLine{00231\ \ \ }
+\DoxyCodeLine{00232\ \ \ \textcolor{comment}{!\ the\ following\ are\ alrealy\ available\ in\ CABLE}}
+\DoxyCodeLine{00233\ \ \ \textcolor{keywordtype}{integer},\ \ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ pft,bgctype,isoil,sorder,region,siteid,dataid}
+\DoxyCodeLine{00234\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ sdepth,fracroot}
+\DoxyCodeLine{00235\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ csoilobs,csoilobsp,csoilobsm}
+\DoxyCodeLine{00236\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ c14soilobsp,c14soilobsm\ \ \ \ \ \textcolor{comment}{!14C\ obs}}
+\DoxyCodeLine{00237\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:,:)},\ \ \textcolor{keywordtype}{allocatable}\ \ ::\ c14atm\ \ \ \ \ \ \ \ \ \textcolor{comment}{!atmospheric\ 14C}}
+\DoxyCodeLine{00238\ \ \ \textcolor{keywordtype}{integer},\ \ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ nyc14obs\ \ \ \ \ \ \ \textcolor{comment}{!year\ at\ which\ 14C\ was\ observed}}
+\DoxyCodeLine{00239\ \ \ \textcolor{keywordtype}{integer},\ \ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ top,bot}
+\DoxyCodeLine{00240\ \ \ }
+\DoxyCodeLine{00241\ \ \ \textcolor{keyword}{END\ TYPE\ }mic\_parameter}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \ \ \textcolor{keyword}{TYPE}\ mic\_input}
+\DoxyCodeLine{00244\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ tavg,wavg,tair,ph,clay,silt,porosity,bulkd,matpot}
+\DoxyCodeLine{00245\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ dleaf,dwood,droot}
+\DoxyCodeLine{00246\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ cinputm}
+\DoxyCodeLine{00247\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ cinputs}
+\DoxyCodeLine{00248\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimensioN(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ fcnpp}
+\DoxyCodeLine{00249\ \ \ }
+\DoxyCodeLine{00250\ \ \ \textcolor{keyword}{END\ TYPE\ }mic\_input}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ \ \ \textcolor{keyword}{TYPE}\ mic\_global\_input}
+\DoxyCodeLine{00253\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ lon,lat,time}
+\DoxyCodeLine{00254\ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ pft,bgctype,isoil,sorder,siteid}
+\DoxyCodeLine{00255\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ area,npp,ph,clay,silt,poros,bulkd,avgts,avgms}
+\DoxyCodeLine{00256\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ patchfrac}
+\DoxyCodeLine{00257\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:,:)},\ \ \textcolor{keywordtype}{allocatable}\ \ ::\ tsoil,moist,matpot}
+\DoxyCodeLine{00258\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ ligleaf,ligwood,ligroot}
+\DoxyCodeLine{00259\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ dleaf,dwood,droot,cnleaf,cnwood,cnroot}
+\DoxyCodeLine{00260\ \ \ \textcolor{keyword}{END\ TYPE\ }mic\_global\_input}
+\DoxyCodeLine{00261\ \ \ }
+\DoxyCodeLine{00262\ \ \ \textcolor{keyword}{TYPE}\ mic\_output}
+\DoxyCodeLine{00263\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ fluxcinput\ \ \ }
+\DoxyCodeLine{00264\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ fluxrsoil\ \ \ }
+\DoxyCodeLine{00265\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ fluxcleach}
+\DoxyCodeLine{00266\ \ \ \textcolor{keyword}{END\ TYPE\ }mic\_output}
+\DoxyCodeLine{00267\ \ \ }
+\DoxyCodeLine{00268\ \ \ \textcolor{keyword}{TYPE}\ mic\_cpool}
+\DoxyCodeLine{00269\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:,:)},\ \ \textcolor{keywordtype}{allocatable}\ \ ::\ cpool}
+\DoxyCodeLine{00270\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:,:)},\ \ \textcolor{keywordtype}{allocatable}\ \ ::\ cpooleq}
+\DoxyCodeLine{00271\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ cpooleqp,cpooleqm,c12pooleqp,c12pooleqm}
+\DoxyCodeLine{00272\ \ \ \textcolor{keyword}{END\ TYPE\ }mic\_cpool}
+\DoxyCodeLine{00273\ \ }
+\DoxyCodeLine{00274\ \ \ \textcolor{keyword}{TYPE}\ mic\_npool}
+\DoxyCodeLine{00275\ \textcolor{keywordtype}{\ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \ \textcolor{keywordtype}{allocatable}\ \ ::\ mineraln}
+\DoxyCodeLine{00276\ \ \ \textcolor{keyword}{END\ TYPE\ }mic\_npool\ }
+\DoxyCodeLine{00277\ \ \ }
+\DoxyCodeLine{00278\ \ }
+\DoxyCodeLine{00279\ \ \textcolor{keyword}{CONTAINS}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \ \ \textcolor{keyword}{SUBROUTINE\ }mic\_allocate\_parameter(mpft,mbgc,mp,ms,micpxdef,micparam)}
+\DoxyCodeLine{00282\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00283\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micparam}
+\DoxyCodeLine{00284\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micpxdef}
+\DoxyCodeLine{00285\ \ \ \ \textcolor{keywordtype}{integer}\ \ mpft,mbgc,mp,ms}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00287\ \ \ \ \ \textcolor{keyword}{allocate}(micpxdef\%xav(mbgc),\ \ \&}
+\DoxyCodeLine{00288\ \ \ \ \ \ \ micpxdef\%xak(mbgc),\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00289\ \ \ \ \ \ \ micpxdef\%xfp2ax(mbgc),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00290\ \ \ \ \ \ \ micpxdef\%xfm(mbgc),\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00291\ \ \ \ \ \ \ micpxdef\%xfs(mbgc),\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00292\ \ \ \ \ \ \ micpxdef\%xtvmic(mbgc),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00293\ \ \ \ \ \ \ micpxdef\%xtvp(mbgc),\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00294\ \ \ \ \ \ \ micpxdef\%xtvc(mbgc),\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00295\ \ \ \ \ \ \ micpxdef\%xtvac(mbgc),\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00296\ \ \ \ \ \ \ micpxdef\%xkba(mbgc),\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00297\ \ \ \ \ \ \ micpxdef\%xqmaxcoeff(mbgc),\ \ \&}
+\DoxyCodeLine{00298\ \ \ \ \ \ \ micpxdef\%xbeta(mbgc),\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00299\ \ \ \ \ \ \ micpxdef\%xdiffsoc(mbgc),\ \ \ \ \&}
+\DoxyCodeLine{00300\ \ \ \ \ \ \ micpxdef\%xnpp(mpft),\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00301\ \ \ \ \ \ \ micpxdef\%xdesorp(mbgc),\ \ \ \ \ \&}
+\DoxyCodeLine{00302\ \ \ \ \ \ \ micpxdef\%xrootbeta(mpft),\ \ \ \&}
+\DoxyCodeLine{00303\ \ \ \ \ \ \ micpxdef\%xvmaxbeta(mbgc))}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00305\ \ \ \ \ \textcolor{keyword}{allocate}(micparam\%K1(mp,ms),\ \ \&}
+\DoxyCodeLine{00306\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%K2(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00307\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%K3(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00308\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%J1(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00309\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%J2(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00310\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%J3(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00311\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%V1(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%V2(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00313\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%V3(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00314\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%W1(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00315\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%W2(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00316\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%W3(mp,ms),\ \ \&\ }
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%desorp(mp,ms),\ \ \&}
+\DoxyCodeLine{00318\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%Q1(mp,ms),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00319\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%Q2(mp,ms),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00320\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fm(mp,ms),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00321\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fs(mp,ms),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00322\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR1(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR2(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00324\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR3(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00325\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK1(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK2(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK3(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fmetave(mp,ms),\ \&}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvmicR(mp,ms),\ \ \&}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvmicK(mp,ms),\ \ \&}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%betamicR(mp,ms),\ \ \ \ \ \&}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%betamicK(mp,ms),\ \ \ \ \ \&}
+\DoxyCodeLine{00333\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(mp,ms,mcpool),\ \ \&}
+\DoxyCodeLine{00334\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2p(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00335\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2p(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00336\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2c(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00337\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2c(mp,ms),\ \ \ \&}
+\DoxyCodeLine{00338\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2a(mp,ms),\ \ \ \&\ }
+\DoxyCodeLine{00339\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2a(mp,ms))}
+\DoxyCodeLine{00340\ }
+\DoxyCodeLine{00341\ \ \ \ \ \textcolor{keyword}{allocate}(micparam\%xcnleaf(mp),\ \ \ \&}
+\DoxyCodeLine{00342\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%xcnroot(mp),\ \ \ \&}
+\DoxyCodeLine{00343\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%xcnwood(mp),\ \ \ \&}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fligleaf(mp),\ \ \&}
+\DoxyCodeLine{00345\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fligroot(mp),\ \ \&}
+\DoxyCodeLine{00346\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fligwood(mp),\ \ \&}
+\DoxyCodeLine{00347\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%diffsocx(mp))}
+\DoxyCodeLine{00348\ }
+\DoxyCodeLine{00349\ \ \ \ \ \textcolor{keyword}{allocate}(micparam\%pft(mp),\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bgctype(mp),\ \ \ \&}
+\DoxyCodeLine{00351\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%isoil(mp),\ \ \ \ \ \&}
+\DoxyCodeLine{00352\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%sorder(mp),\ \ \ \ \&}
+\DoxyCodeLine{00353\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%region(mp),\ \ \ \ \&}
+\DoxyCodeLine{00354\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%siteid(mp),\ \ \ \ \&}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%dataid(mp))}
+\DoxyCodeLine{00356\ }
+\DoxyCodeLine{00357\ \ \ \ \ \textcolor{keyword}{allocate}(micparam\%sdepth(mp,ms),\ \ \ \&}
+\DoxyCodeLine{00358\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fracroot(mp,ms),\ \&}
+\DoxyCodeLine{00359\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobs(mp,ms),\ \&}
+\DoxyCodeLine{00360\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobsp(mp,ms),\ \&}
+\DoxyCodeLine{00361\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobsm(mp,ms),\ \&}
+\DoxyCodeLine{00362\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsp(mp),\ \&}
+\DoxyCodeLine{00363\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsm(mp),\ \&}
+\DoxyCodeLine{00364\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14atm(79,5,2),\ \ \ \&}
+\DoxyCodeLine{00365\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%nyc14obs(mp),\ \ \ \ \&}
+\DoxyCodeLine{00366\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%top(mp),\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00367\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bot(mp))}
+\DoxyCodeLine{00368\ }
+\DoxyCodeLine{00369\ \textcolor{comment}{!\ additional\ variables\ for\ kinetics3\ \ \ \ \ \ \ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{00370\ \ \ \ \ \textcolor{keyword}{allocate}(micparam\%kdesorp(mp,ms),\ \&}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%kadsorp(mp,ms),\ \&}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fp2a(mp,ms),\ \ \ \ \&}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvcpool(mp,ms),\ \&}
+\DoxyCodeLine{00374\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvppool(mp,ms),\ \&\ }
+\DoxyCodeLine{00375\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvac(mp,ms),\ \ \ \ \&}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%qmaxcoeff(mp,ms))}
+\DoxyCodeLine{00377\ \ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_allocate\_parameter}
+\DoxyCodeLine{00378\ \ \ }
+\DoxyCodeLine{00379\ \ \ \textcolor{keyword}{SUBROUTINE\ }mic\_allocate\_input(mp,ms,nlon,nlat,ntime,micinput,micglobal)}
+\DoxyCodeLine{00380\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00381\ \ \ \ \textcolor{keywordtype}{integer}\ mp,ms,nlon,nlat,ntime}
+\DoxyCodeLine{00382\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micinput}
+\DoxyCodeLine{00383\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_global\_input),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micglobal}
+\DoxyCodeLine{00384\ }
+\DoxyCodeLine{00385\ \ \ \ \ \textcolor{keyword}{allocate}(micinput\%tavg(mp,ms),\ \ \ \ \&}
+\DoxyCodeLine{00386\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%wavg(mp,ms),\ \ \ \ \&}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%ph(mp,ms),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%clay(mp,ms),\ \ \ \ \&}
+\DoxyCodeLine{00389\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%silt(mp,ms),\ \ \ \ \&}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%bulkd(mp,ms),\ \ \ \&}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%porosity(mp,ms),\&}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%matpot(mp,ms),\ \ \&}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%tair(mp,365),\ \ \ \&}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%fcnpp(mp),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%dleaf(mp),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%dwood(mp),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00397\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%droot(mp),\ \ \ \ \ \ \&}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%cinputm(mp,ms),\ \&}
+\DoxyCodeLine{00399\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%cinputs(mp,ms)\ )}
+\DoxyCodeLine{00400\ }
+\DoxyCodeLine{00401\ \ \ \ \ \textcolor{keyword}{allocate}(micglobal\%lon(mp),\ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%lat(mp),\ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%time(ntime),\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%pft(mp),\ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00405\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%bgctype(mp),\ \ \ \ \ \ \ \ \ \&\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00406\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%isoil(mp),\ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00407\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%sorder(mp),\ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00408\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%siteid(mp),\ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00409\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%area(mp),\ \ \ \ \ \ \ \ \ \ \ \ \&\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%patchfrac(mp,mpft),\ \ \&\ \ \ \ \ \ \ }
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%npp(mp),\ \ \ \ \ \ \ \ \ \ \ \ \ \&\ \ \ }
+\DoxyCodeLine{00412\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%ph(mp),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%clay(mp),\ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%silt(mp),\ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00415\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%poros(mp),\ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00416\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%bulkd(mp),\ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00417\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%avgts(mp),\ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00418\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%avgms(mp),\ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00419\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%tsoil(mp,ms,ntime),\ \ \&}
+\DoxyCodeLine{00420\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%moist(mp,ms,ntime),\ \ \&\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00421\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%matpot(mp,ms,ntime),\ \&}
+\DoxyCodeLine{00422\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%ligleaf(mp),\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00423\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%ligwood(mp),\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00424\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%ligroot(mp),\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%dleaf(mp,ntime),\ \ \ \ \ \&}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%dwood(mp,ntime),\ \ \ \ \ \&}
+\DoxyCodeLine{00427\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%droot(mp,ntime),\ \ \ \ \ \&}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%cnleaf(mp,ntime),\ \ \ \ \&}
+\DoxyCodeLine{00429\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%cnwood(mp,ntime),\ \ \ \ \&}
+\DoxyCodeLine{00430\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%cnroot(mp,ntime))\ \ \ \ \ \ \ }
+\DoxyCodeLine{00431\ \ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_allocate\_input}
+\DoxyCodeLine{00432\ \ \ }
+\DoxyCodeLine{00433\ \ \ \textcolor{keyword}{SUBROUTINE\ }mic\_allocate\_output(mp,micoutput)}
+\DoxyCodeLine{00434\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00435\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_output),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micoutput}
+\DoxyCodeLine{00436\ \ \ \ \textcolor{keywordtype}{integer}\ \ mp}
+\DoxyCodeLine{00437\ }
+\DoxyCodeLine{00438\ \ \ \ \textcolor{keyword}{allocate}(micoutput\%fluxcinput(mp))\ \ \ }
+\DoxyCodeLine{00439\ \ \ \ \textcolor{keyword}{allocate}(micoutput\%fluxrsoil(mp))}
+\DoxyCodeLine{00440\ \ \ \ \textcolor{keyword}{allocate}(micoutput\%fluxcleach(mp))}
+\DoxyCodeLine{00441\ }
+\DoxyCodeLine{00442\ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_allocate\_output}
+\DoxyCodeLine{00443\ }
+\DoxyCodeLine{00444\ \ \textcolor{keyword}{SUBROUTINE\ }mic\_allocate\_cpool(mp,ms,miccpool)}
+\DoxyCodeLine{00445\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00446\ \ \ \ \textcolor{keywordtype}{integer}\ mp,ms}
+\DoxyCodeLine{00447\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_cpool),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ miccpool}
+\DoxyCodeLine{00448\ \ \ \ \textcolor{keyword}{allocate}(miccpool\%cpool(mp,ms,mcpool),\ \&}
+\DoxyCodeLine{00449\ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%cpooleq(mp,ms,mcpool),\ \&}
+\DoxyCodeLine{00450\ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%cpooleqp(mp),\ \ \ \&}
+\DoxyCodeLine{00451\ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%cpooleqm(mp),\ \ \&}
+\DoxyCodeLine{00452\ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%c12pooleqp(mp),\ \&}
+\DoxyCodeLine{00453\ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%c12pooleqm(mp))\ }
+\DoxyCodeLine{00454\ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_allocate\_cpool\ }
+\DoxyCodeLine{00455\ }
+\DoxyCodeLine{00456\ \ }
+\DoxyCodeLine{00457\ \ \ \textcolor{keyword}{SUBROUTINE\ }mic\_allocate\_npool(mp,ms,micnpool)}
+\DoxyCodeLine{00458\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00459\ \ \ \ \textcolor{keywordtype}{integer}\ mp,ms}
+\DoxyCodeLine{00460\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_npool),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micnpool}
+\DoxyCodeLine{00461\ }
+\DoxyCodeLine{00462\ \ \ \ \textcolor{keyword}{ALLOCATE}(micnpool\%mineralN(mp,ms))}
+\DoxyCodeLine{00463\ \ \ \ }
+\DoxyCodeLine{00464\ \ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_allocate\_npool\ }
+\DoxyCodeLine{00465\ \ \ }
+\DoxyCodeLine{00466\ \ \ \textcolor{comment}{!\ deallocate\ to\ free\ up\ storage}}
+\DoxyCodeLine{00467\ \ \ }
+\DoxyCodeLine{00468\ \ \ \textcolor{keyword}{SUBROUTINE\ }mic\_deallocate\_parameter(mpft,mbgc,mp,ms,micpxdef,micparam)}
+\DoxyCodeLine{00469\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00470\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ \ \ ::\ micparam}
+\DoxyCodeLine{00471\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micpxdef}
+\DoxyCodeLine{00472\ \ \ \ \textcolor{keywordtype}{integer}\ \ mpft,mbgc,mp,ms}
+\DoxyCodeLine{00473\ }
+\DoxyCodeLine{00474\ \ \ \ \ \textcolor{keyword}{deallocate}(micpxdef\%xav,\ \ \&}
+\DoxyCodeLine{00475\ \ \ \ \ \ \ micpxdef\%xak,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00476\ \ \ \ \ \ \ micpxdef\%xfp2ax,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00477\ \ \ \ \ \ \ micpxdef\%xfm,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00478\ \ \ \ \ \ \ micpxdef\%xfs,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00479\ \ \ \ \ \ \ micpxdef\%xtvmic,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00480\ \ \ \ \ \ \ micpxdef\%xtvp,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00481\ \ \ \ \ \ \ micpxdef\%xtvc,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00482\ \ \ \ \ \ \ micpxdef\%xtvac,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00483\ \ \ \ \ \ \ micpxdef\%xkba,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00484\ \ \ \ \ \ \ micpxdef\%xqmaxcoeff,\ \ \&}
+\DoxyCodeLine{00485\ \ \ \ \ \ \ micpxdef\%xbeta,\ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00486\ \ \ \ \ \ \ micpxdef\%xdiffsoc,\ \ \ \ \&}
+\DoxyCodeLine{00487\ \ \ \ \ \ \ micpxdef\%xnpp,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00488\ \ \ \ \ \ \ micpxdef\%xdesorp,\ \ \ \ \ \&}
+\DoxyCodeLine{00489\ \ \ \ \ \ \ micpxdef\%xrootbeta,\ \ \ \&}
+\DoxyCodeLine{00490\ \ \ \ \ \ \ micpxdef\%xvmaxbeta)}
+\DoxyCodeLine{00491\ }
+\DoxyCodeLine{00492\ }
+\DoxyCodeLine{00493\ \ \ \ \ \textcolor{keyword}{deallocate}(micparam\%K1,\ \ \&}
+\DoxyCodeLine{00494\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%K2,\ \ \&\ }
+\DoxyCodeLine{00495\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%K3,\ \ \&\ }
+\DoxyCodeLine{00496\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%J1,\ \ \&\ }
+\DoxyCodeLine{00497\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%J2,\ \ \&\ }
+\DoxyCodeLine{00498\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%J3,\ \ \&\ }
+\DoxyCodeLine{00499\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%V1,\ \ \&\ }
+\DoxyCodeLine{00500\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%V2,\ \ \&\ }
+\DoxyCodeLine{00501\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%V3,\ \ \&\ }
+\DoxyCodeLine{00502\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%W1,\ \ \&\ }
+\DoxyCodeLine{00503\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%W2,\ \ \&\ }
+\DoxyCodeLine{00504\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%W3,\ \ \&\ }
+\DoxyCodeLine{00505\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%desorp,\ \ \&}
+\DoxyCodeLine{00506\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%Q1,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00507\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%Q2,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00508\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fm,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00509\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fs,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00510\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR1,\ \ \ \&\ }
+\DoxyCodeLine{00511\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR2,\ \ \ \&\ }
+\DoxyCodeLine{00512\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR3,\ \ \ \&\ }
+\DoxyCodeLine{00513\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK1,\ \ \ \&\ }
+\DoxyCodeLine{00514\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK2,\ \ \ \&\ }
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK3,\ \ \ \&\ }
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fmetave,\ \&}
+\DoxyCodeLine{00517\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvmicR,\ \ \&}
+\DoxyCodeLine{00518\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvmicK,\ \ \&}
+\DoxyCodeLine{00519\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%betamicR,\ \ \ \ \ \&}
+\DoxyCodeLine{00520\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%betamicK,\ \ \ \ \ \&}
+\DoxyCodeLine{00521\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r,\ \ \ \&}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2p,\ \ \ \&\ }
+\DoxyCodeLine{00523\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2p,\ \ \ \&\ }
+\DoxyCodeLine{00524\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2c,\ \ \ \&\ }
+\DoxyCodeLine{00525\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2c,\ \ \ \&}
+\DoxyCodeLine{00526\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2a,\ \ \ \&\ }
+\DoxyCodeLine{00527\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2a)}
+\DoxyCodeLine{00528\ }
+\DoxyCodeLine{00529\ \ \ \ \ \textcolor{keyword}{deallocate}(micparam\%xcnleaf,\ \ \ \&}
+\DoxyCodeLine{00530\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%xcnroot,\ \ \ \&}
+\DoxyCodeLine{00531\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%xcnwood,\ \ \ \&}
+\DoxyCodeLine{00532\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fligleaf,\ \ \&}
+\DoxyCodeLine{00533\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fligroot,\ \ \&}
+\DoxyCodeLine{00534\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fligwood,\ \ \&}
+\DoxyCodeLine{00535\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%diffsocx)}
+\DoxyCodeLine{00536\ }
+\DoxyCodeLine{00537\ \ \ \ \ \textcolor{keyword}{deallocate}(micparam\%pft,\ \ \ \ \ \&}
+\DoxyCodeLine{00538\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bgctype,\ \ \ \ \ \&}
+\DoxyCodeLine{00539\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%isoil,\ \ \ \ \ \&}
+\DoxyCodeLine{00540\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%sorder,\ \ \ \ \&\ \ \ \ }
+\DoxyCodeLine{00541\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%region,\ \ \ \ \&}
+\DoxyCodeLine{00542\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%siteid)}
+\DoxyCodeLine{00543\ }
+\DoxyCodeLine{00544\ \ \ \ \ \textcolor{keyword}{deallocate}(micparam\%sdepth,\ \ \ \&}
+\DoxyCodeLine{00545\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fracroot,\ \ \ \&}
+\DoxyCodeLine{00546\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobs,\ \ \ \&}
+\DoxyCodeLine{00547\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobsp,\ \ \&}
+\DoxyCodeLine{00548\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobsm,\ \ \&}
+\DoxyCodeLine{00549\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsp,\&}
+\DoxyCodeLine{00550\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsm,\&}
+\DoxyCodeLine{00551\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14atm,\ \ \ \ \ \&}
+\DoxyCodeLine{00552\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%nyc14obs,\ \ \ \&}
+\DoxyCodeLine{00553\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%top,\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00554\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bot)}
+\DoxyCodeLine{00555\ }
+\DoxyCodeLine{00556\ \textcolor{comment}{!\ additional\ variables\ for\ kinetics3\ \ \ \ \ \ \ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{00557\ \ \ \ \ \textcolor{keyword}{deallocate}(micparam\%kdesorp,\ \ \&}
+\DoxyCodeLine{00558\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%kadsorp,\ \ \&}
+\DoxyCodeLine{00559\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fp2a,\ \ \ \ \ \&}
+\DoxyCodeLine{00560\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvcpool,\ \ \&}
+\DoxyCodeLine{00561\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvppool,\ \ \&\ }
+\DoxyCodeLine{00562\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvac,\ \ \ \ \ \&}
+\DoxyCodeLine{00563\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%qmaxcoeff)}
+\DoxyCodeLine{00564\ \ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_deallocate\_parameter}
+\DoxyCodeLine{00565\ \ \ }
+\DoxyCodeLine{00566\ \ \ \textcolor{keyword}{SUBROUTINE\ }mic\_deallocate\_input(mp,ms,nlon,nlat,ntime,micinput,micglobal)}
+\DoxyCodeLine{00567\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00568\ \ \ \ \textcolor{keywordtype}{integer}\ mp,ms,nlon,nlat,ntime}
+\DoxyCodeLine{00569\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ \ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00570\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_global\_input),\ \textcolor{keywordtype}{INTENT(INOUT)}\ ::\ micglobal}
+\DoxyCodeLine{00571\ }
+\DoxyCodeLine{00572\ \ \ \ \ \textcolor{keyword}{deallocate}(micinput\%tavg,\ \ \ \ \&}
+\DoxyCodeLine{00573\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%wavg,\ \ \ \ \&}
+\DoxyCodeLine{00574\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%ph,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00575\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%clay,\ \ \ \ \&}
+\DoxyCodeLine{00576\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%silt,\ \ \ \ \&}
+\DoxyCodeLine{00577\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%bulkd,\ \ \ \&}
+\DoxyCodeLine{00578\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%porosity,\&}
+\DoxyCodeLine{00579\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%tair,\ \ \ \ \&}
+\DoxyCodeLine{00580\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%fcnpp,\ \ \ \&}
+\DoxyCodeLine{00581\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%dleaf,\ \ \ \&}
+\DoxyCodeLine{00582\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%dwood,\ \ \ \&}
+\DoxyCodeLine{00583\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%droot,\ \ \ \&}
+\DoxyCodeLine{00584\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%cinputm,\ \&}
+\DoxyCodeLine{00585\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%cinputs)}
+\DoxyCodeLine{00586\ }
+\DoxyCodeLine{00587\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00588\ \ \ \ \ \textcolor{keyword}{deallocate}(micglobal\%lon,\ \ \ \ \ \&}
+\DoxyCodeLine{00589\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%lat,\ \ \ \ \ \&}
+\DoxyCodeLine{00590\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%time,\ \ \ \ \&}
+\DoxyCodeLine{00591\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%pft,\ \ \ \ \ \&}
+\DoxyCodeLine{00592\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%bgctype,\ \&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00593\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%isoil,\ \ \ \&}
+\DoxyCodeLine{00594\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%sorder,\ \ \&}
+\DoxyCodeLine{00595\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%siteid,\ \ \&}
+\DoxyCodeLine{00596\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%area,\ \ \ \ \&\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00597\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%patchfrac,\ \&\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00598\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%npp,\ \ \ \ \ \&\ \ \ \ \ \ }
+\DoxyCodeLine{00599\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%ph,\ \ \ \ \ \ \&}
+\DoxyCodeLine{00600\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%clay,\ \ \ \ \&}
+\DoxyCodeLine{00601\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%silt,\ \ \ \ \&}
+\DoxyCodeLine{00602\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%poros,\ \ \ \&}
+\DoxyCodeLine{00603\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%bulkd,\ \ \ \&}
+\DoxyCodeLine{00604\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%avgts,\ \ \ \&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00605\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%avgms,\ \ \ \&\ \ \ }
+\DoxyCodeLine{00606\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%tsoil,\ \ \ \&}
+\DoxyCodeLine{00607\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%moist,\ \ \ \&\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00608\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%matpot,\ \ \&}
+\DoxyCodeLine{00609\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%ligleaf,\ \&}
+\DoxyCodeLine{00610\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%ligwood,\ \&}
+\DoxyCodeLine{00611\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%ligroot,\ \&}
+\DoxyCodeLine{00612\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%dleaf,\ \ \ \&}
+\DoxyCodeLine{00613\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%dwood,\ \ \ \&}
+\DoxyCodeLine{00614\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%droot,\ \ \ \&}
+\DoxyCodeLine{00615\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%cnleaf,\ \ \&}
+\DoxyCodeLine{00616\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%cnwood,\ \ \&}
+\DoxyCodeLine{00617\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%cnroot)\ \ \ \ \ \ \ }
+\DoxyCodeLine{00618\ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00619\ \ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_deallocate\_input}
+\DoxyCodeLine{00620\ \ \ }
+\DoxyCodeLine{00621\ \ \ \textcolor{keyword}{SUBROUTINE\ }mic\_deallocate\_output(mp,micoutput)}
+\DoxyCodeLine{00622\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00623\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_output),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micoutput}
+\DoxyCodeLine{00624\ \ \ \ \textcolor{keywordtype}{integer}\ \ mp}
+\DoxyCodeLine{00625\ \ \ \ \ \textcolor{keyword}{deallocate}(micoutput\%fluxcinput)\ \ \ }
+\DoxyCodeLine{00626\ \ \ \ \ \textcolor{keyword}{deallocate}(micoutput\%fluxrsoil)}
+\DoxyCodeLine{00627\ \ \ \ \ \textcolor{keyword}{deallocate}(micoutput\%fluxcleach)}
+\DoxyCodeLine{00628\ }
+\DoxyCodeLine{00629\ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_deallocate\_output}
+\DoxyCodeLine{00630\ }
+\DoxyCodeLine{00631\ \ \textcolor{keyword}{SUBROUTINE\ }mic\_deallocate\_cpool(mp,ms,miccpool)}
+\DoxyCodeLine{00632\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00633\ \ \ \ \textcolor{keywordtype}{integer}\ mp,ms}
+\DoxyCodeLine{00634\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_cpool),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ miccpool}
+\DoxyCodeLine{00635\ \ \ \ \textcolor{keyword}{deallocate}(miccpool\%cpool,\ \ \&}
+\DoxyCodeLine{00636\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%cpooleq,\ \&}
+\DoxyCodeLine{00637\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%cpooleqp,\ \&}
+\DoxyCodeLine{00638\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%cpooleqm,\ \&}
+\DoxyCodeLine{00639\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%c12pooleqp,\&}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ miccpool\%c12pooleqm)\ }
+\DoxyCodeLine{00641\ \ \ \ \ }
+\DoxyCodeLine{00642\ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_deallocate\_cpool\ }
+\DoxyCodeLine{00643\ }
+\DoxyCodeLine{00644\ \ }
+\DoxyCodeLine{00645\ \ \ \textcolor{keyword}{SUBROUTINE\ }mic\_deallocate\_npool(mp,ms,micnpool)}
+\DoxyCodeLine{00646\ \ \ \ \textcolor{keywordtype}{IMPLICIT\ NONE}}
+\DoxyCodeLine{00647\ \ \ \ \textcolor{keywordtype}{integer}\ mp,ms}
+\DoxyCodeLine{00648\ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_npool),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micnpool}
+\DoxyCodeLine{00649\ }
+\DoxyCodeLine{00650\ \ \ \ \textcolor{keyword}{DEALLOCATE}(micnpool\%mineralN)}
+\DoxyCodeLine{00651\ \ \ \ }
+\DoxyCodeLine{00652\ \ \ \textcolor{keyword}{END\ SUBROUTINE\ }mic\_deallocate\_npool\ \ \ }
+\DoxyCodeLine{00653\ \ \ }
+\DoxyCodeLine{00654\ \textcolor{keyword}{end\ module\ }mic\_variable}
+\DoxyCodeLine{00655\ \textcolor{comment}{!\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#mesc\_variable.f90\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#}}
+
+\end{DoxyCode}

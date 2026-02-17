@@ -1,3 +1,7 @@
+!> main driver to run model part 
+!! read in the calibrated model parameter values
+!! print out the value of cost function
+!!
 program testvmic
       implicit real*8 (a-h,o-z)
 !  ARRAYS FROM THE INPUT DATA

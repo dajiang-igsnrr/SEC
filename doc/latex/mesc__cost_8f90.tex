@@ -1,0 +1,70 @@
+\doxysection{SEC/\+src/\+mesc\+\_\+cost.f90 File Reference}
+\label{mesc__cost_8f90}\index{SEC/src/mesc\_cost.f90@{SEC/src/mesc\_cost.f90}}
+\doxysubsubsection*{Functions/\+\+Subroutines}
+\begin{DoxyCompactItemize}
+\item 
+subroutine \textbf{ calcost\+\_\+c14} (nx, isoc14, bgcopt, xopt, micparam, miccpool, micinput, zse, totcost)
+\begin{DoxyCompactList}\small\item\em compute cost for a given set of parameter values three options cost function for 14C simulation cost function SOC fraction cost function for hwsd\+\_\+\+SOC profiles \end{DoxyCompactList}\item 
+subroutine \textbf{ calcost\+\_\+frc1} (nx, bgcopt, xopt, micpxdef, micparam, miccpool, micinput, micglobal, zse, totcost)
+\item 
+subroutine \textbf{ calcost\+\_\+hwsd2} (nx, bgcopt, xopt, micpxdef, micparam, miccpool, micinput, micglobal, zse, totcost)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\doxysubsection{Function/\+\+Subroutine Documentation}
+\index{mesc\_cost.f90@{mesc\_cost.f90}!calcost\_c14@{calcost\_c14}}
+\index{calcost\_c14@{calcost\_c14}!mesc\_cost.f90@{mesc\_cost.f90}}
+\doxysubsubsection{calcost\_c14()}
+{\footnotesize\ttfamily \label{mesc__cost_8f90_aca42facd2d8c1d03bca2cf4d6fa98bbd} 
+subroutine calcost\+\_\+c14 (\begin{DoxyParamCaption}\item[{integer}]{nx}{, }\item[{integer}]{isoc14}{, }\item[{integer}]{bgcopt}{, }\item[{real$\ast$8, dimension(16)}]{xopt}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+cpool}), intent(inout)}]{miccpool}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{zse}{, }\item[{real$\ast$8}]{totcost}{}\end{DoxyParamCaption})}
+
+
+
+compute cost for a given set of parameter values three options cost function for 14C simulation cost function SOC fraction cost function for hwsd\+\_\+\+SOC profiles 
+
+
+
+Definition at line \textbf{ 8} of file \textbf{ mesc\+\_\+cost.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__cost_8f90_aca42facd2d8c1d03bca2cf4d6fa98bbd_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_cost.f90@{mesc\_cost.f90}!calcost\_frc1@{calcost\_frc1}}
+\index{calcost\_frc1@{calcost\_frc1}!mesc\_cost.f90@{mesc\_cost.f90}}
+\doxysubsubsection{calcost\_frc1()}
+{\footnotesize\ttfamily \label{mesc__cost_8f90_a67ad3ed32f4c7ea595c161427ae41fb8} 
+subroutine calcost\+\_\+frc1 (\begin{DoxyParamCaption}\item[{integer}]{nx}{, }\item[{integer}]{bgcopt}{, }\item[{real$\ast$8, dimension(16)}]{xopt}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(in)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+cpool}), intent(inout)}]{miccpool}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{type(\textbf{ mic\+\_\+global\+\_\+input}), intent(in)}]{micglobal}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{zse}{, }\item[{real$\ast$8}]{totcost}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 124} of file \textbf{ mesc\+\_\+cost.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__cost_8f90_a67ad3ed32f4c7ea595c161427ae41fb8_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_cost.f90@{mesc\_cost.f90}!calcost\_hwsd2@{calcost\_hwsd2}}
+\index{calcost\_hwsd2@{calcost\_hwsd2}!mesc\_cost.f90@{mesc\_cost.f90}}
+\doxysubsubsection{calcost\_hwsd2()}
+{\footnotesize\ttfamily \label{mesc__cost_8f90_a74015bc675dc69cf5c78d39718ef170d} 
+subroutine calcost\+\_\+hwsd2 (\begin{DoxyParamCaption}\item[{integer}]{nx}{, }\item[{integer}]{bgcopt}{, }\item[{real$\ast$8, dimension(16)}]{xopt}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(in)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+cpool}), intent(inout)}]{miccpool}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{type(\textbf{ mic\+\_\+global\+\_\+input}), intent(in)}]{micglobal}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{zse}{, }\item[{real$\ast$8}]{totcost}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 239} of file \textbf{ mesc\+\_\+cost.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__cost_8f90_a74015bc675dc69cf5c78d39718ef170d_icgraph}
+\end{center}
+\end{figure}

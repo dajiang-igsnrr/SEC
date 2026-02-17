@@ -1,0 +1,218 @@
+\doxysection{mic\+\_\+variable Module Reference}
+\label{namespacemic__variable}\index{mic\_variable@{mic\_variable}}
+\doxysubsubsection*{Data Types}
+\begin{DoxyCompactItemize}
+\item 
+type \textbf{ mic\+\_\+param\+\_\+xscale}
+\item 
+type \textbf{ mic\+\_\+param\+\_\+default}
+\item 
+type \textbf{ mic\+\_\+parameter}
+\item 
+type \textbf{ mic\+\_\+input}
+\item 
+type \textbf{ mic\+\_\+global\+\_\+input}
+\item 
+type \textbf{ mic\+\_\+output}
+\item 
+type \textbf{ mic\+\_\+cpool}
+\item 
+type \textbf{ mic\+\_\+npool}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions/\+\+Subroutines}
+\begin{DoxyCompactItemize}
+\item 
+subroutine \textbf{ mic\+\_\+allocate\+\_\+parameter} (\textbf{ mpft}, \textbf{ mbgc}, \textbf{ mp}, \textbf{ ms}, micpxdef, micparam)
+\item 
+subroutine \textbf{ mic\+\_\+allocate\+\_\+input} (\textbf{ mp}, \textbf{ ms}, \textbf{ nlon}, \textbf{ nlat}, \textbf{ ntime}, micinput, micglobal)
+\item 
+subroutine \textbf{ mic\+\_\+allocate\+\_\+output} (\textbf{ mp}, micoutput)
+\item 
+subroutine \textbf{ mic\+\_\+allocate\+\_\+cpool} (\textbf{ mp}, \textbf{ ms}, miccpool)
+\item 
+subroutine \textbf{ mic\+\_\+allocate\+\_\+npool} (\textbf{ mp}, \textbf{ ms}, micnpool)
+\item 
+subroutine \textbf{ mic\+\_\+deallocate\+\_\+parameter} (\textbf{ mpft}, \textbf{ mbgc}, \textbf{ mp}, \textbf{ ms}, micpxdef, micparam)
+\item 
+subroutine \textbf{ mic\+\_\+deallocate\+\_\+input} (\textbf{ mp}, \textbf{ ms}, \textbf{ nlon}, \textbf{ nlat}, \textbf{ ntime}, micinput, micglobal)
+\item 
+subroutine \textbf{ mic\+\_\+deallocate\+\_\+output} (\textbf{ mp}, micoutput)
+\item 
+subroutine \textbf{ mic\+\_\+deallocate\+\_\+cpool} (\textbf{ mp}, \textbf{ ms}, miccpool)
+\item 
+subroutine \textbf{ mic\+\_\+deallocate\+\_\+npool} (\textbf{ mp}, \textbf{ ms}, micnpool)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\doxysubsection{Function/\+\+Subroutine Documentation}
+\index{mic\_variable@{mic\_variable}!mic\_allocate\_cpool@{mic\_allocate\_cpool}}
+\index{mic\_allocate\_cpool@{mic\_allocate\_cpool}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_allocate\_cpool()}
+{\footnotesize\ttfamily \label{namespacemic__variable_a5a1d1dcdeee49959e0f2a5167a877b88} 
+subroutine mic\+\_\+variable::\+mic\+\_\+allocate\+\_\+cpool (\begin{DoxyParamCaption}\item[{integer}]{mp}{, }\item[{integer}]{ms}{, }\item[{type(\textbf{ mic\+\_\+cpool}), intent(inout)}]{miccpool}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 444} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_a5a1d1dcdeee49959e0f2a5167a877b88_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_allocate\_input@{mic\_allocate\_input}}
+\index{mic\_allocate\_input@{mic\_allocate\_input}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_allocate\_input()}
+{\footnotesize\ttfamily \label{namespacemic__variable_a341fda2222809d45e856bb0380b5b0db} 
+subroutine mic\+\_\+variable::\+mic\+\_\+allocate\+\_\+input (\begin{DoxyParamCaption}\item[{integer}]{mp}{, }\item[{integer}]{ms}{, }\item[{integer}]{nlon}{, }\item[{integer}]{nlat}{, }\item[{integer}]{ntime}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(inout)}]{micinput}{, }\item[{type(\textbf{ mic\+\_\+global\+\_\+input}), intent(inout)}]{micglobal}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 379} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_a341fda2222809d45e856bb0380b5b0db_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_allocate\_npool@{mic\_allocate\_npool}}
+\index{mic\_allocate\_npool@{mic\_allocate\_npool}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_allocate\_npool()}
+{\footnotesize\ttfamily \label{namespacemic__variable_ab972f920009114a06a76fbf38e7deb5a} 
+subroutine mic\+\_\+variable::\+mic\+\_\+allocate\+\_\+npool (\begin{DoxyParamCaption}\item[{integer}]{mp}{, }\item[{integer}]{ms}{, }\item[{type(\textbf{ mic\+\_\+npool}), intent(inout)}]{micnpool}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 457} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_ab972f920009114a06a76fbf38e7deb5a_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_allocate\_output@{mic\_allocate\_output}}
+\index{mic\_allocate\_output@{mic\_allocate\_output}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_allocate\_output()}
+{\footnotesize\ttfamily \label{namespacemic__variable_a322762216736f7db3d552d46d67d3b5a} 
+subroutine mic\+\_\+variable::\+mic\+\_\+allocate\+\_\+output (\begin{DoxyParamCaption}\item[{integer}]{mp}{, }\item[{type(\textbf{ mic\+\_\+output}), intent(inout)}]{micoutput}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 433} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_a322762216736f7db3d552d46d67d3b5a_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_allocate\_parameter@{mic\_allocate\_parameter}}
+\index{mic\_allocate\_parameter@{mic\_allocate\_parameter}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_allocate\_parameter()}
+{\footnotesize\ttfamily \label{namespacemic__variable_acd83405483c6f21c67801926466d6cc4} 
+subroutine mic\+\_\+variable::\+mic\+\_\+allocate\+\_\+parameter (\begin{DoxyParamCaption}\item[{integer}]{mpft}{, }\item[{integer}]{mbgc}{, }\item[{integer}]{mp}{, }\item[{integer}]{ms}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(inout)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 281} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_acd83405483c6f21c67801926466d6cc4_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_deallocate\_cpool@{mic\_deallocate\_cpool}}
+\index{mic\_deallocate\_cpool@{mic\_deallocate\_cpool}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_deallocate\_cpool()}
+{\footnotesize\ttfamily \label{namespacemic__variable_a77c2a4260036cd977e0506207541a8da} 
+subroutine mic\+\_\+variable::\+mic\+\_\+deallocate\+\_\+cpool (\begin{DoxyParamCaption}\item[{integer}]{mp}{, }\item[{integer}]{ms}{, }\item[{type(\textbf{ mic\+\_\+cpool}), intent(inout)}]{miccpool}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 631} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_a77c2a4260036cd977e0506207541a8da_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_deallocate\_input@{mic\_deallocate\_input}}
+\index{mic\_deallocate\_input@{mic\_deallocate\_input}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_deallocate\_input()}
+{\footnotesize\ttfamily \label{namespacemic__variable_a0ce0f2b4f6322ea1462ba100c225648e} 
+subroutine mic\+\_\+variable::\+mic\+\_\+deallocate\+\_\+input (\begin{DoxyParamCaption}\item[{integer}]{mp}{, }\item[{integer}]{ms}{, }\item[{integer}]{nlon}{, }\item[{integer}]{nlat}{, }\item[{integer}]{ntime}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(inout)}]{micinput}{, }\item[{type(\textbf{ mic\+\_\+global\+\_\+input}), intent(inout)}]{micglobal}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 566} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_a0ce0f2b4f6322ea1462ba100c225648e_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_deallocate\_npool@{mic\_deallocate\_npool}}
+\index{mic\_deallocate\_npool@{mic\_deallocate\_npool}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_deallocate\_npool()}
+{\footnotesize\ttfamily \label{namespacemic__variable_ae62be1d35adce0fccc69d94fad12967c} 
+subroutine mic\+\_\+variable::\+mic\+\_\+deallocate\+\_\+npool (\begin{DoxyParamCaption}\item[{integer}]{mp}{, }\item[{integer}]{ms}{, }\item[{type(\textbf{ mic\+\_\+npool}), intent(inout)}]{micnpool}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 645} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_ae62be1d35adce0fccc69d94fad12967c_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_deallocate\_output@{mic\_deallocate\_output}}
+\index{mic\_deallocate\_output@{mic\_deallocate\_output}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_deallocate\_output()}
+{\footnotesize\ttfamily \label{namespacemic__variable_a0d51edb3f3e3f344e62ae2c22fb4dd5c} 
+subroutine mic\+\_\+variable::\+mic\+\_\+deallocate\+\_\+output (\begin{DoxyParamCaption}\item[{integer}]{mp}{, }\item[{type(\textbf{ mic\+\_\+output}), intent(inout)}]{micoutput}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 621} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_a0d51edb3f3e3f344e62ae2c22fb4dd5c_icgraph}
+\end{center}
+\end{figure}
+\index{mic\_variable@{mic\_variable}!mic\_deallocate\_parameter@{mic\_deallocate\_parameter}}
+\index{mic\_deallocate\_parameter@{mic\_deallocate\_parameter}!mic\_variable@{mic\_variable}}
+\doxysubsubsection{mic\_deallocate\_parameter()}
+{\footnotesize\ttfamily \label{namespacemic__variable_a7c46bf65c4cf158f4546fbfe25d1668b} 
+subroutine mic\+\_\+variable::\+mic\+\_\+deallocate\+\_\+parameter (\begin{DoxyParamCaption}\item[{integer}]{mpft}{, }\item[{integer}]{mbgc}{, }\item[{integer}]{mp}{, }\item[{integer}]{ms}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(inout)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 468} of file \textbf{ mesc\+\_\+variable.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacemic__variable_a7c46bf65c4cf158f4546fbfe25d1668b_icgraph}
+\end{center}
+\end{figure}

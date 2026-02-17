@@ -1,0 +1,6 @@
+jglobal  ifsoc14  kinetics pftopt jopt jrestart
+   0        0        3       3     0     0
+/home/wan028/mes-c/SEC/test/input/c_fraction01_new_xclaysilt_test.nc
+/home/wan028/mes-c/SEC/test/input/global_10_clusters_0-20cm.nc
+  1.0000  1.0000  1.0000  1.000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000
+5    10    2     6    12   14

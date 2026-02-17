@@ -1,4 +1,8 @@
-! ##############mesc_inout.f90###########################
+!> this part reads restart file that includes all the pool sizes from previous model run
+!! read the C and N pool sizes and assign them to the "miccpool" and "micnpool"
+!! input:  netcdf file frestart_in
+!! output: miccpool and micnppol
+!!
   subroutine vmic_restart_read(miccpool,micnpool,frestart_in)
   ! read soil carbon pool sizes "miccpool%cpool(mp,ms,mcpool)"
     use netcdf
@@ -7,12 +11,12 @@
     implicit none
     TYPE(mic_cpool),              INTENT(INOUT)   :: miccpool
     TYPE(mic_npool),              INTENT(INOUT)   :: micnpool
-    character*140 frestart_in
+    character*140 frestart_in                        ! restart filename
     ! local variables
-    integer mpx,msx,mcpoolx
-    integer status,ncid,varid
-    real(r_2), dimension(mp,ms,mcpool)  :: fcpool
-    real(r_2), dimension(mp,ms)         :: fnpool
+    integer mpx,msx,mcpoolx                          ! array dimensions
+    integer status,ncid,varid                        ! local variables
+    real(r_2), dimension(mp,ms,mcpool)  :: fcpool    ! carbon pools
+    real(r_2), dimension(mp,ms)         :: fnpool    ! nitrogen pools
 
    ! open restart file
     status = nf90_open(frestart_in,nf90_nowrite,ncid)
@@ -60,7 +64,10 @@
 
   end subroutine vmic_restart_read
   
-  
+!> write out model pool sizes into restart file
+!! input: frestart_out
+!! output: miccpool%cpool, micnpool%npool
+!!  
   subroutine vmic_restart_write(frestart_out,miccpool,micnpool)
   ! write out soil carbon pool sizes "miccpool%cpool(mp,ms,mcpool)"
     use netcdf
@@ -69,8 +76,9 @@
     implicit None
     TYPE(mic_cpool),              INTENT(INOUT)   :: miccpool
     TYPE(mic_npool),              INTENT(INOUT)   :: micnpool
+	! local variables for writing netcdf file
     INTEGER*4                :: STATUS
-    INTEGER*4                :: FILE_ID, mp_ID, miccarb_ID, soil_ID
+    INTEGER*4                :: FILE_ID, mp_ID, miccarb_ID, soil_ID   
     CHARACTER                :: CDATE*10,frestart_out*99
     INTEGER*4                :: cmic_ID, nmic_ID
     integer :: values(10)
@@ -128,6 +136,10 @@
 
   end subroutine vmic_restart_write
 
+!> abort model run in case when error occurs during reading/writing netcdf file
+!! input integer variable ok
+!! output: character string "message"
+!!
   SUBROUTINE nc_abort( ok, message )
     USE netcdf
     ! Input arguments
@@ -141,6 +153,11 @@
 
   END SUBROUTINE nc_abort
 
+!> write out fluxes into a netcdf file
+!> input:  micoutput%cinput,micoutput%rsoil,micoutput%cleach in gc/m2/year for each "mp"
+!! output: netcdf foutput
+!! "micinput" not used yet
+!!
   subroutine vmic_output_write(foutput,micinput,micoutput)
     ! fNPP is not quite right yet. It shoudl be the sump of "cinputm+cinputs"
     use netcdf
@@ -218,14 +235,18 @@
     write(*, *) 'output written to ', foutput
     
   end subroutine vmic_output_write
-  
+
+!> get PFT-dependent model paramater values (up to 20 parameters)
+!! input: hartd-wired parameter filename "parameters_global.csv"  
+!! output: write the parameter values to "micpxdef"
+!!
   subroutine getparam_global(micpxdef)
     use mic_constant
     use mic_variable
     implicit none
     TYPE(mic_param_xscale)    :: micpxdef
     integer npft,ipft,n
-    real(r_2), dimension(20)    :: x
+    real(r_2), dimension(20)    :: x   ! local variables
     
     open(100,file='parameters_global.csv')
     read(100,*)
@@ -258,7 +279,14 @@
 !    print *, 'xtvc=',    micpxdef%xtvc(npft)
     
   end subroutine getparam_global
-  
+ 
+!> read in global atmospheric C14 data and input data for model run with 14C
+!! input 1: file 1 "frac14c" with all observed C14, carbon input, soil properties and other site-sepefici
+!!        parameter for model run
+!! input 2: file 2" f14c" with atmospheric 14C in five different zones
+!! output: all data read in here are written into "micparam", "micinpout" and "micnpool"
+!! "fcluster" is not read in yet
+!!
   subroutine getdata_c14(frac14c,f14c,micinput,micparam,micnpool,zse)
     use netcdf
     use mic_constant
@@ -267,11 +295,13 @@
     TYPE(mic_parameter), INTENT(INout)   :: micparam
     TYPE(mic_input),     INTENT(INout)   :: micinput
     TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
-    real(r_2) zse(ms)    
+    real(r_2) zse(ms)       ! soil layer thickness in m-2
+	! local variables
     integer:: ncid,varid,status
     integer:: np,ns,i,j
     integer:: nz
-    character*140 frac14c,f14c(5),filecluster
+    character*140 frac14c,f14c(5)
+	character*140 filecluster   ! cluster filename (not used)
 
     character(len = nf90_max_name):: name
     real(r_2),dimension(:,:),allocatable:: fclay,fsilt,fph,ftemp,fmoist,fporosity,fmatpot
@@ -279,7 +309,8 @@
     real(r_2),dimension(:),  allocatable:: fnpp,fanpp,fbnpp,flignin,fcna,fcnb
     integer,  dimension(:),  allocatable:: fid,fpft,ftop,fbot,fyear,fregion,fcluster
     real*8,   dimension(:),  allocatable:: lat,lon
-    
+ 
+    ! allocate variable for reading 
     allocate(fsoc(mp))
 
     allocate(fclay(mp,ms))
@@ -456,7 +487,7 @@
     ! Close netcdf file
     status = NF90_CLOSE(ncid)    
 
-      ! we need to include additional data for kinetics3
+    ! we need to include additional data for kinetics3
    
       micparam%csoilobs(:,:) = -999.0
       do np=1, mp
@@ -466,16 +497,17 @@
 
             micparam%top(np)         = int(ftop(np))
             micparam%bot(np)         = int(fbot(np))
-            micparam%nyc14obs(np)    = int(fyear(np)) !! year when c14 is observed
-            micparam%region(np)      = int(fregion(np)) !! south/north hemisphere zone of c14
-            micparam%c14soilobsp(np) = ffmpoc(np) !! poc c14 fraction modern
-            micparam%c14soilobsm(np) = ffmmaoc(np) !! maoc c14 fraction modern
+            micparam%nyc14obs(np)    = int(fyear(np))     ! year when c14 is observed
+            micparam%region(np)      = int(fregion(np))   ! south/north hemisphere zone of c14
+            micparam%c14soilobsp(np) = ffmpoc(np)         ! poc c14 fraction modern
+            micparam%c14soilobsm(np) = ffmmaoc(np)        ! maoc c14 fraction modern
 
          ! make sure "*delt" is not repeated in the model called by rk4
           micinput%fcnpp(np)      = fnpp(np)
-          micinput%Dleaf(np)      = fanpp(np)/(24.0*365.0)*delt    !gc/m2/delt
-          micinput%Droot(np)      = fbnpp(np)/(24.0*365.0)*delt     !gc/m2/delt
-          !micinput%Dwood(np)      = forcdata(np,17)/(24.0*365.0)*delt     !gc/m2/delt
+          micinput%Dleaf(np)      = fanpp(np)/(24.0*365.0)*delt            !gc/m2/delt
+          micinput%Droot(np)      = fbnpp(np)/(24.0*365.0)*delt            !gc/m2/delt
+          !micinput%Dwood(np)      = forcdata(np,17)/(24.0*365.0)*delt     !gc/m2/delt (included in Dleaf or Droot already
+		                                                                    
 
           micparam%xcnleaf(np)    = fcna(np)
           micparam%xcnroot(np)    = fcnb(np)
@@ -485,13 +517,13 @@
           !micparam%fligwood(np)   = forcdata(np,23)
 
          do ns=1,ms
-            micinput%tavg(np,ns)     = ftemp(np,ns)  ! average temperature in deg C
-            micinput%wavg(np,ns)     = fmoist(np,ns)  ! average soil water content mm3/mm3
-            micinput%clay(np,ns)     = fclay(np,ns)  ! clay content (fraction)
-            micinput%silt(np,ns)     = fsilt(np,ns)  ! silt content (fraction)
+            micinput%tavg(np,ns)     = ftemp(np,ns)     ! average temperature in deg C
+            micinput%wavg(np,ns)     = fmoist(np,ns)    ! average soil water content mm3/mm3
+            micinput%clay(np,ns)     = fclay(np,ns)     ! clay content (fraction 0-1)
+            micinput%silt(np,ns)     = fsilt(np,ns)     ! silt content (fraction 0-1)
             micinput%ph(np,ns)       = fph(np,ns)
-            micinput%porosity(np,ns) = fporosity(np,ns) !porosity mm3/mm3
-            micinput%matpot(np,ns)   = fmatpot(np,ns)  ! soil matric potential -kPa
+            micinput%porosity(np,ns) = fporosity(np,ns) ! porosity mm3/mm3
+            micinput%matpot(np,ns)   = fmatpot(np,ns)   ! soil matric potential -kPa
 
             micparam%csoilobs(np,ns)    = fsoc(np) 
             micinput%bulkd(np,ns)       = fbulkd(np)
@@ -503,7 +535,7 @@
          enddo !"ns"
       enddo    ! "np=1,mp"
 
-         ! read in the standard 14C atmospheric data for five zones
+      ! read in the standard 14C atmospheric data for five zones
 !         f14c(1) ='/g/data/w97/lw9370/combined-model/c14/code-structure/data/NH1-C14.csv'
 !         f14c(2) ='/g/data/w97/lw9370/combined-model/c14/code-structure/data/NH2-C14.csv'
 !         f14c(3) ='/g/data/w97/lw9370/combined-model/c14/code-structure/data/NH3-C14.csv'
@@ -513,6 +545,7 @@
              call get14catm(nz,f14c(nz),micparam)
          enddo
 
+    ! dealoocate variables
     deallocate(fsoc)
     deallocate(fbulkd)
     deallocate(fclay)
@@ -545,7 +578,32 @@
     
    end subroutine getdata_c14
 
+!> get dimeions: mp from the c fraction input file
+!! 
+   subroutine getdata_frc_dim(cfraction,mpx)
+    use netcdf
+    use mic_constant
+    use mic_variable
+    implicit none
+    character*140 cfraction   
+    integer mpx
+    integer:: ncid,varid,status
+   ! open .nc file
+    status = nf90_open(cfraction,nf90_nowrite,ncid)
+    if(status /= nf90_noerr) print*, 'Error opening c_fraction.nc'
 
+    ! get dimension
+    status = nf90_inq_dimid(ncid,'nsite',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring dimensions/nsite'
+    status = nf90_inquire_dimension(ncid,varid,len=mpx)
+    if(status /= nf90_noerr) print*,'Error dimensions/nsite'
+ 
+    ! Close netcdf file
+    status = NF90_CLOSE(ncid)   
+   end subroutine  getdata_frc_dim   
+
+!> read in data for model run to calculate POC and MAOC fractions
+!! 
    SUBROUTINE getdata_frc(cfraction,filecluster,jglobal,bgcopt,micinput,micparam,micnpool,zse)
     use netcdf
     use mic_constant
@@ -916,11 +974,11 @@
     status = nf90_open(fhwsdsoc,nf90_nowrite,ncid)
     if(status /= nf90_noerr) print*, 'Error opening c_fraction.nc'
 
-    ! get dimensions/profile_id
+    ! get dimensions
     status = nf90_inq_dimid(ncid,'nsite',varid)
     if(status /= nf90_noerr) print*, 'Error inquiring dimensions/nsite'
     status = nf90_inquire_dimension(ncid,varid,len=mpx)
-    if(status /= nf90_noerr) print*,'Error reading profile_id'
+    if(status /= nf90_noerr) print*,'Error dimensions/nsite'
   
     !
     status = nf90_inq_dimid(ncid,'time',varid)
@@ -1191,8 +1249,12 @@
              micglobal%tsoil(np,ns,:) = real(tsoil7(np,ns-3,:),kind=r_2)
              micglobal%moist(np,ns,:) = real(moist7(np,ns-3,:),kind=r_2)
              micglobal%matpot(np,ns,:)= real(watpot7(np,ns-3,:),kind=r_2)  
+             ! filter out sites with SOC >12 gc/kg (organic soil: Lourenco ett al. 2022)
+             if(micparam%csoilobs(np,ns) >=12.0) then 
+                micglobal%area(np) = -1.0
+             endif   
           endif          
-
+      
           if(micparam%csoilobs(np,ns) >0.0 .and. micparam%csoilobs(np,ns) < 1000.0) nsocobs = nsocobs + 1
 
        enddo 

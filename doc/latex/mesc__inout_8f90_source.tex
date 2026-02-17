@@ -1,0 +1,1413 @@
+\doxysection{mesc\+\_\+inout.\+f90}
+\label{mesc__inout_8f90_source}\index{SEC/src/mesc\_inout.f90@{SEC/src/mesc\_inout.f90}}
+\textbf{ Go to the documentation of this file.}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{!>\ this\ part\ reads\ restart\ file\ that\ includes\ all\ the\ pool\ sizes\ from\ previous\ model\ run}}
+\DoxyCodeLine{00002\ \textcolor{comment}{!!\ read\ the\ C\ and\ N\ pool\ sizes\ and\ assign\ them\ to\ the\ "{}miccpool"{}\ and\ "{}micnpool"{}}}
+\DoxyCodeLine{00003\ \textcolor{comment}{!!\ input:\ \ netcdf\ file\ frestart\_in}}
+\DoxyCodeLine{00004\ \textcolor{comment}{!!\ output:\ miccpool\ and\ micnppol}}
+\DoxyCodeLine{00005\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00006\ \ \ \textcolor{keyword}{subroutine\ }vmic\_restart\_read(miccpool,micnpool,frestart\_in)}
+\DoxyCodeLine{00007\ \ \ \textcolor{comment}{!\ read\ soil\ carbon\ pool\ sizes\ "{}miccpool\%cpool(mp,ms,mcpool)"{}}}
+\DoxyCodeLine{00008\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{00009\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00010\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_cpool),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ miccpool}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_npool),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ micnpool}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keywordtype}{character*140}\ frestart\_in\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ restart\ filename}}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00016\ \ \ \ \ \textcolor{keywordtype}{integer}\ mpx,msx,mcpoolx\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ array\ dimensions}}
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keywordtype}{integer}\ status,ncid,varid\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00018\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(mp,ms,mcpool)}\ \ ::\ fcpool\ \ \ \ \textcolor{comment}{!\ carbon\ pools}}
+\DoxyCodeLine{00019\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(mp,ms)}\ \ \ \ \ \ \ \ \ ::\ fnpool\ \ \ \ \textcolor{comment}{!\ nitrogen\ pools}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \ \ \ \textcolor{comment}{!\ open\ restart\ file}}
+\DoxyCodeLine{00022\ \ \ \ \ status\ =\ nf90\_open(frestart\_in,nf90\_nowrite,ncid)}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ opening\ '}//frestart\_in)}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \ \ \ \ \textcolor{comment}{!\ get\ dimensions}}
+\DoxyCodeLine{00026\ \ \ \ \ status\ =\ nf90\_inq\_dimid(ncid,\textcolor{stringliteral}{'mp'},varid)}
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ inquiring\ dimensions\ mp\_id'})}
+\DoxyCodeLine{00028\ \ \ \ \ status\ =\ nf90\_inquire\_dimension(ncid,varid,len=mpx)}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ reading\ mp'})}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \ \ \ \ status\ =\ nf90\_inq\_dimid(ncid,\textcolor{stringliteral}{'ms'},varid)}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\textcolor{stringliteral}{'Error\ inquiring\ dimensions\ ms\_id'})}
+\DoxyCodeLine{00033\ \ \ \ \ status\ =\ nf90\_inquire\_dimension(ncid,varid,len=msx)}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ reading\ ms'})}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00036\ \ \ \ \ status\ =\ nf90\_inq\_dimid(ncid,\textcolor{stringliteral}{'mcpool'},varid)}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ inquiring\ dimensions\ mccpool\_id'})}
+\DoxyCodeLine{00038\ \ \ \ \ status\ =\ nf90\_inquire\_dimension(ncid,varid,len=mcpoolx)}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\textcolor{stringliteral}{'Error\ reading\ mcpool'})\ \ \ }
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{comment}{!\ get\ variables}}
+\DoxyCodeLine{00042\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'mic\_cpool'},varid)}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ inquiring\ miccpoolc'})}
+\DoxyCodeLine{00044\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fcpool)}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\textcolor{stringliteral}{'Error\ reading\ fcpool'})}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'mic\_npool'},varid)}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ inquiring\ micnpoolc'})}
+\DoxyCodeLine{00049\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fnpool)}
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\textcolor{stringliteral}{'Error\ reading\ fnpool'})}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \ \ \ \ \textcolor{comment}{!\ close\ the\ file}}
+\DoxyCodeLine{00053\ \ \ \ \ status\ =\ nf90\_close(ncid)}
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{call\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ in\ clsoing\ netCDF\ input\ file'})}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{comment}{!\ assign\ the\ values\ from\ the\ restart\ file\ }}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keywordflow}{if}(mpx/=mp\ .or.\ msx/=ms\ .or.\ mcpoolx/=mcpool)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'dimensions\ do\ not\ match!\ '},\ mp,mpx,ms,msx,mcpool,mcpoolx}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \ stop}
+\DoxyCodeLine{00060\ \textcolor{keywordflow}{\ \ \ \ endif}}
+\DoxyCodeLine{00061\ \ \ \ \ miccpool\%cpool\ \ \ \ =\ fcpool}
+\DoxyCodeLine{00062\ \ \ \ \ micnpool\%mineralN\ =\ fnpool}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \ \ \textcolor{keyword}{end\ subroutine\ }vmic\_restart\_read}
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{}}
+\DoxyCodeLine{00067\ \textcolor{comment}{!>\ write\ out\ model\ pool\ sizes\ into\ restart\ file}}
+\DoxyCodeLine{00068\ \textcolor{comment}{!!\ input:\ frestart\_out}}
+\DoxyCodeLine{00069\ \textcolor{comment}{!!\ output:\ miccpool\%cpool,\ micnpool\%npool}}
+\DoxyCodeLine{00070\ \textcolor{comment}{!!\ \ }}
+\DoxyCodeLine{00071\ \ \ \textcolor{keyword}{subroutine\ }vmic\_restart\_write(frestart\_out,miccpool,micnpool)}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{!\ write\ out\ soil\ carbon\ pool\ sizes\ "{}miccpool\%cpool(mp,ms,mcpool)"{}}}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable\ \ }
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keywordtype}{implicit\ None}}
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_cpool),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ miccpool}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_npool),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ micnpool}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{comment}{!\ local\ variables\ for\ writing\ netcdf\ file}}
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{keywordtype}{INTEGER*4}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ STATUS}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keywordtype}{INTEGER*4}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ FILE\_ID,\ mp\_ID,\ miccarb\_ID,\ soil\_ID\ \ \ }
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keywordtype}{CHARACTER}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ CDATE*10,frestart\_out*99}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keywordtype}{INTEGER*4}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ cmic\_ID,\ nmic\_ID}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordtype}{integer}\ ::\ values(10)}
+\DoxyCodeLine{00085\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ missreal}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \ \ \ \ missreal=-\/1.0e10}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{keyword}{call\ }date\_and\_time(values=values)}
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keyword}{WRITE}(cdate,\ \textcolor{stringliteral}{'(I4.4,"{}-\/"{},I2.2,"{}-\/"{},I2.2)'})\ values(1),values(2),values(3)}
+\DoxyCodeLine{00090\ \ \ \ \ }
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{comment}{!\ Create\ NetCDF\ file:}}
+\DoxyCodeLine{00092\ \ \ \ \ status\ =\ nf90\_create(frestart\_out,\ nf90\_clobber,\ file\_id)}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ creating\ restart\ file\ '})}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keyword}{WRITE}(*,*)\ \textcolor{stringliteral}{'writing\ mic\ restart'},\ frestart\_out}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{comment}{!\ Put\ the\ file\ in\ define\ mode:}}
+\DoxyCodeLine{00097\ \ \ \ \ status\ =\ nf90\_redef(file\_id)}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \ \ \ \ status\ =\ nf90\_put\_att(\ file\_id,\ nf90\_global,\ \textcolor{stringliteral}{"{}Valid\ restart\ date"{}},\ cdate\ )}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{comment}{!\ Define\ dimensions:}}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{comment}{!\ mp\ (number\ of\ patches)}}
+\DoxyCodeLine{00103\ \ \ \ \ status\ =\ nf90\_def\_dim(file\_id,\ \textcolor{stringliteral}{'mp'}\ \ \ ,\ mp\ \ \ \ \ ,\ mp\_id)}
+\DoxyCodeLine{00104\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ mp\ dimension\ '})}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{comment}{!\ ms:\ number\ of\ soil\ layers}}
+\DoxyCodeLine{00107\ \ \ \ \ status\ =\ nf90\_def\_dim(file\_id,\ \textcolor{stringliteral}{'ms'},\ ms,\ soil\_id)}
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ soil\ dimension\ '}\ )}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{comment}{!\ mcpool:\ number\ of\ soil\ carbon\ pools}}
+\DoxyCodeLine{00111\ \ \ \ \ status\ =\ nf90\_def\_dim(file\_id,\ \textcolor{stringliteral}{'mcpool'},\ mcpool,\ miccarb\_id)}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ mic\_carbon\_pools\ dimension\ '}\ )}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00114\ \ \ \ \ status\ =\ nf90\_def\_var(file\_id,\textcolor{stringliteral}{'mic\_cpool'},nf90\_float,(/mp\_id,soil\_id,miccarb\_id/),cmic\_id)}
+\DoxyCodeLine{00115\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ mic\_cpool\ variable\ '}\ )}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \ \ status\ =\ nf90\_def\_var(file\_id,\textcolor{stringliteral}{'mic\_npool'},nf90\_float,(/mp\_id,soil\_id/),nmic\_id)}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ mic\_npool\ variable\ '}\ )}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{comment}{!\ End\ define\ mode:}}
+\DoxyCodeLine{00121\ \ \ \ \ status\ =\ nf90\_enddef(file\_id)}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ ending\ define\ mode\ '}\ )}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{comment}{!\ PUT\ VARS}}
+\DoxyCodeLine{00125\ \ \ \ \ status\ =\ nf90\_put\_var(file\_id,\ cmic\_id,\ real(miccpool\%cpool,\ 4)\ )}
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ writing\ mic\_cpool\ variable\ '}\ )}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \ \ \ status\ =\ nf90\_put\_var(file\_id,\ nmic\_id,\ real(micnpool\%mineralN,\ 4)\ )}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ writing\ mic\_npool\ variable\ '})}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{comment}{!\ Close\ NetCDF\ file:}}
+\DoxyCodeLine{00132\ \ \ \ \ status\ =\ nf90\_close(file\_id)}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ closing\ restart\ file\ '}\ \ )}
+\DoxyCodeLine{00134\ }
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keyword}{write}(*,\ *)\ \textcolor{stringliteral}{'restart\ file\ written\ to\ '},\ frestart\_out}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \ \ \textcolor{keyword}{end\ subroutine\ }vmic\_restart\_write}
+\DoxyCodeLine{00138\ \textcolor{comment}{}}
+\DoxyCodeLine{00139\ \textcolor{comment}{!>\ abort\ model\ run\ in\ case\ when\ error\ occurs\ during\ reading/writing\ netcdf\ file}}
+\DoxyCodeLine{00140\ \textcolor{comment}{!!\ input\ integer\ variable\ ok}}
+\DoxyCodeLine{00141\ \textcolor{comment}{!!\ output:\ character\ string\ "{}message"{}}}
+\DoxyCodeLine{00142\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00143\ \ \ \textcolor{keyword}{SUBROUTINE\ }nc\_abort(\ ok,\ message\ )}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keywordtype}{USE\ }netcdf}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{comment}{!\ Input\ arguments}}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordtype}{CHARACTER(LEN=*)},\ \textcolor{keywordtype}{INTENT(IN)}\ ::\ message}
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keywordtype}{INTEGER},\ \textcolor{keywordtype}{INTENT(IN)}\ ::\ ok}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keyword}{WRITE}(*,*)\ message\ \textcolor{comment}{!\ error\ from\ subroutine}}
+\DoxyCodeLine{00150\ \ \ \ \ \textcolor{keyword}{WRITE}(*,*)\ nf90\_strerror(ok)\ \textcolor{comment}{!\ netcdf\ error\ details}}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \ \ \ \ stop}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \ \ \textcolor{keyword}{END\ SUBROUTINE\ }nc\_abort}
+\DoxyCodeLine{00155\ \textcolor{comment}{}}
+\DoxyCodeLine{00156\ \textcolor{comment}{!>\ write\ out\ fluxes\ into\ a\ netcdf\ file}}
+\DoxyCodeLine{00157\ \textcolor{comment}{!>\ input:\ \ micoutput\%cinput,micoutput\%rsoil,micoutput\%cleach\ in\ gc/m2/year\ for\ each\ "{}mp"{}}}
+\DoxyCodeLine{00158\ \textcolor{comment}{!!\ output:\ netcdf\ foutput}}
+\DoxyCodeLine{00159\ \textcolor{comment}{!!\ "{}micinput"{}\ not\ used\ yet}}
+\DoxyCodeLine{00160\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00161\ \ \ \textcolor{keyword}{subroutine\ }vmic\_output\_write(foutput,micinput,micoutput)}
+\DoxyCodeLine{00162\ \ \ \ \ \textcolor{comment}{!\ fNPP\ is\ not\ quite\ right\ yet.\ It\ shoudl\ be\ the\ sump\ of\ "{}cinputm+cinputs"{}}}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{00164\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00165\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable\ \ }
+\DoxyCodeLine{00166\ \ \ \ \ \textcolor{keywordtype}{implicit\ None}}
+\DoxyCodeLine{00167\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INout)}\ \ \ ::\ micinput}
+\DoxyCodeLine{00168\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_output),\ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INout)}\ \ \ ::\ micoutput}
+\DoxyCodeLine{00169\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ \ \ \ missreal}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keywordtype}{INTEGER*4}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ STATUS}
+\DoxyCodeLine{00171\ \ \ \ \ \textcolor{keywordtype}{INTEGER*4}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ FILE\_ID,\ mp\_ID}
+\DoxyCodeLine{00172\ \ \ \ \ \textcolor{keywordtype}{CHARACTER}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ CDATE*10,foutput*99}
+\DoxyCodeLine{00173\ \ \ \ \ \textcolor{keywordtype}{INTEGER*4}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ cinput\_ID,\ rsoil\_ID,\ cleach\_ID}
+\DoxyCodeLine{00174\ \ \ \ \ \textcolor{keywordtype}{integer}\ ::\ values(10)}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \ \ \ \ missreal=-\/1.0e10}
+\DoxyCodeLine{00177\ \ \ \ \ \textcolor{keyword}{call\ }date\_and\_time(values=values)}
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{keyword}{WRITE}(cdate,\ \textcolor{stringliteral}{'(I4.4,"{}-\/"{},I2.2,"{}-\/"{},I2.2)'})\ values(1),values(2),values(3)}
+\DoxyCodeLine{00179\ \ \ \ \ \textcolor{comment}{!\ Create\ NetCDF\ file:}}
+\DoxyCodeLine{00180\ \ \ \ \ status\ =\ nf90\_create(foutput,\ nf90\_clobber,\ file\_id)}
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ creating\ output\ file\ '})}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \ \ \ \ \textcolor{keyword}{WRITE}(*,*)\ \textcolor{stringliteral}{'writing\ output\ file'},\ foutput}
+\DoxyCodeLine{00184\ \ \ \ \ print\ *,\ cdate}
+\DoxyCodeLine{00185\ \ \ \ \ }
+\DoxyCodeLine{00186\ \ \ \ \ \textcolor{comment}{!\ Put\ the\ file\ in\ define\ mode:}}
+\DoxyCodeLine{00187\ \ \ \ \ status\ =\ nf90\_redef(file\_id)}
+\DoxyCodeLine{00188\ }
+\DoxyCodeLine{00189\ \ \ \ \ status\ =\ nf90\_put\_att(\ file\_id,\ nf90\_global,\ \textcolor{stringliteral}{"{}Valid\ output\ date"{}},\ cdate\ \ )}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \ \ \ \ \textcolor{comment}{!\ Define\ dimensions:}}
+\DoxyCodeLine{00192\ \ \ \ \ \textcolor{comment}{!\ mp\ (number\ of\ patches)}}
+\DoxyCodeLine{00193\ \ \ \ \ status\ =\ nf90\_def\_dim(file\_id,\ \textcolor{stringliteral}{'mp'}\ \ \ ,\ mp\ \ \ \ \ ,\ mp\_id)}
+\DoxyCodeLine{00194\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ mp\ dimension\ '})}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \ \ \ \ status\ =\ nf90\_def\_var(file\_id,\textcolor{stringliteral}{'Cinput'},nf90\_float,(/mp\_id/),cinput\_id)}
+\DoxyCodeLine{00197\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ NPP\ '}\ )}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \ \ \ \ status\ =\ nf90\_def\_var(file\_id,\textcolor{stringliteral}{'rsoil'},nf90\_float,(/mp\_id/),rsoil\_id)}
+\DoxyCodeLine{00201\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ rsoil\ '}\ )}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \ \ \ \ status\ =\ nf90\_def\_var(file\_id,\textcolor{stringliteral}{'Cleach'},nf90\_float,(/mp\_id/),cleach\_id)}
+\DoxyCodeLine{00205\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ defining\ cleach\ '}\ )}
+\DoxyCodeLine{00206\ \ \ \ \ }
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{comment}{!\ End\ define\ mode:}}
+\DoxyCodeLine{00208\ \ \ \ \ status\ =\ nf90\_enddef(file\_id)}
+\DoxyCodeLine{00209\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ ending\ define\ mode\ '}\ )}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \ \ \ \ \textcolor{comment}{!\ put\ attributes}}
+\DoxyCodeLine{00212\ \ \ \ \ status\ =\ nf90\_put\_att(file\_id,cinput\_id,\textcolor{stringliteral}{'unit'},\textcolor{stringliteral}{'g\ C\ m-\/2\ year-\/1'})}
+\DoxyCodeLine{00213\ \ \ \ \ status\ =\ nf90\_put\_att(file\_id,cinput\_id,\textcolor{stringliteral}{'missing\_value'},\ real(missreal,4))}
+\DoxyCodeLine{00214\ \ \ \ \ }
+\DoxyCodeLine{00215\ \ \ \ \ status\ =\ nf90\_put\_att(file\_id,rsoil\_id,\textcolor{stringliteral}{'unit'},\textcolor{stringliteral}{'g\ C\ m-\/2\ year-\/1'})}
+\DoxyCodeLine{00216\ \ \ \ \ status\ =\ nf90\_put\_att(file\_id,rsoil\_id,\textcolor{stringliteral}{'missing\_value'},\ real(missreal,4))}
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00218\ \ \ \ \ status\ =\ nf90\_put\_att(file\_id,cleach\_id,\textcolor{stringliteral}{'unit'},\textcolor{stringliteral}{'g\ C\ m-\/2\ year-\/1'})}
+\DoxyCodeLine{00219\ \ \ \ \ status\ =\ nf90\_put\_att(file\_id,cleach\_id,\textcolor{stringliteral}{'missing\_value'},\ real(missreal,4))}
+\DoxyCodeLine{00220\ \ \ \ \ }
+\DoxyCodeLine{00221\ \ \ \ \ \textcolor{comment}{!\ PUT\ VARS}}
+\DoxyCodeLine{00222\ \ \ \ \ status\ =\ nf90\_put\_var(file\_id,\ cinput\_id,\ real(micoutput\%fluxcinput,4)\ )}
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ writing\ NPP\ '}\ )}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00225\ \ \ \ \ status\ =\ nf90\_put\_var(file\_id,\ rsoil\_id,\ real(micoutput\%fluxrsoil,4)\ )}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ writing\ Rsoil\ '})}
+\DoxyCodeLine{00227\ }
+\DoxyCodeLine{00228\ \ \ \ \ status\ =\ nf90\_put\_var(file\_id,\ cleach\_id,\ real(micoutput\%fluxcleach,4)\ )}
+\DoxyCodeLine{00229\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ writing\ Cleach\ '})}
+\DoxyCodeLine{00230\ \ \ \ \ }
+\DoxyCodeLine{00231\ \ \ \ \ \textcolor{comment}{!\ Close\ NetCDF\ file:}}
+\DoxyCodeLine{00232\ \ \ \ \ status\ =\ nf90\_close(file\_id)}
+\DoxyCodeLine{00233\ \ \ \ \ \textcolor{keywordflow}{IF}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{CALL\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ closing\ restart\ file\ '}\ \ )}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \ \ \ \ \textcolor{keyword}{write}(*,\ *)\ \textcolor{stringliteral}{'output\ written\ to\ '},\ foutput}
+\DoxyCodeLine{00236\ \ \ \ \ }
+\DoxyCodeLine{00237\ \ \ \textcolor{keyword}{end\ subroutine\ }vmic\_output\_write}
+\DoxyCodeLine{00238\ \textcolor{comment}{}}
+\DoxyCodeLine{00239\ \textcolor{comment}{!>\ get\ PFT-\/dependent\ model\ paramater\ values\ (up\ to\ 20\ parameters)}}
+\DoxyCodeLine{00240\ \textcolor{comment}{!!\ input:\ hartd-\/wired\ parameter\ filename\ "{}parameters\_global.csv"{}\ \ }}
+\DoxyCodeLine{00241\ \textcolor{comment}{!!\ output:\ write\ the\ parameter\ values\ to\ "{}micpxdef"{}}}
+\DoxyCodeLine{00242\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00243\ \ \ \textcolor{keyword}{subroutine\ }getparam\_global(micpxdef)}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00245\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00246\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00247\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale)\ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00248\ \ \ \ \ \textcolor{keywordtype}{integer}\ npft,ipft,n}
+\DoxyCodeLine{00249\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(20)}\ \ \ \ ::\ x\ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00250\ \ \ \ \ }
+\DoxyCodeLine{00251\ \ \ \ \ \textcolor{keyword}{open}(100,file=\textcolor{stringliteral}{'parameters\_global.csv'})}
+\DoxyCodeLine{00252\ \ \ \ \ \textcolor{keyword}{read}(100,*)}
+\DoxyCodeLine{00253\ \ \ \ \ \textcolor{keywordflow}{do}\ npft=1,mpft}
+\DoxyCodeLine{00254\ \ \ \ \ \ \ \ \textcolor{keyword}{read}(100,*)\ ipft,\ (x(n),n=1,17)}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \ \ \ \ \ \ \ micpxdef\%xav(npft)\ \ \ \ \ \ \ \ =\ x(1)}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \ micpxdef\%xak(npft)\ \ \ \ \ \ \ \ =\ x(2)}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \ micpxdef\%xfm(npft)\ \ \ \ \ \ \ \ =\ x(3)}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ micpxdef\%xfs(npft)\ \ \ \ \ \ \ \ =\ x(4)}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ micpxdef\%xtvmic(npft)\ \ \ \ \ =\ x(5)}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ micpxdef\%xtvp(npft)\ \ \ \ \ \ \ =\ x(6)}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ micpxdef\%xtvc(npft)\ \ \ \ \ \ \ =\ x(7)}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \ micpxdef\%xtvac(npft)\ \ \ \ \ \ =\ x(8)}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \ micpxdef\%xkba(npft)\ \ \ \ \ \ \ =\ x(9)}
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \ micpxdef\%xqmaxcoeff(npft)\ =\ x(10)}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \ micpxdef\%xdiffsoc(npft)\ \ \ =\ x(11)}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ micpxdef\%xnpp(npft)\ \ \ \ \ \ \ =\ x(12)}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ \ micpxdef\%xrootbeta(npft)\ \ =\ x(13)}
+\DoxyCodeLine{00270\ \ \ \ \ \ \ \ micpxdef\%xvmaxbeta(npft)\ \ =\ x(14)\ }
+\DoxyCodeLine{00271\ \ \ \ \ \ \ \ \textcolor{comment}{!\ the\ following\ parameters\ are\ fixed\ to\ 1.0\ \ \ \ \ }}
+\DoxyCodeLine{00272\ \ \ \ \ \ \ \ micpxdef\%xfp2ax(npft)\ \ \ \ \ =\ x(15)}
+\DoxyCodeLine{00273\ \ \ \ \ \ \ \ micpxdef\%xbeta(npft)\ \ \ \ \ \ =\ x(16)}
+\DoxyCodeLine{00274\ \ \ \ \ \ \ \ micpxdef\%xdesorp(npft)\ \ \ \ =\ x(17)\ \ \ }
+\DoxyCodeLine{00275\ \textcolor{keywordflow}{\ \ \ \ enddo}}
+\DoxyCodeLine{00276\ \ \ \ \ \textcolor{keyword}{close}(100)}
+\DoxyCodeLine{00277\ \ \ \ \ }
+\DoxyCodeLine{00278\ \textcolor{comment}{!\ \ \ \ print\ *,\ 'xdesorp=',\ micpxdef\%xdesorp(:)}}
+\DoxyCodeLine{00279\ \textcolor{comment}{!\ \ \ \ print\ *,\ 'xtvc=',\ \ \ \ micpxdef\%xtvc(npft)}}
+\DoxyCodeLine{00280\ \ \ \ \ }
+\DoxyCodeLine{00281\ \ \ \textcolor{keyword}{end\ subroutine\ }getparam\_global}
+\DoxyCodeLine{00282\ \ \textcolor{comment}{}}
+\DoxyCodeLine{00283\ \textcolor{comment}{!>\ read\ in\ global\ atmospheric\ C14\ data\ and\ input\ data\ for\ model\ run\ with\ 14C}}
+\DoxyCodeLine{00284\ \textcolor{comment}{!!\ input\ 1:\ file\ 1\ "{}frac14c"{}\ with\ all\ observed\ C14,\ carbon\ input,\ soil\ properties\ and\ other\ site-\/sepefici}}
+\DoxyCodeLine{00285\ \textcolor{comment}{!!\ \ \ \ \ \ \ \ parameter\ for\ model\ run}}
+\DoxyCodeLine{00286\ \textcolor{comment}{!!\ input\ 2:\ file\ 2"{}\ f14c"{}\ with\ atmospheric\ 14C\ in\ five\ different\ zones}}
+\DoxyCodeLine{00287\ \textcolor{comment}{!!\ output:\ all\ data\ read\ in\ here\ are\ written\ into\ "{}micparam"{},\ "{}micinpout"{}\ and\ "{}micnpool"{}}}
+\DoxyCodeLine{00288\ \textcolor{comment}{!!\ "{}fcluster"{}\ is\ not\ read\ in\ yet}}
+\DoxyCodeLine{00289\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00290\ \ \ \textcolor{keyword}{subroutine\ }getdata\_c14(frac14c,f14c,micinput,micparam,micnpool,zse)}
+\DoxyCodeLine{00291\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{00292\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00293\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00294\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00295\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \textcolor{keywordtype}{INTENT(INout)}\ \ \ ::\ micparam}
+\DoxyCodeLine{00296\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INout)}\ \ \ ::\ micinput}
+\DoxyCodeLine{00297\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_npool),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ micnpool}
+\DoxyCodeLine{00298\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ zse(ms)\ \ \ \ \ \ \ \textcolor{comment}{!\ soil\ layer\ thickness\ in\ m-\/2}}
+\DoxyCodeLine{00299\ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00300\ \ \ \ \ \textcolor{keywordtype}{integer}::\ ncid,varid,status}
+\DoxyCodeLine{00301\ \ \ \ \ \textcolor{keywordtype}{integer}::\ np,ns,i,j}
+\DoxyCodeLine{00302\ \ \ \ \ \textcolor{keywordtype}{integer}::\ nz}
+\DoxyCodeLine{00303\ \ \ \ \ \textcolor{keywordtype}{character*140}\ frac14c,f14c(5)}
+\DoxyCodeLine{00304\ \ \ \ \ \textcolor{keywordtype}{character*140}\ filecluster\ \ \ \textcolor{comment}{!\ cluster\ filename\ (not\ used)}}
+\DoxyCodeLine{00305\ }
+\DoxyCodeLine{00306\ \ \ \ \ \textcolor{keywordtype}{character(len\ =\ nf90\_max\_name)}::\ name}
+\DoxyCodeLine{00307\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:,:)},\textcolor{keywordtype}{allocatable}::\ fclay,fsilt,fph,ftemp,fmoist,fporosity,fmatpot}
+\DoxyCodeLine{00308\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:)},\ \ \textcolor{keywordtype}{allocatable}::\ fsoc,fpoc,fmaoc,ffmpoc,ffmmaoc,fbulkd}
+\DoxyCodeLine{00309\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:)},\ \ \textcolor{keywordtype}{allocatable}::\ fnpp,fanpp,fbnpp,flignin,fcna,fcnb}
+\DoxyCodeLine{00310\ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \textcolor{keywordtype}{dimension(:)},\ \ \textcolor{keywordtype}{allocatable}::\ fid,fpft,ftop,fbot,fyear,fregion,fcluster}
+\DoxyCodeLine{00311\ \ \ \ \ real*8,\ \ \ \textcolor{keywordtype}{dimension(:)},\ \ \textcolor{keywordtype}{allocatable}::\ lat,lon}
+\DoxyCodeLine{00312\ \ }
+\DoxyCodeLine{00313\ \ \ \ \ \textcolor{comment}{!\ allocate\ variable\ for\ reading\ }}
+\DoxyCodeLine{00314\ \ \ \ \ \textcolor{keyword}{allocate}(fsoc(mp))}
+\DoxyCodeLine{00315\ }
+\DoxyCodeLine{00316\ \ \ \ \ \textcolor{keyword}{allocate}(fclay(mp,ms))}
+\DoxyCodeLine{00317\ \ \ \ \ \textcolor{keyword}{allocate}(fsilt(mp,ms))}
+\DoxyCodeLine{00318\ \ \ \ \ \textcolor{keyword}{allocate}(fph(mp,ms))}
+\DoxyCodeLine{00319\ \ \ \ \ \textcolor{keyword}{allocate}(ftemp(mp,ms))}
+\DoxyCodeLine{00320\ \ \ \ \ \textcolor{keyword}{allocate}(fmoist(mp,ms))}
+\DoxyCodeLine{00321\ \ \ \ \ \textcolor{keyword}{allocate}(fporosity(mp,ms))}
+\DoxyCodeLine{00322\ \ \ \ \ \textcolor{keyword}{allocate}(fmatpot(mp,ms))}
+\DoxyCodeLine{00323\ }
+\DoxyCodeLine{00324\ \ \ \ \ \textcolor{keyword}{allocate}(fnpp(mp))}
+\DoxyCodeLine{00325\ \ \ \ \ \textcolor{keyword}{allocate}(fanpp(mp))}
+\DoxyCodeLine{00326\ \ \ \ \ \textcolor{keyword}{allocate}(fbnpp(mp))}
+\DoxyCodeLine{00327\ \ \ \ \ \textcolor{keyword}{allocate}(flignin(mp))}
+\DoxyCodeLine{00328\ \ \ \ \ \textcolor{keyword}{allocate}(fcna(mp))}
+\DoxyCodeLine{00329\ \ \ \ \ \textcolor{keyword}{allocate}(fcnb(mp))}
+\DoxyCodeLine{00330\ \ \ \ \ \textcolor{keyword}{allocate}(fid(mp))}
+\DoxyCodeLine{00331\ \ \ \ \ \textcolor{keyword}{allocate}(fpft(mp))}
+\DoxyCodeLine{00332\ }
+\DoxyCodeLine{00333\ \ \ \ \ \textcolor{comment}{!\ inputdata\ for\ 14C}}
+\DoxyCodeLine{00334\ \ \ \ \ \textcolor{keyword}{allocate}(fpoc(mp))}
+\DoxyCodeLine{00335\ \ \ \ \ \textcolor{keyword}{allocate}(fmaoc(mp))}
+\DoxyCodeLine{00336\ \ \ \ \ \textcolor{keyword}{allocate}(ffmpoc(mp))}
+\DoxyCodeLine{00337\ \ \ \ \ \textcolor{keyword}{allocate}(ffmmaoc(mp))}
+\DoxyCodeLine{00338\ \ \ \ \ \textcolor{keyword}{allocate}(fbulkd(mp))}
+\DoxyCodeLine{00339\ \ \ \ \ \textcolor{keyword}{allocate}(ftop(mp))\ \textcolor{comment}{!!\ upper\ depth\ of\ observed\ soil\ layer}}
+\DoxyCodeLine{00340\ \ \ \ \ \textcolor{keyword}{allocate}(fbot(mp))\ \textcolor{comment}{!!\ lower\ depth\ of\ observed\ soil\ layer}}
+\DoxyCodeLine{00341\ \ \ \ \ \textcolor{keyword}{allocate}(fyear(mp))\ \textcolor{comment}{!!\ year\ at\ which\ c14\ was\ observed}}
+\DoxyCodeLine{00342\ \ \ \ \ \textcolor{keyword}{allocate}(fregion(mp))\ \textcolor{comment}{!!\ north/south\ hemisphere\ zone\ of\ c14}}
+\DoxyCodeLine{00343\ \ \ \ \ \textcolor{keyword}{allocate}(fcluster(mp))}
+\DoxyCodeLine{00344\ \ \ \ \ \textcolor{keyword}{allocate}(lat(mp),lon(mp))}
+\DoxyCodeLine{00345\ \ \ \ \ }
+\DoxyCodeLine{00346\ \ \ \ \textcolor{comment}{!\ open\ .nc\ file}}
+\DoxyCodeLine{00347\ \ \ \ \ status\ =\ nf90\_open(frac14c,nf90\_nowrite,ncid)}
+\DoxyCodeLine{00348\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ opening\ frc\_c14.nc'}}
+\DoxyCodeLine{00349\ }
+\DoxyCodeLine{00350\ \ \ \ \ \textcolor{comment}{!\ get\ dimensions/profile\_id}}
+\DoxyCodeLine{00351\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'nsite'},varid)}
+\DoxyCodeLine{00352\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ dimensions/profile\_id'}}
+\DoxyCodeLine{00353\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fid)}
+\DoxyCodeLine{00354\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ profile\_id'}}
+\DoxyCodeLine{00355\ }
+\DoxyCodeLine{00356\ \ \ \ \ \textcolor{comment}{!\ get\ variables}}
+\DoxyCodeLine{00357\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'SOC'},varid)}
+\DoxyCodeLine{00358\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soc'}}
+\DoxyCodeLine{00359\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fsoc)}
+\DoxyCodeLine{00360\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soc'}}
+\DoxyCodeLine{00361\ }
+\DoxyCodeLine{00362\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'bulkd'},varid)}
+\DoxyCodeLine{00363\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ bulk\ density'}}
+\DoxyCodeLine{00364\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fbulkd)}
+\DoxyCodeLine{00365\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ bulk\ density'}}
+\DoxyCodeLine{00366\ }
+\DoxyCodeLine{00367\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'clay'},varid)}
+\DoxyCodeLine{00368\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ clay'}}
+\DoxyCodeLine{00369\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fclay)}
+\DoxyCodeLine{00370\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ clay'}}
+\DoxyCodeLine{00371\ }
+\DoxyCodeLine{00372\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'silt'},varid)}
+\DoxyCodeLine{00373\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ silt'}}
+\DoxyCodeLine{00374\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fsilt)}
+\DoxyCodeLine{00375\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ silt'}}
+\DoxyCodeLine{00376\ }
+\DoxyCodeLine{00377\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'ph'},varid)}
+\DoxyCodeLine{00378\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ ph'}}
+\DoxyCodeLine{00379\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fph)}
+\DoxyCodeLine{00380\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ ph'}}
+\DoxyCodeLine{00381\ }
+\DoxyCodeLine{00382\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'temp'},varid)}
+\DoxyCodeLine{00383\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ temperature'}}
+\DoxyCodeLine{00384\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ftemp)}
+\DoxyCodeLine{00385\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ temperature'}}
+\DoxyCodeLine{00386\ }
+\DoxyCodeLine{00387\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'moist'},varid)}
+\DoxyCodeLine{00388\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ moisture'}}
+\DoxyCodeLine{00389\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fmoist)}
+\DoxyCodeLine{00390\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ moisture'}}
+\DoxyCodeLine{00391\ }
+\DoxyCodeLine{00392\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'porosity'},varid)}
+\DoxyCodeLine{00393\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ porosity'}}
+\DoxyCodeLine{00394\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fporosity)}
+\DoxyCodeLine{00395\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ porosity'}}
+\DoxyCodeLine{00396\ }
+\DoxyCodeLine{00397\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'matpot'},varid)}
+\DoxyCodeLine{00398\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ matric\ potential'}}
+\DoxyCodeLine{00399\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fmatpot)}
+\DoxyCodeLine{00400\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ matric\ potential'}}
+\DoxyCodeLine{00401\ }
+\DoxyCodeLine{00402\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'npp'},varid)}
+\DoxyCodeLine{00403\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ npp'}}
+\DoxyCodeLine{00404\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fnpp)}
+\DoxyCodeLine{00405\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ npp'}}
+\DoxyCodeLine{00406\ }
+\DoxyCodeLine{00407\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'anpp'},varid)}
+\DoxyCodeLine{00408\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ anpp'}}
+\DoxyCodeLine{00409\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fanpp)}
+\DoxyCodeLine{00410\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ anpp'}}
+\DoxyCodeLine{00411\ }
+\DoxyCodeLine{00412\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'bnpp'},varid)}
+\DoxyCodeLine{00413\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ bnpp'}}
+\DoxyCodeLine{00414\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fbnpp)}
+\DoxyCodeLine{00415\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ bnpp'}}
+\DoxyCodeLine{00416\ }
+\DoxyCodeLine{00417\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'lignin\_C'},varid)}
+\DoxyCodeLine{00418\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ lignin/C'}}
+\DoxyCodeLine{00419\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,flignin)}
+\DoxyCodeLine{00420\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ lignin/C'}}
+\DoxyCodeLine{00421\ }
+\DoxyCodeLine{00422\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'cna'},varid)}
+\DoxyCodeLine{00423\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ C/N\ aboveground'}}
+\DoxyCodeLine{00424\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fcna)}
+\DoxyCodeLine{00425\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ C/N\ aboveground'}}
+\DoxyCodeLine{00426\ }
+\DoxyCodeLine{00427\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'cnb'},varid)}
+\DoxyCodeLine{00428\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ C/N\ belowground'}}
+\DoxyCodeLine{00429\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fcnb)}
+\DoxyCodeLine{00430\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ C/N\ belowground'}}
+\DoxyCodeLine{00431\ }
+\DoxyCodeLine{00432\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'pft'},varid)}
+\DoxyCodeLine{00433\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ plant\ functional\ type'}}
+\DoxyCodeLine{00434\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fpft)}
+\DoxyCodeLine{00435\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ plant\ functional\ type'}}
+\DoxyCodeLine{00436\ }
+\DoxyCodeLine{00437\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'POC'},varid)}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ POC'}}
+\DoxyCodeLine{00439\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fpoc)}
+\DoxyCodeLine{00440\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ POC'}}
+\DoxyCodeLine{00441\ }
+\DoxyCodeLine{00442\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'MAOC'},varid)}
+\DoxyCodeLine{00443\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ MAOC'}}
+\DoxyCodeLine{00444\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fmaoc)}
+\DoxyCodeLine{00445\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ MAOC'}}
+\DoxyCodeLine{00446\ }
+\DoxyCodeLine{00447\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'fm\_poc'},varid)}
+\DoxyCodeLine{00448\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ fm\_poc'}}
+\DoxyCodeLine{00449\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ffmpoc)}
+\DoxyCodeLine{00450\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ fm\_poc'}}
+\DoxyCodeLine{00451\ }
+\DoxyCodeLine{00452\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'fm\_maoc'},varid)}
+\DoxyCodeLine{00453\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ fm\_maoc'}}
+\DoxyCodeLine{00454\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ffmmaoc)}
+\DoxyCodeLine{00455\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ fm\_maoc'}}
+\DoxyCodeLine{00456\ }
+\DoxyCodeLine{00457\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'top\_depth'},varid)}
+\DoxyCodeLine{00458\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ top\ depth'}}
+\DoxyCodeLine{00459\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ftop)}
+\DoxyCodeLine{00460\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ top\ depth'}}
+\DoxyCodeLine{00461\ }
+\DoxyCodeLine{00462\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'bot\_depth'},varid)}
+\DoxyCodeLine{00463\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ bottom\ depth'}}
+\DoxyCodeLine{00464\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fbot)}
+\DoxyCodeLine{00465\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ bottom\ depth'}}
+\DoxyCodeLine{00466\ }
+\DoxyCodeLine{00467\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'c14\_year'},varid)}
+\DoxyCodeLine{00468\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ c14\ year'}}
+\DoxyCodeLine{00469\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fyear)}
+\DoxyCodeLine{00470\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ c14\ year'}}
+\DoxyCodeLine{00471\ }
+\DoxyCodeLine{00472\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'c14\_region'},varid)}
+\DoxyCodeLine{00473\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ c14\ region'}}
+\DoxyCodeLine{00474\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fregion)}
+\DoxyCodeLine{00475\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ c14\ region'}}
+\DoxyCodeLine{00476\ }
+\DoxyCodeLine{00477\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Lon'},varid)}
+\DoxyCodeLine{00478\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Lon'}}
+\DoxyCodeLine{00479\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,lon)}
+\DoxyCodeLine{00480\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Lon'}}
+\DoxyCodeLine{00481\ }
+\DoxyCodeLine{00482\ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Lat'},varid)}
+\DoxyCodeLine{00483\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Lat'}}
+\DoxyCodeLine{00484\ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,lat)}
+\DoxyCodeLine{00485\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Lat'}\ \ \ \ }
+\DoxyCodeLine{00486\ \ \ \ \ \ \ }
+\DoxyCodeLine{00487\ \ \ \ \ \textcolor{comment}{!\ Close\ netcdf\ file}}
+\DoxyCodeLine{00488\ \ \ \ \ status\ =\ nf90\_close(ncid)\ \ \ \ }
+\DoxyCodeLine{00489\ }
+\DoxyCodeLine{00490\ \ \ \ \ \textcolor{comment}{!\ we\ need\ to\ include\ additional\ data\ for\ kinetics3}}
+\DoxyCodeLine{00491\ \ \ \ }
+\DoxyCodeLine{00492\ \ \ \ \ \ \ micparam\%csoilobs(:,:)\ =\ -\/999.0}
+\DoxyCodeLine{00493\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,\ mp}
+\DoxyCodeLine{00494\ \ \ \ }
+\DoxyCodeLine{00495\ \ \ \ \ \ \ \ \ \ micparam\%pft(np)\ \ \ \ =\ int(fpft(np))}
+\DoxyCodeLine{00496\ \ \ \ \ \ \ \ \ \ micparam\%siteid(np)\ =\ int(fid(np))}
+\DoxyCodeLine{00497\ }
+\DoxyCodeLine{00498\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%top(np)\ \ \ \ \ \ \ \ \ =\ int(ftop(np))}
+\DoxyCodeLine{00499\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bot(np)\ \ \ \ \ \ \ \ \ =\ int(fbot(np))}
+\DoxyCodeLine{00500\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%nyc14obs(np)\ \ \ \ =\ int(fyear(np))\ \ \ \ \ \textcolor{comment}{!\ year\ when\ c14\ is\ observed}}
+\DoxyCodeLine{00501\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%region(np)\ \ \ \ \ \ =\ int(fregion(np))\ \ \ \textcolor{comment}{!\ south/north\ hemisphere\ zone\ of\ c14}}
+\DoxyCodeLine{00502\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsp(np)\ =\ ffmpoc(np)\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ poc\ c14\ fraction\ modern}}
+\DoxyCodeLine{00503\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsm(np)\ =\ ffmmaoc(np)\ \ \ \ \ \ \ \ \textcolor{comment}{!\ maoc\ c14\ fraction\ modern}}
+\DoxyCodeLine{00504\ }
+\DoxyCodeLine{00505\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ make\ sure\ "{}*delt"{}\ is\ not\ repeated\ in\ the\ model\ called\ by\ rk4}}
+\DoxyCodeLine{00506\ \ \ \ \ \ \ \ \ \ \ micinput\%fcnpp(np)\ \ \ \ \ \ =\ fnpp(np)}
+\DoxyCodeLine{00507\ \ \ \ \ \ \ \ \ \ \ micinput\%Dleaf(np)\ \ \ \ \ \ =\ fanpp(np)/(24.0*365.0)*delt\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!gc/m2/delt}}
+\DoxyCodeLine{00508\ \ \ \ \ \ \ \ \ \ \ micinput\%Droot(np)\ \ \ \ \ \ =\ fbnpp(np)/(24.0*365.0)*delt\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!gc/m2/delt}}
+\DoxyCodeLine{00509\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!micinput\%Dwood(np)\ \ \ \ \ \ =\ forcdata(np,17)/(24.0*365.0)*delt\ \ \ \ \ !gc/m2/delt\ (included\ in\ Dleaf\ or\ Droot\ already}}
+\DoxyCodeLine{00510\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00511\ }
+\DoxyCodeLine{00512\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnleaf(np)\ \ \ \ =\ fcna(np)}
+\DoxyCodeLine{00513\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnroot(np)\ \ \ \ =\ fcnb(np)}
+\DoxyCodeLine{00514\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!micparam\%xcnwood(np)\ \ \ \ =\ forcdata(np,20)}}
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \ \ \ \ micparam\%fligleaf(np)\ \ \ =\ flignin(np)}
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \ \ \ \ micparam\%fligroot(np)\ \ \ =\ flignin(np)}
+\DoxyCodeLine{00517\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!micparam\%fligwood(np)\ \ \ =\ forcdata(np,23)}}
+\DoxyCodeLine{00518\ }
+\DoxyCodeLine{00519\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00520\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%tavg(np,ns)\ \ \ \ \ =\ ftemp(np,ns)\ \ \ \ \ \textcolor{comment}{!\ average\ temperature\ in\ deg\ C}}
+\DoxyCodeLine{00521\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%wavg(np,ns)\ \ \ \ \ =\ fmoist(np,ns)\ \ \ \ \textcolor{comment}{!\ average\ soil\ water\ content\ mm3/mm3}}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%clay(np,ns)\ \ \ \ \ =\ fclay(np,ns)\ \ \ \ \ \textcolor{comment}{!\ clay\ content\ (fraction\ 0-\/1)}}
+\DoxyCodeLine{00523\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%silt(np,ns)\ \ \ \ \ =\ fsilt(np,ns)\ \ \ \ \ \textcolor{comment}{!\ silt\ content\ (fraction\ 0-\/1)}}
+\DoxyCodeLine{00524\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%ph(np,ns)\ \ \ \ \ \ \ =\ fph(np,ns)}
+\DoxyCodeLine{00525\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%porosity(np,ns)\ =\ fporosity(np,ns)\ \textcolor{comment}{!\ porosity\ mm3/mm3}}
+\DoxyCodeLine{00526\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%matpot(np,ns)\ \ \ =\ fmatpot(np,ns)\ \ \ \textcolor{comment}{!\ soil\ matric\ potential\ -\/kPa}}
+\DoxyCodeLine{00527\ }
+\DoxyCodeLine{00528\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobs(np,ns)\ \ \ \ =\ fsoc(np)\ }
+\DoxyCodeLine{00529\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%bulkd(np,ns)\ \ \ \ \ \ \ =\ fbulkd(np)}
+\DoxyCodeLine{00530\ }
+\DoxyCodeLine{00531\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobsp(np,ns)\ \ \ =\ fpoc(np)}
+\DoxyCodeLine{00532\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobsm(np,ns)\ \ \ =\ fmaoc(np)}
+\DoxyCodeLine{00533\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00534\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!micnpool\%mineralN(np,ns)\ =\ forcdata(np,7)*0.001\ !\ mineral\ N:\ "{}0.001"{}\ mg\ N\ /kg\ soil\ -\/-\/>\ g\ N\ /kg\ soil}}
+\DoxyCodeLine{00535\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ enddo}\ \textcolor{comment}{!"{}ns"{}}}
+\DoxyCodeLine{00536\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}\ \ \ \ \textcolor{comment}{!\ "{}np=1,mp"{}}}
+\DoxyCodeLine{00537\ }
+\DoxyCodeLine{00538\ \ \ \ \ \ \ \textcolor{comment}{!\ read\ in\ the\ standard\ 14C\ atmospheric\ data\ for\ five\ zones}}
+\DoxyCodeLine{00539\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ f14c(1)\ ='/g/data/w97/lw9370/combined-\/model/c14/code-\/structure/data/NH1-\/C14.csv'}}
+\DoxyCodeLine{00540\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ f14c(2)\ ='/g/data/w97/lw9370/combined-\/model/c14/code-\/structure/data/NH2-\/C14.csv'}}
+\DoxyCodeLine{00541\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ f14c(3)\ ='/g/data/w97/lw9370/combined-\/model/c14/code-\/structure/data/NH3-\/C14.csv'}}
+\DoxyCodeLine{00542\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ f14c(4)\ ='/g/data/w97/lw9370/combined-\/model/c14/code-\/structure/data/SH12-\/C14.csv'}}
+\DoxyCodeLine{00543\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ f14c(5)\ ='/g/data/w97/lw9370/combined-\/model/c14/code-\/structure/data/SH3-\/C14.csv'}}
+\DoxyCodeLine{00544\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ nz=1,5}
+\DoxyCodeLine{00545\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{call\ }get14catm(nz,f14c(nz),micparam)}
+\DoxyCodeLine{00546\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00547\ }
+\DoxyCodeLine{00548\ \ \ \ \ \textcolor{comment}{!\ dealoocate\ variables}}
+\DoxyCodeLine{00549\ \ \ \ \ \textcolor{keyword}{deallocate}(fsoc)}
+\DoxyCodeLine{00550\ \ \ \ \ \textcolor{keyword}{deallocate}(fbulkd)}
+\DoxyCodeLine{00551\ \ \ \ \ \textcolor{keyword}{deallocate}(fclay)}
+\DoxyCodeLine{00552\ \ \ \ \ \textcolor{keyword}{deallocate}(fsilt)}
+\DoxyCodeLine{00553\ \ \ \ \ \textcolor{keyword}{deallocate}(fph)}
+\DoxyCodeLine{00554\ \ \ \ \ \textcolor{keyword}{deallocate}(ftemp)}
+\DoxyCodeLine{00555\ \ \ \ \ \textcolor{keyword}{deallocate}(fmoist)}
+\DoxyCodeLine{00556\ \ \ \ \ \textcolor{keyword}{deallocate}(fporosity)}
+\DoxyCodeLine{00557\ \ \ \ \ \textcolor{keyword}{deallocate}(fmatpot)}
+\DoxyCodeLine{00558\ }
+\DoxyCodeLine{00559\ \ \ \ \ \textcolor{keyword}{deallocate}(fnpp)}
+\DoxyCodeLine{00560\ \ \ \ \ \textcolor{keyword}{deallocate}(fanpp)}
+\DoxyCodeLine{00561\ \ \ \ \ \textcolor{keyword}{deallocate}(fbnpp)}
+\DoxyCodeLine{00562\ \ \ \ \ \textcolor{keyword}{deallocate}(flignin)}
+\DoxyCodeLine{00563\ \ \ \ \ \textcolor{keyword}{deallocate}(fcna)}
+\DoxyCodeLine{00564\ \ \ \ \ \textcolor{keyword}{deallocate}(fcnb)}
+\DoxyCodeLine{00565\ \ \ \ \ \textcolor{keyword}{deallocate}(fid)}
+\DoxyCodeLine{00566\ \ \ \ \ \textcolor{keyword}{deallocate}(fpft)}
+\DoxyCodeLine{00567\ }
+\DoxyCodeLine{00568\ \ \ \ \ \textcolor{keyword}{deallocate}(fpoc)}
+\DoxyCodeLine{00569\ \ \ \ \ \textcolor{keyword}{deallocate}(fmaoc)}
+\DoxyCodeLine{00570\ \ \ \ \ \textcolor{keyword}{deallocate}(ffmpoc)}
+\DoxyCodeLine{00571\ \ \ \ \ \textcolor{keyword}{deallocate}(ffmmaoc)}
+\DoxyCodeLine{00572\ \ \ \ \ \textcolor{keyword}{deallocate}(ftop)\ \textcolor{comment}{!!\ upper\ depth\ of\ observed\ soil\ layer}}
+\DoxyCodeLine{00573\ \ \ \ \ \textcolor{keyword}{deallocate}(fbot)\ \textcolor{comment}{!!\ bottom\ depth\ of\ observed\ soil\ layer}}
+\DoxyCodeLine{00574\ \ \ \ \ \textcolor{keyword}{deallocate}(fyear)\ \textcolor{comment}{!!\ year\ at\ which\ c14\ was\ observed}}
+\DoxyCodeLine{00575\ \ \ \ \ \textcolor{keyword}{deallocate}(fregion)\ \textcolor{comment}{!!\ north/south\ hemisphere\ zone\ of\ c14}}
+\DoxyCodeLine{00576\ \ \ \ \ \textcolor{keyword}{deallocate}(fcluster)}
+\DoxyCodeLine{00577\ \ \ \ \ \textcolor{keyword}{deallocate}(lat,lon)}
+\DoxyCodeLine{00578\ \ \ \ \ }
+\DoxyCodeLine{00579\ \ \ \ \textcolor{keyword}{end\ subroutine\ }getdata\_c14}
+\DoxyCodeLine{00580\ \textcolor{comment}{}}
+\DoxyCodeLine{00581\ \textcolor{comment}{!>\ get\ dimeions:\ mp\ from\ the\ c\ fraction\ input\ file}}
+\DoxyCodeLine{00582\ \textcolor{comment}{!!\ }}
+\DoxyCodeLine{00583\ \ \ \ \textcolor{keyword}{subroutine\ }getdata\_frc\_dim(cfraction,mpx)}
+\DoxyCodeLine{00584\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{00585\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00586\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00587\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00588\ \ \ \ \ \textcolor{keywordtype}{character*140}\ cfraction\ \ \ }
+\DoxyCodeLine{00589\ \ \ \ \ \textcolor{keywordtype}{integer}\ mpx}
+\DoxyCodeLine{00590\ \ \ \ \ \textcolor{keywordtype}{integer}::\ ncid,varid,status}
+\DoxyCodeLine{00591\ \ \ \ \textcolor{comment}{!\ open\ .nc\ file}}
+\DoxyCodeLine{00592\ \ \ \ \ status\ =\ nf90\_open(cfraction,nf90\_nowrite,ncid)}
+\DoxyCodeLine{00593\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ opening\ c\_fraction.nc'}}
+\DoxyCodeLine{00594\ }
+\DoxyCodeLine{00595\ \ \ \ \ \textcolor{comment}{!\ get\ dimension}}
+\DoxyCodeLine{00596\ \ \ \ \ status\ =\ nf90\_inq\_dimid(ncid,\textcolor{stringliteral}{'nsite'},varid)}
+\DoxyCodeLine{00597\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ dimensions/nsite'}}
+\DoxyCodeLine{00598\ \ \ \ \ status\ =\ nf90\_inquire\_dimension(ncid,varid,len=mpx)}
+\DoxyCodeLine{00599\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ dimensions/nsite'}}
+\DoxyCodeLine{00600\ \ }
+\DoxyCodeLine{00601\ \ \ \ \ \textcolor{comment}{!\ Close\ netcdf\ file}}
+\DoxyCodeLine{00602\ \ \ \ \ status\ =\ nf90\_close(ncid)\ \ \ }
+\DoxyCodeLine{00603\ \ \ \ \textcolor{keyword}{end\ subroutine\ \ }getdata\_frc\_dim\ \ \ }
+\DoxyCodeLine{00604\ \textcolor{comment}{}}
+\DoxyCodeLine{00605\ \textcolor{comment}{!>\ read\ in\ data\ for\ model\ run\ to\ calculate\ POC\ and\ MAOC\ fractions}}
+\DoxyCodeLine{00606\ \textcolor{comment}{!!\ }}
+\DoxyCodeLine{00607\ \ \ \ \textcolor{keyword}{SUBROUTINE\ }getdata\_frc(cfraction,filecluster,jglobal,bgcopt,micinput,micparam,micnpool,zse)}
+\DoxyCodeLine{00608\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{00609\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00610\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00611\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00612\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \textcolor{keywordtype}{INTENT(INout)}\ \ \ ::\ micparam}
+\DoxyCodeLine{00613\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INout)}\ \ \ ::\ micinput}
+\DoxyCodeLine{00614\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_npool),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ micnpool}
+\DoxyCodeLine{00615\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ \ zse(ms)}
+\DoxyCodeLine{00616\ \ \ \ \ \textcolor{keywordtype}{integer}\ jglobal,bgcopt\ }
+\DoxyCodeLine{00617\ \ \ \ \ \textcolor{keywordtype}{integer}::\ ncid,varid,status}
+\DoxyCodeLine{00618\ \ \ \ \ \textcolor{keywordtype}{integer}::\ np,ns,i,j}
+\DoxyCodeLine{00619\ \ \ \ \ \textcolor{keywordtype}{integer}::\ nz}
+\DoxyCodeLine{00620\ \ \ \ \ \textcolor{keywordtype}{character*140}\ Cfraction,filecluster}
+\DoxyCodeLine{00621\ }
+\DoxyCodeLine{00622\ \ \ \ \ \textcolor{keywordtype}{character(len\ =\ nf90\_max\_name)}::\ name}
+\DoxyCodeLine{00623\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{allocatable}::\ fclay,fsilt,fph,ftemp,fmoist,fporosity,fmatpot}
+\DoxyCodeLine{00624\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{allocatable}::\ fsoc,fpoc,fmaoc,fbulkd}
+\DoxyCodeLine{00625\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{allocatable}::\ fnpp,fanpp,fbnpp,flignin,fcna,fcnb}
+\DoxyCodeLine{00626\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{allocatable}::\ fmg,fca,falo,fald,ffeo,ffed}
+\DoxyCodeLine{00627\ \ \ \ \ \textcolor{keywordtype}{integer},\textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{allocatable}::\ fid,fpft,ftop,fbot,fdataid,fcluster}
+\DoxyCodeLine{00628\ \ \ \ \ \textcolor{keywordtype}{double\ precision},\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}::\ lat,lon}
+\DoxyCodeLine{00629\ \ \ \ \ \textcolor{comment}{!\ local\ variation\ for\ clustering\ \ \ \ }}
+\DoxyCodeLine{00630\ \ \ \ \ \textcolor{keywordtype}{integer}\ n,msite}
+\DoxyCodeLine{00631\ \ \ \ \ }
+\DoxyCodeLine{00632\ }
+\DoxyCodeLine{00633\ \ \ \ \ \textcolor{keyword}{allocate}(fsoc(mp))}
+\DoxyCodeLine{00634\ \ \ \ \ \textcolor{keyword}{allocate}(fclay(mp))}
+\DoxyCodeLine{00635\ \ \ \ \ \textcolor{keyword}{allocate}(fsilt(mp))}
+\DoxyCodeLine{00636\ \ \ \ \ \textcolor{keyword}{allocate}(fph(mp))}
+\DoxyCodeLine{00637\ \ \ \ \ \textcolor{keyword}{allocate}(ftemp(mp))}
+\DoxyCodeLine{00638\ \ \ \ \ \textcolor{keyword}{allocate}(fmoist(mp))}
+\DoxyCodeLine{00639\ \ \ \ \ \textcolor{keyword}{allocate}(fporosity(mp))}
+\DoxyCodeLine{00640\ \ \ \ \ \textcolor{keyword}{allocate}(fmatpot(mp))}
+\DoxyCodeLine{00641\ }
+\DoxyCodeLine{00642\ \ \ \ \ \textcolor{keyword}{allocate}(fnpp(mp))}
+\DoxyCodeLine{00643\ \ \ \ \ \textcolor{keyword}{allocate}(fanpp(mp))}
+\DoxyCodeLine{00644\ \ \ \ \ \textcolor{keyword}{allocate}(fbnpp(mp))}
+\DoxyCodeLine{00645\ \ \ \ \ \textcolor{keyword}{allocate}(flignin(mp))}
+\DoxyCodeLine{00646\ \ \ \ \ \textcolor{keyword}{allocate}(fcna(mp))}
+\DoxyCodeLine{00647\ \ \ \ \ \textcolor{keyword}{allocate}(fcnb(mp))}
+\DoxyCodeLine{00648\ \ \ \ \ \textcolor{keyword}{allocate}(fid(mp))}
+\DoxyCodeLine{00649\ \ \ \ \ \textcolor{keyword}{allocate}(fpft(mp))}
+\DoxyCodeLine{00650\ }
+\DoxyCodeLine{00651\ \ \ \ \ \textcolor{comment}{!\ inputdata\ for\ 14C}}
+\DoxyCodeLine{00652\ \ \ \ \ \textcolor{keyword}{allocate}(fpoc(mp))}
+\DoxyCodeLine{00653\ \ \ \ \ \textcolor{keyword}{allocate}(fmaoc(mp))}
+\DoxyCodeLine{00654\ \ \ \ \ \textcolor{keyword}{allocate}(fbulkd(mp))}
+\DoxyCodeLine{00655\ \ \ \ \ \textcolor{keyword}{allocate}(ftop(mp))\ \textcolor{comment}{!!\ upper\ depth\ of\ observed\ soil\ layer}}
+\DoxyCodeLine{00656\ \ \ \ \ \textcolor{keyword}{allocate}(fbot(mp))\ \textcolor{comment}{!!\ lower\ depth\ of\ observed\ soil\ layer}}
+\DoxyCodeLine{00657\ \ \ \ \ \textcolor{keyword}{allocate}(fdataid(mp))\ \textcolor{comment}{!!\ 1\ for\ LUCAS;\ 2\ for\ AUS;\ 3\ for\ KG}}
+\DoxyCodeLine{00658\ }
+\DoxyCodeLine{00659\ \ \ \ \ \textcolor{keyword}{allocate}(fca(mp))}
+\DoxyCodeLine{00660\ \ \ \ \ \textcolor{keyword}{allocate}(fmg(mp))}
+\DoxyCodeLine{00661\ \ \ \ \ \textcolor{keyword}{allocate}(falo(mp))}
+\DoxyCodeLine{00662\ \ \ \ \ \textcolor{keyword}{allocate}(fald(mp))\ }
+\DoxyCodeLine{00663\ \ \ \ \ \textcolor{keyword}{allocate}(ffeo(mp))\ }
+\DoxyCodeLine{00664\ \ \ \ \ \textcolor{keyword}{allocate}(ffed(mp))\ }
+\DoxyCodeLine{00665\ }
+\DoxyCodeLine{00666\ \ \ \ \ \textcolor{keyword}{allocate}(lat(mp),lon(mp))\ }
+\DoxyCodeLine{00667\ \ \ \ \ \textcolor{keyword}{allocate}(fcluster(mp))}
+\DoxyCodeLine{00668\ \ \ \ \ }
+\DoxyCodeLine{00669\ \ \ \ \textcolor{comment}{!\ open\ .nc\ file}}
+\DoxyCodeLine{00670\ \ \ \ \ status\ =\ nf90\_open(cfraction,nf90\_nowrite,ncid)}
+\DoxyCodeLine{00671\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ opening\ c\_fraction.nc'}}
+\DoxyCodeLine{00672\ }
+\DoxyCodeLine{00673\ \ \ \ \ \textcolor{comment}{!\ get\ dimensions/profile\_id}}
+\DoxyCodeLine{00674\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'nsite'},varid)}
+\DoxyCodeLine{00675\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ dimensions/profile\_id'}}
+\DoxyCodeLine{00676\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fid)}
+\DoxyCodeLine{00677\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ profile\_id'}}
+\DoxyCodeLine{00678\ }
+\DoxyCodeLine{00679\ \ \ \ \ \textcolor{comment}{!\ get\ variables}}
+\DoxyCodeLine{00680\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'dataid'},varid)}
+\DoxyCodeLine{00681\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ ID'}}
+\DoxyCodeLine{00682\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fdataid)}
+\DoxyCodeLine{00683\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ ID'}}
+\DoxyCodeLine{00684\ }
+\DoxyCodeLine{00685\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'SOC'},varid)}
+\DoxyCodeLine{00686\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soc'}}
+\DoxyCodeLine{00687\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fsoc)}
+\DoxyCodeLine{00688\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soc'}}
+\DoxyCodeLine{00689\ }
+\DoxyCodeLine{00690\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'bulkd'},varid)}
+\DoxyCodeLine{00691\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ bulk\ density'}}
+\DoxyCodeLine{00692\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fbulkd)}
+\DoxyCodeLine{00693\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ bulk\ density'}}
+\DoxyCodeLine{00694\ }
+\DoxyCodeLine{00695\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'clay'},varid)}
+\DoxyCodeLine{00696\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ clay'}}
+\DoxyCodeLine{00697\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fclay)}
+\DoxyCodeLine{00698\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ clay'}}
+\DoxyCodeLine{00699\ }
+\DoxyCodeLine{00700\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'silt'},varid)}
+\DoxyCodeLine{00701\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ silt'}}
+\DoxyCodeLine{00702\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fsilt)}
+\DoxyCodeLine{00703\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ silt'}}
+\DoxyCodeLine{00704\ }
+\DoxyCodeLine{00705\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'ph'},varid)}
+\DoxyCodeLine{00706\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ ph'}}
+\DoxyCodeLine{00707\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fph)}
+\DoxyCodeLine{00708\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ ph'}}
+\DoxyCodeLine{00709\ }
+\DoxyCodeLine{00710\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'temp'},varid)}
+\DoxyCodeLine{00711\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ temperature'}}
+\DoxyCodeLine{00712\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ftemp)}
+\DoxyCodeLine{00713\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ temperature'}}
+\DoxyCodeLine{00714\ }
+\DoxyCodeLine{00715\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'moist'},varid)}
+\DoxyCodeLine{00716\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ moisture'}}
+\DoxyCodeLine{00717\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fmoist)}
+\DoxyCodeLine{00718\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ moisture'}}
+\DoxyCodeLine{00719\ }
+\DoxyCodeLine{00720\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'porosity'},varid)}
+\DoxyCodeLine{00721\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ porosity'}}
+\DoxyCodeLine{00722\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fporosity)}
+\DoxyCodeLine{00723\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ porosity'}}
+\DoxyCodeLine{00724\ }
+\DoxyCodeLine{00725\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'matpot'},varid)}
+\DoxyCodeLine{00726\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ matric\ potential'}}
+\DoxyCodeLine{00727\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fmatpot)}
+\DoxyCodeLine{00728\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ matric\ potential'}}
+\DoxyCodeLine{00729\ }
+\DoxyCodeLine{00730\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'npp'},varid)}
+\DoxyCodeLine{00731\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ npp'}}
+\DoxyCodeLine{00732\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fnpp)}
+\DoxyCodeLine{00733\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ npp'}}
+\DoxyCodeLine{00734\ }
+\DoxyCodeLine{00735\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'anpp'},varid)}
+\DoxyCodeLine{00736\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ anpp'}}
+\DoxyCodeLine{00737\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fanpp)}
+\DoxyCodeLine{00738\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ anpp'}}
+\DoxyCodeLine{00739\ }
+\DoxyCodeLine{00740\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'bnpp'},varid)}
+\DoxyCodeLine{00741\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ bnpp'}}
+\DoxyCodeLine{00742\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fbnpp)}
+\DoxyCodeLine{00743\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ bnpp'}}
+\DoxyCodeLine{00744\ }
+\DoxyCodeLine{00745\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'lignin\_C'},varid)}
+\DoxyCodeLine{00746\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ lignin/C'}}
+\DoxyCodeLine{00747\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,flignin)}
+\DoxyCodeLine{00748\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ lignin/C'}}
+\DoxyCodeLine{00749\ }
+\DoxyCodeLine{00750\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'cna'},varid)}
+\DoxyCodeLine{00751\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ C/N\ aboveground'}}
+\DoxyCodeLine{00752\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fcna)}
+\DoxyCodeLine{00753\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ C/N\ aboveground'}}
+\DoxyCodeLine{00754\ }
+\DoxyCodeLine{00755\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'cnb'},varid)}
+\DoxyCodeLine{00756\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ C/N\ belowground'}}
+\DoxyCodeLine{00757\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fcnb)}
+\DoxyCodeLine{00758\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ C/N\ belowground'}}
+\DoxyCodeLine{00759\ }
+\DoxyCodeLine{00760\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'pft'},varid)}
+\DoxyCodeLine{00761\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ plant\ functional\ type'}}
+\DoxyCodeLine{00762\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fpft)}
+\DoxyCodeLine{00763\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ plant\ functional\ type'}}
+\DoxyCodeLine{00764\ }
+\DoxyCodeLine{00765\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'POC'},varid)}
+\DoxyCodeLine{00766\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ POC'}}
+\DoxyCodeLine{00767\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fpoc)}
+\DoxyCodeLine{00768\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ POC'}}
+\DoxyCodeLine{00769\ }
+\DoxyCodeLine{00770\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'MAOC'},varid)}
+\DoxyCodeLine{00771\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ MAOC'}}
+\DoxyCodeLine{00772\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fmaoc)}
+\DoxyCodeLine{00773\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ MAOC'}}
+\DoxyCodeLine{00774\ }
+\DoxyCodeLine{00775\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'top\_depth'},varid)}
+\DoxyCodeLine{00776\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ top\ depth'}}
+\DoxyCodeLine{00777\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ftop)}
+\DoxyCodeLine{00778\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ top\ depth'}}
+\DoxyCodeLine{00779\ }
+\DoxyCodeLine{00780\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'bot\_depth'},varid)}
+\DoxyCodeLine{00781\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ bottom\ depth'}}
+\DoxyCodeLine{00782\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fbot)}
+\DoxyCodeLine{00783\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ bottom\ depth'}}
+\DoxyCodeLine{00784\ }
+\DoxyCodeLine{00785\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Mg'},varid)}
+\DoxyCodeLine{00786\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Mg'}}
+\DoxyCodeLine{00787\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fmg)}
+\DoxyCodeLine{00788\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Mg'}}
+\DoxyCodeLine{00789\ \ \ \ \ }
+\DoxyCodeLine{00790\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Ca'},varid)}
+\DoxyCodeLine{00791\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Ca'}}
+\DoxyCodeLine{00792\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fca)}
+\DoxyCodeLine{00793\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Ca'}}
+\DoxyCodeLine{00794\ }
+\DoxyCodeLine{00795\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Alo'},varid)}
+\DoxyCodeLine{00796\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Alo'}}
+\DoxyCodeLine{00797\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,falo)}
+\DoxyCodeLine{00798\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Alo'}}
+\DoxyCodeLine{00799\ }
+\DoxyCodeLine{00800\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Alo'},varid)}
+\DoxyCodeLine{00801\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Alo'}}
+\DoxyCodeLine{00802\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,falo)}
+\DoxyCodeLine{00803\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Alo'}}
+\DoxyCodeLine{00804\ }
+\DoxyCodeLine{00805\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Ald'},varid)}
+\DoxyCodeLine{00806\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Ald'}}
+\DoxyCodeLine{00807\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fald)}
+\DoxyCodeLine{00808\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Ald'}}
+\DoxyCodeLine{00809\ }
+\DoxyCodeLine{00810\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Feo'},varid)}
+\DoxyCodeLine{00811\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Feo'}}
+\DoxyCodeLine{00812\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ffeo)}
+\DoxyCodeLine{00813\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Feo'}}
+\DoxyCodeLine{00814\ }
+\DoxyCodeLine{00815\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Fed'},varid)}
+\DoxyCodeLine{00816\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Fed'}}
+\DoxyCodeLine{00817\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ffed)}
+\DoxyCodeLine{00818\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Fed'}}
+\DoxyCodeLine{00819\ }
+\DoxyCodeLine{00820\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Lat'},varid)}
+\DoxyCodeLine{00821\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Lat'}}
+\DoxyCodeLine{00822\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,lat)}
+\DoxyCodeLine{00823\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Lat'}}
+\DoxyCodeLine{00824\ }
+\DoxyCodeLine{00825\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Lon'},varid)}
+\DoxyCodeLine{00826\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Lon'}}
+\DoxyCodeLine{00827\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,lon)}
+\DoxyCodeLine{00828\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Lon'}}
+\DoxyCodeLine{00829\ \ \ \ \ }
+\DoxyCodeLine{00830\ \ \ \ \ \textcolor{comment}{!\ Close\ netcdf\ file}}
+\DoxyCodeLine{00831\ \ \ \ \ status\ =\ nf90\_close(ncid)\ \ \ \ }
+\DoxyCodeLine{00832\ \ \ \ \ }
+\DoxyCodeLine{00833\ \ \ \ \ \textcolor{keywordflow}{if}(jglobal==1)\ \textcolor{keyword}{open}(100,file=\textcolor{stringliteral}{'inputdata\_frc.txt'})}
+\DoxyCodeLine{00834\ }
+\DoxyCodeLine{00835\ \ \ \ \ \textcolor{keyword}{call\ }cluster(filecluster,lat,lon,fcluster)}
+\DoxyCodeLine{00836\ \ \ \ \ \ \ micparam\%bgctype=fcluster\ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00837\ \ \ \ \ \ \ micparam\%csoilobs(:,:)\ =\ -\/999.0}
+\DoxyCodeLine{00838\ \ \ \ \ \ \ msite=0}
+\DoxyCodeLine{00839\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,\ mp}
+\DoxyCodeLine{00840\ \ \ \ }
+\DoxyCodeLine{00841\ \ \ \ \ \ \ \ \ \ micparam\%pft(np)\ \ \ \ =\ int(fpft(np))}
+\DoxyCodeLine{00842\ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ micparam\%bgctype(np)=\ int(fpft(np))\ \ \ \ \ }}
+\DoxyCodeLine{00843\ \ \ \ \ \ \ \ \ \ micparam\%siteid(np)\ =\ int(fid(np))}
+\DoxyCodeLine{00844\ \ \ \ \ \ \ \ \ \ micparam\%dataid(np)\ =\ int(fdataid(np))}
+\DoxyCodeLine{00845\ \ \ \ \ \ \ \ \ \ micparam\%top(np)\ \ \ \ \ \ \ \ \ =\ max(int(zse(1))*100,int(ftop(np)))}
+\DoxyCodeLine{00846\ \ \ \ \ \ \ \ \ \ micparam\%bot(np)\ \ \ \ \ \ \ \ \ =\ int(fbot(np))}
+\DoxyCodeLine{00847\ }
+\DoxyCodeLine{00848\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ make\ sure\ "{}*delt"{}\ is\ not\ repeated\ in\ the\ model\ called\ by\ rk4}}
+\DoxyCodeLine{00849\ \ \ \ \ \ \ \ \ \ \ micinput\%fcnpp(np)\ \ \ \ \ \ =\ fnpp(np)}
+\DoxyCodeLine{00850\ \ \ \ \ \ \ \ \ \ \ micinput\%Dleaf(np)\ \ \ \ \ \ =\ fanpp(np)/(24.0*365.0)*delt\ \ \ \ \textcolor{comment}{!gc/m2/delt}}
+\DoxyCodeLine{00851\ \ \ \ \ \ \ \ \ \ \ micinput\%Droot(np)\ \ \ \ \ \ =\ fbnpp(np)/(24.0*365.0)*delt\ \ \ \ \ \textcolor{comment}{!gc/m2/delt}}
+\DoxyCodeLine{00852\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!micinput\%Dwood(np)\ \ \ \ \ \ =\ forcdata(np,17)/(24.0*365.0)*delt\ \ \ \ \ !gc/m2/delt}}
+\DoxyCodeLine{00853\ }
+\DoxyCodeLine{00854\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnleaf(np)\ \ \ \ =\ fcna(np)}
+\DoxyCodeLine{00855\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnroot(np)\ \ \ \ =\ fcnb(np)}
+\DoxyCodeLine{00856\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!micparam\%xcnwood(np)\ \ \ \ =\ forcdata(np,20)}}
+\DoxyCodeLine{00857\ \ \ \ \ \ \ \ \ \ \ micparam\%fligleaf(np)\ \ \ =\ flignin(np)}
+\DoxyCodeLine{00858\ \ \ \ \ \ \ \ \ \ \ micparam\%fligroot(np)\ \ \ =\ flignin(np)}
+\DoxyCodeLine{00859\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!micparam\%fligwood(np)\ \ \ =\ forcdata(np,23)}}
+\DoxyCodeLine{00860\ }
+\DoxyCodeLine{00861\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00862\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%tavg(np,ns)\ \ \ \ \ =\ ftemp(np)\ \ \textcolor{comment}{!\ average\ temperature\ in\ deg\ C}}
+\DoxyCodeLine{00863\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%wavg(np,ns)\ \ \ \ \ =\ fmoist(np)\ \ \textcolor{comment}{!\ average\ soil\ water\ content\ mm3/mm3}}
+\DoxyCodeLine{00864\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%clay(np,ns)\ \ \ \ \ =\ fclay(np)\ \ \textcolor{comment}{!\ clay\ content\ (fraction)}}
+\DoxyCodeLine{00865\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%silt(np,ns)\ \ \ \ \ =\ fsilt(np)\ \ \textcolor{comment}{!\ silt\ content\ (fraction)}}
+\DoxyCodeLine{00866\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%ph(np,ns)\ \ \ \ \ \ \ =\ fph(np)}
+\DoxyCodeLine{00867\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%porosity(np,ns)\ =\ fporosity(np)\ \textcolor{comment}{!porosity\ mm3/mm3}}
+\DoxyCodeLine{00868\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%matpot(np,ns)\ \ \ =\ fmatpot(np)\ \ \textcolor{comment}{!\ soil\ matric\ potential\ -\/kPa}}
+\DoxyCodeLine{00869\ }
+\DoxyCodeLine{00870\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobs(np,ns)\ \ \ \ =\ fsoc(np)\ }
+\DoxyCodeLine{00871\ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%bulkd(np,ns)\ \ \ \ \ \ \ =\ fbulkd(np)}
+\DoxyCodeLine{00872\ }
+\DoxyCodeLine{00873\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobsp(np,ns)\ \ \ =\ fpoc(np)}
+\DoxyCodeLine{00874\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobsm(np,ns)\ \ \ =\ fmaoc(np)}
+\DoxyCodeLine{00875\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00876\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!micnpool\%mineralN(np,ns)\ =\ forcdata(np,7)*0.001\ !\ mineral\ N:\ "{}0.001"{}\ mg\ N\ /kg\ soil\ -\/-\/>\ g\ N\ /kg\ soil}}
+\DoxyCodeLine{00877\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ enddo}\ \textcolor{comment}{!"{}ns"{}}}
+\DoxyCodeLine{00878\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micparam\%bgctype(np)\ ==bgcopt)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00879\ \ \ \ \ \ \ \ \ \ \ \ \ msite=msite\ +\ 1}
+\DoxyCodeLine{00880\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00881\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(jglobal==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00882\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(100,901)\ micparam\%siteid(np),micparam\%dataid(np),micparam\%pft(np),micparam\%bgctype(np),micparam\%top(np),micparam\%bot(np)\ ,\ \&}
+\DoxyCodeLine{00883\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fnpp(np),fanpp(np),fbnpp(np),fcna(np),fcnb(np),flignin(np),ftemp(np),fmoist(np),fclay(np),fsilt(np),fph(np),\ \&}
+\DoxyCodeLine{00884\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fporosity(np),fmatpot(np),fbulkd(np),fald(np),falo(np),ffed(np),ffeo(np),fsoc(np),fpoc(np),fmaoc(np)}
+\DoxyCodeLine{00885\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00886\ }
+\DoxyCodeLine{00887\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}\ \ \ \ \textcolor{comment}{!\ "{}np=1,mp"{}}}
+\DoxyCodeLine{00888\ }
+\DoxyCodeLine{00889\ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'total\ sites\ =\ '},\ msite,\ \textcolor{stringliteral}{'for\ bgcopt=\ '},bgcopt\ \ }
+\DoxyCodeLine{00890\ \ \ \ \ \textcolor{keywordflow}{if}(jglobal==1)\ \textcolor{keyword}{close}(100)}
+\DoxyCodeLine{00891\ 901\ \textcolor{keyword}{format}(6(i5,1x),25(f8.3,1x))\ \ \ \ }
+\DoxyCodeLine{00892\ \ \ \ \ \textcolor{keyword}{deallocate}(fsoc)}
+\DoxyCodeLine{00893\ \ \ \ \ \textcolor{keyword}{deallocate}(fbulkd)}
+\DoxyCodeLine{00894\ \ \ \ \ \textcolor{keyword}{deallocate}(fclay)}
+\DoxyCodeLine{00895\ \ \ \ \ \textcolor{keyword}{deallocate}(fsilt)}
+\DoxyCodeLine{00896\ \ \ \ \ \textcolor{keyword}{deallocate}(fph)}
+\DoxyCodeLine{00897\ \ \ \ \ \textcolor{keyword}{deallocate}(ftemp)}
+\DoxyCodeLine{00898\ \ \ \ \ \textcolor{keyword}{deallocate}(fmoist)}
+\DoxyCodeLine{00899\ \ \ \ \ \textcolor{keyword}{deallocate}(fporosity)}
+\DoxyCodeLine{00900\ \ \ \ \ \textcolor{keyword}{deallocate}(fmatpot)}
+\DoxyCodeLine{00901\ }
+\DoxyCodeLine{00902\ \ \ \ \ \textcolor{keyword}{deallocate}(fnpp)}
+\DoxyCodeLine{00903\ \ \ \ \ \textcolor{keyword}{deallocate}(fanpp)}
+\DoxyCodeLine{00904\ \ \ \ \ \textcolor{keyword}{deallocate}(fbnpp)}
+\DoxyCodeLine{00905\ \ \ \ \ \textcolor{keyword}{deallocate}(flignin)}
+\DoxyCodeLine{00906\ \ \ \ \ \textcolor{keyword}{deallocate}(fcna)}
+\DoxyCodeLine{00907\ \ \ \ \ \textcolor{keyword}{deallocate}(fcnb)}
+\DoxyCodeLine{00908\ \ \ \ \ \textcolor{keyword}{deallocate}(fid)}
+\DoxyCodeLine{00909\ \ \ \ \ \textcolor{keyword}{deallocate}(fpft)}
+\DoxyCodeLine{00910\ }
+\DoxyCodeLine{00911\ \ \ \ \ \textcolor{keyword}{deallocate}(fpoc)}
+\DoxyCodeLine{00912\ \ \ \ \ \textcolor{keyword}{deallocate}(fmaoc)}
+\DoxyCodeLine{00913\ \ \ \ \ \textcolor{keyword}{deallocate}(ftop)\ \textcolor{comment}{!!\ upper\ depth\ of\ observed\ soil\ layer}}
+\DoxyCodeLine{00914\ \ \ \ \ \textcolor{keyword}{deallocate}(fbot)\ \textcolor{comment}{!!\ bottom\ depth\ of\ observed\ soil\ layer}}
+\DoxyCodeLine{00915\ \ \ \ \ \textcolor{keyword}{deallocate}(fdataid)}
+\DoxyCodeLine{00916\ }
+\DoxyCodeLine{00917\ \ \ \ \ \textcolor{keyword}{deallocate}(fca)}
+\DoxyCodeLine{00918\ \ \ \ \ \textcolor{keyword}{deallocate}(fmg)}
+\DoxyCodeLine{00919\ \ \ \ \ \textcolor{keyword}{deallocate}(falo)}
+\DoxyCodeLine{00920\ \ \ \ \ \textcolor{keyword}{deallocate}(fald)\ }
+\DoxyCodeLine{00921\ \ \ \ \ \textcolor{keyword}{deallocate}(ffeo)\ }
+\DoxyCodeLine{00922\ \ \ \ \ \textcolor{keyword}{deallocate}(ffed)\ }
+\DoxyCodeLine{00923\ \ \ \ \ \textcolor{keyword}{deallocate}(lat,lon)\ }
+\DoxyCodeLine{00924\ \ \ \ \ \textcolor{keyword}{deallocate}(fcluster)}
+\DoxyCodeLine{00925\ \ \ \ \ }
+\DoxyCodeLine{00926\ \ \ \ \textcolor{keyword}{end\ SUBROUTINE\ }getdata\_frc}
+\DoxyCodeLine{00927\ }
+\DoxyCodeLine{00928\ \ \ \ \textcolor{keyword}{subroutine\ }get14catm(nz,f14cz,micparam)}
+\DoxyCodeLine{00929\ \ \ \ \textcolor{comment}{!\ get\ the\ atmospheric\ 14C\ data\ 1941-\/2019\ (inclusive,\ Hua\ et\ al.\ 2020)}}
+\DoxyCodeLine{00930\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00931\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00932\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00933\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \textcolor{keywordtype}{INTENT(INout)}\ \ \ ::\ micparam}
+\DoxyCodeLine{00934\ \ \ \ \ \textcolor{keywordtype}{integer}\ i,\ nz,\ ny,\ nc14atm(100,5)}
+\DoxyCodeLine{00935\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ year,c14del,sdx1,c14fm,sdx2}
+\DoxyCodeLine{00936\ \ \ \ \ \textcolor{keywordtype}{character*140}\ f14cz}
+\DoxyCodeLine{00937\ \ \ \ \ \textcolor{comment}{!\ give\ 14C\ zones\ globally}}
+\DoxyCodeLine{00938\ \ \ \ \ \textcolor{comment}{!\ 14C\ zone\ \ \ \ \ \ \ \ region\ code}}
+\DoxyCodeLine{00939\ \ \ \ \ \textcolor{comment}{!\ NH\ zone\ 1\ \ \ \ \ \ \ 11}}
+\DoxyCodeLine{00940\ \ \ \ \ \textcolor{comment}{!\ NH\ zone\ 2\ \ \ \ \ \ \ 12}}
+\DoxyCodeLine{00941\ \ \ \ \ \textcolor{comment}{!\ NH\ zone\ 3\ \ \ \ \ \ \ 13}}
+\DoxyCodeLine{00942\ \ \ \ \ \textcolor{comment}{!\ SH\ zone\ 1,2\ \ \ \ \ 14}}
+\DoxyCodeLine{00943\ \ \ \ \ \textcolor{comment}{!\ SH\ zone\ 3\ \ \ \ \ \ \ 15}}
+\DoxyCodeLine{00944\ }
+\DoxyCodeLine{00945\ \ \ \ \ \ \ micparam\%c14atm(:,nz,:)\ =\ 0.0}
+\DoxyCodeLine{00946\ \ \ \ \ \ \ \textcolor{keyword}{open}(13,file=f14cz)}
+\DoxyCodeLine{00947\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ i=1,4}
+\DoxyCodeLine{00948\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{read}(13,*)}
+\DoxyCodeLine{00949\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00950\ }
+\DoxyCodeLine{00951\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ i=1,79\ \textcolor{comment}{!!\ 1941-\/2019}}
+\DoxyCodeLine{00952\ \ \ \ \ \ \ \ \ \textcolor{keyword}{read}(13,*,\textcolor{keyword}{end}=91)\ year,c14del,sdx1,c14fm,sdx2}
+\DoxyCodeLine{00953\ \ \ \ \ \ \ \ \ ny\ =\ year\ -\/\ 1940}
+\DoxyCodeLine{00954\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ny<1\ .or.\ ny>79)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00955\ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'year'},\ year,\ \textcolor{stringliteral}{'outside\ the\ range'}}
+\DoxyCodeLine{00956\ \ \ \ \ \ \ \ \ \ \ \ \ stop}
+\DoxyCodeLine{00957\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00958\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14atm(ny,nz,1)\ =\ c14del\ \textcolor{comment}{!!!\ delta\ c14}}
+\DoxyCodeLine{00959\ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14atm(ny,nz,2)\ =\ c14fm}
+\DoxyCodeLine{00960\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00961\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00962\ 91\ \ \ \ \textcolor{keyword}{close}(13)}
+\DoxyCodeLine{00963\ \ \ \ \textcolor{keyword}{end\ subroutine\ }get14catm}
+\DoxyCodeLine{00964\ \ \ }
+\DoxyCodeLine{00965\ \ \ \ \textcolor{keyword}{subroutine\ }getdata\_hwsd\_dim(fhwsdsoc,mpx,timex)}
+\DoxyCodeLine{00966\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{00967\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00968\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00969\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00970\ \ \ \ \ \textcolor{keywordtype}{character*140}\ fhwsdsoc\ \ \ \ }
+\DoxyCodeLine{00971\ \ \ \ \ \textcolor{keywordtype}{integer}\ mpx,timex}
+\DoxyCodeLine{00972\ \ \ \ \ \textcolor{keywordtype}{integer}::\ ncid,varid,status}
+\DoxyCodeLine{00973\ \ \ \ \textcolor{comment}{!\ open\ .nc\ file}}
+\DoxyCodeLine{00974\ \ \ \ \ status\ =\ nf90\_open(fhwsdsoc,nf90\_nowrite,ncid)}
+\DoxyCodeLine{00975\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ opening\ c\_fraction.nc'}}
+\DoxyCodeLine{00976\ }
+\DoxyCodeLine{00977\ \ \ \ \ \textcolor{comment}{!\ get\ dimensions}}
+\DoxyCodeLine{00978\ \ \ \ \ status\ =\ nf90\_inq\_dimid(ncid,\textcolor{stringliteral}{'nsite'},varid)}
+\DoxyCodeLine{00979\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ dimensions/nsite'}}
+\DoxyCodeLine{00980\ \ \ \ \ status\ =\ nf90\_inquire\_dimension(ncid,varid,len=mpx)}
+\DoxyCodeLine{00981\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ dimensions/nsite'}}
+\DoxyCodeLine{00982\ \ \ }
+\DoxyCodeLine{00983\ \ \ \ \ \textcolor{comment}{!}}
+\DoxyCodeLine{00984\ \ \ \ \ status\ =\ nf90\_inq\_dimid(ncid,\textcolor{stringliteral}{'time'},varid)}
+\DoxyCodeLine{00985\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ dimensions/ntime'}}
+\DoxyCodeLine{00986\ \ \ \ \ status\ =\ nf90\_inquire\_dimension(ncid,varid,len=timex)}
+\DoxyCodeLine{00987\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ profile\_id'}\ \ \ }
+\DoxyCodeLine{00988\ \ }
+\DoxyCodeLine{00989\ \ \ \ \ \textcolor{comment}{!\ Close\ netcdf\ file}}
+\DoxyCodeLine{00990\ \ \ \ \ status\ =\ nf90\_close(ncid)\ \ \ }
+\DoxyCodeLine{00991\ \ \ \ \textcolor{keyword}{end\ subroutine\ \ }getdata\_hwsd\_dim\ \ \ }
+\DoxyCodeLine{00992\ }
+\DoxyCodeLine{00993\ \ \ \ \textcolor{keyword}{subroutine\ }getdata\_hwsd(fhwsdsoc,filecluster,fmodis,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)}
+\DoxyCodeLine{00994\ \ \ \ \ \textcolor{comment}{!use\ micglobal\%area\ (area\ fraction)\ as\ a\ switch\ to\ run\ for\ selected\ sites\ during\ parameter\ optimization\ (jopt==0)\ \ }}
+\DoxyCodeLine{00995\ \ \ \ \ \textcolor{comment}{!model\ only\ runs\ for\ those\ sites\ with\ micglobal\%area(np)\ >\ 0.0\ \ \ \ }}
+\DoxyCodeLine{00996\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{00997\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00998\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00999\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{01000\ \ \ \ \ \textcolor{keywordtype}{character*140}\ fhwsdsoc,filecluster,fmodis}
+\DoxyCodeLine{01001\ \ \ \ \ \textcolor{keywordtype}{integer}\ jglobal,bgcopt,jopt,jmodel}
+\DoxyCodeLine{01002\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INout)}\ ::\ micparam\ \ \ \ }
+\DoxyCodeLine{01003\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_global\_input),\ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INout)}\ ::\ micglobal}
+\DoxyCodeLine{01004\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ zse(ms)}
+\DoxyCodeLine{01005\ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{01006\ \ \ \ \ \textcolor{keywordtype}{integer}::\ ncid,varid,status}
+\DoxyCodeLine{01007\ \ \ \ \ \textcolor{keywordtype}{integer}::\ np,ns,k,ipft,nsocobs,ilonx,jlatx}
+\DoxyCodeLine{01008\ \ \ \ \ \textcolor{keywordtype}{integer}::\ intval,msite,isite,sitemax}
+\DoxyCodeLine{01009\ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ \ \ \ ::\ ivarx1,fcluster}
+\DoxyCodeLine{01010\ \textcolor{keywordtype}{\ \ \ \ real},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ \ \ \ ::\ varx1float}
+\DoxyCodeLine{01011\ \ \ \ \ \textcolor{keywordtype}{double\ precision},\ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ \ \ \ ::\ varx1db,avgts,avgms}
+\DoxyCodeLine{01012\ \ \ \ \ \textcolor{keywordtype}{double\ precision},\ \ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \textcolor{keywordtype}{allocatable}\ \ \ \ \ ::\ varx2db,fsoc7}
+\DoxyCodeLine{01013\ \ \ \ \ \textcolor{keywordtype}{double\ precision},\ \ \textcolor{keywordtype}{dimension(:,:,:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ ::\ tsoil7,moist7,watpot7}
+\DoxyCodeLine{01014\ \ \ \ \ \textcolor{keywordtype}{double\ precision},\ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ \ \ \ ::\ fald,falo,ffed,ffeo}
+\DoxyCodeLine{01015\ \ \ \ \ \textcolor{keywordtype}{double\ precision},\ \ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \textcolor{keywordtype}{allocatable}\ \ \ \ \ ::\ modisnpp}
+\DoxyCodeLine{01016\ \ \ \ \ \textcolor{keywordtype}{double\ precision},\ \ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \textcolor{keywordtype}{allocatable}\ \ \ \ \ ::\ modisnpp\_mp}
+\DoxyCodeLine{01017\ }
+\DoxyCodeLine{01018\ \ \ \ \ \textcolor{keyword}{allocate}(ivarx1(mp),fcluster(mp))}
+\DoxyCodeLine{01019\ \ \ \ \ \textcolor{keyword}{allocate}(varx1float(mp),varx1db(mp),avgts(mp),avgms(mp))}
+\DoxyCodeLine{01020\ \ \ \ \ \textcolor{keyword}{allocate}(varx2db(mp,ntime),fsoc7(mp,7))}
+\DoxyCodeLine{01021\ \ \ \ \ \textcolor{keyword}{allocate}(tsoil7(mp,7,ntime),moist7(mp,7,ntime),watpot7(mp,7,ntime))}
+\DoxyCodeLine{01022\ \ \ \ \ \textcolor{keyword}{allocate}(fald(mp),falo(mp),ffed(mp),ffeo(mp))}
+\DoxyCodeLine{01023\ \ \ \ \ \textcolor{keyword}{allocate}(modisnpp(720,360),modisnpp\_mp(mp))}
+\DoxyCodeLine{01024\ \ \ \ }
+\DoxyCodeLine{01025\ \ \ \ \textcolor{comment}{!\ open\ .nc\ file}}
+\DoxyCodeLine{01026\ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'\ calling\ getdata\_hwsd'}}
+\DoxyCodeLine{01027\ \ \ \ \ print\ *,\textcolor{stringliteral}{'input\ file'},\ fhwsdsoc}
+\DoxyCodeLine{01028\ \ \ \ \ print\ *,\textcolor{stringliteral}{'mp\ ms\ bgcopt='},\ \ \ \ mp,ms,bgcopt}
+\DoxyCodeLine{01029\ \ \ \ \ }
+\DoxyCodeLine{01030\ \ \ \ \ status\ =\ nf90\_open(fhwsdsoc,nf90\_nowrite,ncid)}
+\DoxyCodeLine{01031\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ opening\ c\_fraction.nc'}}
+\DoxyCodeLine{01032\ \ \ \ \ }
+\DoxyCodeLine{01033\ \ \ \ \ \textcolor{comment}{!\ get\ variables}}
+\DoxyCodeLine{01034\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'lat'},varid)}
+\DoxyCodeLine{01035\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ lat'}}
+\DoxyCodeLine{01036\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx1db)}
+\DoxyCodeLine{01037\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ lat'}}
+\DoxyCodeLine{01038\ \ \ \ \ micglobal\%lat\ =\ real(varx1db,kind=r\_2)}
+\DoxyCodeLine{01039\ \ \ \ \ }
+\DoxyCodeLine{01040\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'lon'},varid)}
+\DoxyCodeLine{01041\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ lont'}}
+\DoxyCodeLine{01042\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx1db)}
+\DoxyCodeLine{01043\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ lon'}}
+\DoxyCodeLine{01044\ \ \ \ \ micglobal\%lon=real(varx1db,kind=r\_2)}
+\DoxyCodeLine{01045\ \ \ \ \ }
+\DoxyCodeLine{01046\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'max\_PFT'},varid)}
+\DoxyCodeLine{01047\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ PFT'}}
+\DoxyCodeLine{01048\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ivarx1)}
+\DoxyCodeLine{01049\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ PFT'}}
+\DoxyCodeLine{01050\ \ \ \ \ micglobal\%pft\ =\ ivarx1}
+\DoxyCodeLine{01051\ \ \ \ \ }
+\DoxyCodeLine{01052\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'USDA\_SoilSuborder'},varid)}
+\DoxyCodeLine{01053\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ order'}}
+\DoxyCodeLine{01054\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ivarx1)}
+\DoxyCodeLine{01055\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ order'}}
+\DoxyCodeLine{01056\ \ \ \ \ micglobal\%sorder\ =\ ivarx1}
+\DoxyCodeLine{01057\ }
+\DoxyCodeLine{01058\ \ \ \ \ \textcolor{keywordflow}{if}(jmodel==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01059\ \ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'isoil'},varid)}
+\DoxyCodeLine{01060\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ texturep'}}
+\DoxyCodeLine{01061\ \ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ivarx1)}
+\DoxyCodeLine{01062\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ texure'}}
+\DoxyCodeLine{01063\ \ \ \ \ \ \ \ micglobal\%isoil\ =\ ivarx1}
+\DoxyCodeLine{01064\ \textcolor{keywordflow}{\ \ \ \ endif}}
+\DoxyCodeLine{01065\ \ \ \ \ \textcolor{keywordflow}{if}(jmodel==2\ .or.jmodel==3)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01066\ \ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'USDA\_Soil\_texture\_class'},varid)}
+\DoxyCodeLine{01067\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ texturep'}}
+\DoxyCodeLine{01068\ \ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ivarx1)}
+\DoxyCodeLine{01069\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ texure'}}
+\DoxyCodeLine{01070\ \ \ \ \ \ \ \ micglobal\%isoil\ =\ ivarx1}
+\DoxyCodeLine{01071\ \textcolor{keywordflow}{\ \ \ \ endif}}
+\DoxyCodeLine{01072\ }
+\DoxyCodeLine{01073\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'max\_PFTfrac'},varid)}
+\DoxyCodeLine{01074\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ max\_PFTfrac'}}
+\DoxyCodeLine{01075\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx1float)}
+\DoxyCodeLine{01076\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ max\_PFTfrac'}}
+\DoxyCodeLine{01077\ \ \ \ \ micglobal\%area\ =\ real(varx1float,kind=r\_2)\ \ \ \ }
+\DoxyCodeLine{01078\ \ \ \ \ }
+\DoxyCodeLine{01079\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'npp'},varid)}
+\DoxyCodeLine{01080\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ npp'}}
+\DoxyCodeLine{01081\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx1db)}
+\DoxyCodeLine{01082\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ npp'}}
+\DoxyCodeLine{01083\ \ \ \ \ micglobal\%npp\ =\ real(varx1db,kind=r\_2)\ \ \ \ \ }
+\DoxyCodeLine{01084\ \ \ \ \ }
+\DoxyCodeLine{01085\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'pH'},varid)}
+\DoxyCodeLine{01086\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ ph'}}
+\DoxyCodeLine{01087\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx1float)}
+\DoxyCodeLine{01088\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ ph'}}
+\DoxyCodeLine{01089\ \ \ \ \ micglobal\%ph\ =\ real(varx1float,kind=r\_2)}
+\DoxyCodeLine{01090\ \ \ \ \ }
+\DoxyCodeLine{01091\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'clay'},varid)}
+\DoxyCodeLine{01092\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ clay'}}
+\DoxyCodeLine{01093\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx1float)}
+\DoxyCodeLine{01094\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ clay'}}
+\DoxyCodeLine{01095\ \ \ \ \ micglobal\%clay\ =\ real(varx1float,kind=r\_2)}
+\DoxyCodeLine{01096\ \ \ \ \ }
+\DoxyCodeLine{01097\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'silt'},varid)}
+\DoxyCodeLine{01098\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ silt'}}
+\DoxyCodeLine{01099\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx1float)}
+\DoxyCodeLine{01100\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ silt'}}
+\DoxyCodeLine{01101\ \ \ \ \ micglobal\%silt\ =\ real(varx1float,kind=r\_2)}
+\DoxyCodeLine{01102\ \ \ \ \ }
+\DoxyCodeLine{01103\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'bulk\_density'},varid)}
+\DoxyCodeLine{01104\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ bulk\ density'}}
+\DoxyCodeLine{01105\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx1float)}
+\DoxyCodeLine{01106\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ bulk\ density'}}
+\DoxyCodeLine{01107\ \ \ \ \ micglobal\%bulkd=\ real(varx1float,kind=r\_2)}
+\DoxyCodeLine{01108\ }
+\DoxyCodeLine{01109\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'HWSD\_SOC'},varid)}
+\DoxyCodeLine{01110\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ carbon'}}
+\DoxyCodeLine{01111\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fsoc7)}
+\DoxyCodeLine{01112\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ carbon'}\ \ \ \ }
+\DoxyCodeLine{01113\ \ \ \ \ }
+\DoxyCodeLine{01114\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'SoilTemp'},varid)}
+\DoxyCodeLine{01115\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ temperature'}}
+\DoxyCodeLine{01116\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,tsoil7)}
+\DoxyCodeLine{01117\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ temperature'}}
+\DoxyCodeLine{01118\ \textcolor{comment}{!\ \ \ \ micglobal\%tsoil=real(varx3db,kind=r\_2)}}
+\DoxyCodeLine{01119\ \ \ \ \ }
+\DoxyCodeLine{01120\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'SoilMoist'},varid)}
+\DoxyCodeLine{01121\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ moisture'}}
+\DoxyCodeLine{01122\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,moist7)}
+\DoxyCodeLine{01123\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ moisture'}}
+\DoxyCodeLine{01124\ \textcolor{comment}{!\ \ \ \ micglobal\%moist=real(varx3db,kind=r\_2)}}
+\DoxyCodeLine{01125\ \ \ \ \ }
+\DoxyCodeLine{01126\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'water\_potential'},varid)}
+\DoxyCodeLine{01127\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ soil\ matric\ potential'}}
+\DoxyCodeLine{01128\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,watpot7)}
+\DoxyCodeLine{01129\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ soil\ matric\ potential'}}
+\DoxyCodeLine{01130\ \textcolor{comment}{!\ \ \ \ micglobal\%matpot=real(varx3db,kind=r\_2)}}
+\DoxyCodeLine{01131\ \ \ \ \ }
+\DoxyCodeLine{01132\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Leaf\_fall'},varid)}
+\DoxyCodeLine{01133\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Leaf\_fall'}}
+\DoxyCodeLine{01134\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx2db)}
+\DoxyCodeLine{01135\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Leaf\_fall'}}
+\DoxyCodeLine{01136\ \ \ \ \ micglobal\%dleaf=real(varx2db,kind=r\_2)}
+\DoxyCodeLine{01137\ }
+\DoxyCodeLine{01138\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Belowground\_litter\_fall'},varid)}
+\DoxyCodeLine{01139\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ Belowground\_litter\_fall'}}
+\DoxyCodeLine{01140\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx2db)}
+\DoxyCodeLine{01141\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ Belowground\_litter\_fall'}}
+\DoxyCodeLine{01142\ \ \ \ \ micglobal\%droot=real(varx2db,kind=r\_2)}
+\DoxyCodeLine{01143\ }
+\DoxyCodeLine{01144\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'non\_leaf\_aboveground\_litterfall'},varid)}
+\DoxyCodeLine{01145\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ non\_leaf\_aboveground\_litterfall'}}
+\DoxyCodeLine{01146\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx2db)}
+\DoxyCodeLine{01147\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ non\_leaf\_aboveground\_litterfall'}}
+\DoxyCodeLine{01148\ \ \ \ \ micglobal\%dwood\ =real(varx2db,kind=r\_2)}
+\DoxyCodeLine{01149\ }
+\DoxyCodeLine{01150\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Cluster'},varid)}
+\DoxyCodeLine{01151\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ Cluster'}}
+\DoxyCodeLine{01152\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ivarx1)}
+\DoxyCodeLine{01153\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ Cluster'}}
+\DoxyCodeLine{01154\ \ \ \ \ micglobal\%bgctype\ =\ ivarx1}
+\DoxyCodeLine{01155\ }
+\DoxyCodeLine{01156\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Ald'},varid)}
+\DoxyCodeLine{01157\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ Ald'}}
+\DoxyCodeLine{01158\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,fald)}
+\DoxyCodeLine{01159\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ ald'}}
+\DoxyCodeLine{01160\ }
+\DoxyCodeLine{01161\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Alo'},varid)}
+\DoxyCodeLine{01162\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ Alo'}}
+\DoxyCodeLine{01163\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,falo)}
+\DoxyCodeLine{01164\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ alo'}}
+\DoxyCodeLine{01165\ \ \ \ \ }
+\DoxyCodeLine{01166\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Fed'},varid)}
+\DoxyCodeLine{01167\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ Fed'}}
+\DoxyCodeLine{01168\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ffed)}
+\DoxyCodeLine{01169\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ Fed'}}
+\DoxyCodeLine{01170\ }
+\DoxyCodeLine{01171\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Feo'},varid)}
+\DoxyCodeLine{01172\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ Feo'}}
+\DoxyCodeLine{01173\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,ffeo)}
+\DoxyCodeLine{01174\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ Feo'}}
+\DoxyCodeLine{01175\ \ \ \ \ }
+\DoxyCodeLine{01176\ \ \ \ \ \textcolor{comment}{!\ Close\ netcdf\ file}}
+\DoxyCodeLine{01177\ \ \ \ \ status\ =\ nf90\_close(ncid)\ \ \ \ }
+\DoxyCodeLine{01178\ \ }
+\DoxyCodeLine{01179\ \ \ \ \textcolor{comment}{!\ check\ if\ calculated\ bgctype\ is\ same\ as\ the\ bgctype\ in\ the\ input\ data}}
+\DoxyCodeLine{01180\ \ \ \ \ \textcolor{keyword}{call\ }cluster(filecluster,micglobal\%lat,micglobal\%lon,fcluster)}
+\DoxyCodeLine{01181\ \ \ \ \ micparam\%bgctype=fcluster\ \ }
+\DoxyCodeLine{01182\ \ \ \ \ micglobal\%bgctype=fcluster}
+\DoxyCodeLine{01183\ }
+\DoxyCodeLine{01184\ \ \ \ \textcolor{comment}{!\ if\ jmodel=3\ use\ the\ annual\ modis\ NPP\ to\ scale\ the\ orchidee\ npp}}
+\DoxyCodeLine{01185\ \ \ \ \ \textcolor{keywordflow}{if}(jmodel==3)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01186\ \ \ \ \ \ \ \ status\ =\ nf90\_open(fmodis,nf90\_nowrite,ncid)}
+\DoxyCodeLine{01187\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ opening\ modisnpp'}}
+\DoxyCodeLine{01188\ \ \ \ \ }
+\DoxyCodeLine{01189\ \ \ \ \ \ \ \ \textcolor{comment}{!\ get\ variables}}
+\DoxyCodeLine{01190\ \ \ \ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'npp'},varid)}
+\DoxyCodeLine{01191\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ modis\_npp'}}
+\DoxyCodeLine{01192\ \ \ \ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,modisnpp)}
+\DoxyCodeLine{01193\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ npp'}}
+\DoxyCodeLine{01194\ \ \ \ \ \ \ \ \textcolor{comment}{!\ Close\ netcdf\ file}}
+\DoxyCodeLine{01195\ \ \ \ \ \ \ \ status\ =\ nf90\_close(ncid)\ }
+\DoxyCodeLine{01196\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01197\ \ \ \ \ \ \ \ modisnpp\_mp(:)\ =\ 0.0}
+\DoxyCodeLine{01198\ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{01199\ \ \ \ \ \ \ \ \ \ \ ilonx=(micglobal\%lon(np)\ +\ 179.75)/0.5\ +\ 1}
+\DoxyCodeLine{01200\ \ \ \ \ \ \ \ \ \ \ jlatx=(89.75-\/micglobal\%lat(np))/0.5\ \ \ \ +\ 1\ }
+\DoxyCodeLine{01201\ \ \ \ \ \ \ \ \ \ \ modisnpp\_mp(np)\ =\ max(100.0,modisnpp(ilonx,jlatx))}
+\DoxyCodeLine{01202\ \textcolor{keywordflow}{\ \ \ \ \ \ \ enddo}\ }
+\DoxyCodeLine{01203\ \textcolor{keywordflow}{\ \ \ \ endif}}
+\DoxyCodeLine{01204\ \ \ \ \ }
+\DoxyCodeLine{01205\ \ \ \ \ \textcolor{keywordflow}{do}\ k=1,ntime}
+\DoxyCodeLine{01206\ \ \ \ \ \ \ \ micglobal\%time(k)=\ real(k*1.0,kind=r\_2)}
+\DoxyCodeLine{01207\ \textcolor{keywordflow}{\ \ \ \ enddo}}
+\DoxyCodeLine{01208\ }
+\DoxyCodeLine{01209\ \ \ \ \ \textcolor{comment}{!\ print\ *,\ 'PFT=',\ micglobal\%pft}}
+\DoxyCodeLine{01210\ \ \ \ \ msite\ =\ 0}
+\DoxyCodeLine{01211\ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,\ mp}
+\DoxyCodeLine{01212\ \ \ \ \ \ \ \ micglobal\%siteid(np)\ \ =\ np\ }
+\DoxyCodeLine{01213\ \textcolor{comment}{!\ \ \ \ \ \ \ micglobal\%bgctype(np)\ =\ micglobal\%sorder(np)\ }}
+\DoxyCodeLine{01214\ \ \ \ \ \ \ \ micglobal\%poros(np)\ \ \ =\ 1.0\ -\/\ micglobal\%bulkd(np)/2650.0}
+\DoxyCodeLine{01215\ \ \ \ \ \ \ \ micparam\%siteid(np)\ \ \ =\ micglobal\%siteid(np)\ \ \ \ \ \ \ }
+\DoxyCodeLine{01216\ \ \ \ \ \ \ \ micparam\%pft(np)\ \ \ \ \ \ =\ micglobal\%pft(np)\ }
+\DoxyCodeLine{01217\ \textcolor{comment}{!\ \ \ \ \ \ \ micparam\%bgctype(np)\ \ =\ micglobal\%bgctype(np)\ \ \ \ \ \ \ }}
+\DoxyCodeLine{01218\ \ \ \ \ \ \ \ micparam\%isoil(np)\ \ \ \ =\ micglobal\%isoil(np)}
+\DoxyCodeLine{01219\ \ \ \ \ \ \ \ micparam\%sorder(np)\ \ \ =\ micglobal\%sorder(np)\ \ \ \ \ \ \ }
+\DoxyCodeLine{01220\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(jmodel==1)\ \textcolor{keywordflow}{then}\ \ \ \ \ \ \textcolor{comment}{!CABLE\ }}
+\DoxyCodeLine{01221\ \ \ \ \ \ \ \ \ \ \ ipft\ =\ \ micglobal\%pft(np)\ \ \ \ \ \ }
+\DoxyCodeLine{01222\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnleaf(np)\ \ =\ cnleaf1(ipft)}
+\DoxyCodeLine{01223\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnroot(np)\ \ =\ cnroot1(ipft)}
+\DoxyCodeLine{01224\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnwood(np)\ \ =\ cnwood1(ipft)}
+\DoxyCodeLine{01225\ \ \ \ \ \ \ \ \ \ \ micparam\%fligleaf(np)\ =\ ligleaf1(ipft)}
+\DoxyCodeLine{01226\ \ \ \ \ \ \ \ \ \ \ micparam\%fligroot(np)\ =\ ligroot1(ipft)}
+\DoxyCodeLine{01227\ \ \ \ \ \ \ \ \ \ \ micparam\%fligwood(np)\ =\ ligwood1(ipft)}
+\DoxyCodeLine{01228\ \textcolor{keywordflow}{\ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{01229\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(jmodel==2\ .or.jmodel==3)\ \textcolor{keywordflow}{then}\ \ \ \ \ \ \textcolor{comment}{!ORCHIDEE}}
+\DoxyCodeLine{01230\ \ \ \ \ \ \ \ \ \ \ ipft\ =\ \ micglobal\%pft(np)\ \ \ \ \ \ }
+\DoxyCodeLine{01231\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnleaf(np)\ \ =\ cnleaf2(ipft)}
+\DoxyCodeLine{01232\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnroot(np)\ \ =\ cnroot2(ipft)}
+\DoxyCodeLine{01233\ \ \ \ \ \ \ \ \ \ \ micparam\%xcnwood(np)\ \ =\ cnwood2(ipft)}
+\DoxyCodeLine{01234\ \ \ \ \ \ \ \ \ \ \ micparam\%fligleaf(np)\ =\ ligleaf2(ipft)}
+\DoxyCodeLine{01235\ \ \ \ \ \ \ \ \ \ \ micparam\%fligroot(np)\ =\ ligroot2(ipft)}
+\DoxyCodeLine{01236\ \ \ \ \ \ \ \ \ \ \ micparam\%fligwood(np)\ =\ ligwood2(ipft)\ \ \ \ \ \ \ }
+\DoxyCodeLine{01237\ \textcolor{keywordflow}{\ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{01238\ }
+\DoxyCodeLine{01239\ \ \ \ \ \ \ \ nsocobs=0}
+\DoxyCodeLine{01240\ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{01241\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ assign\ the\ observed\ layer\ 1\ data\ to\ the\ first\ 4\ modelled\ layers\ }}
+\DoxyCodeLine{01242\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ns<=4)\ \textcolor{keywordflow}{then}\ }
+\DoxyCodeLine{01243\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobs(np,ns)\ =\ real(fsoc7(np,1),kind=r\_2)}
+\DoxyCodeLine{01244\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%tsoil(np,ns,:)\ =\ real(tsoil7(np,1,:),kind=r\_2)}
+\DoxyCodeLine{01245\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%moist(np,ns,:)\ =\ real(moist7(np,1,:),kind=r\_2)}
+\DoxyCodeLine{01246\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%matpot(np,ns,:)=\ real(watpot7(np,1,:),kind=r\_2)\ \ }
+\DoxyCodeLine{01247\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{01248\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%csoilobs(np,ns)\ =\ real(fsoc7(np,ns-\/3),kind=r\_2)}
+\DoxyCodeLine{01249\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%tsoil(np,ns,:)\ =\ real(tsoil7(np,ns-\/3,:),kind=r\_2)}
+\DoxyCodeLine{01250\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%moist(np,ns,:)\ =\ real(moist7(np,ns-\/3,:),kind=r\_2)}
+\DoxyCodeLine{01251\ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%matpot(np,ns,:)=\ real(watpot7(np,ns-\/3,:),kind=r\_2)\ \ }
+\DoxyCodeLine{01252\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ filter\ out\ sites\ with\ SOC\ >12\ gc/kg\ (organic\ soil:\ Lourenco\ ett\ al.\ 2022)}}
+\DoxyCodeLine{01253\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micparam\%csoilobs(np,ns)\ >=12.0)\ \textcolor{keywordflow}{then}\ }
+\DoxyCodeLine{01254\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micglobal\%area(np)\ =\ -\/1.0}
+\DoxyCodeLine{01255\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ endif}\ \ \ }
+\DoxyCodeLine{01256\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ endif}\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01257\ \ \ \ \ \ \ }
+\DoxyCodeLine{01258\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micparam\%csoilobs(np,ns)\ >0.0\ .and.\ micparam\%csoilobs(np,ns)\ <\ 1000.0)\ nsocobs\ =\ nsocobs\ +\ 1}
+\DoxyCodeLine{01259\ }
+\DoxyCodeLine{01260\ \textcolor{keywordflow}{\ \ \ \ \ \ \ enddo}\ }
+\DoxyCodeLine{01261\ }
+\DoxyCodeLine{01262\ \ \ \ \ \ \ \ \textcolor{comment}{!\ using\ "{}micglobal\%area"{}\ to\ filter\ out\ some\ sites}}
+\DoxyCodeLine{01263\ \ \ \ \ \ \ \ micglobal\%npp(np)\ =\ sum(micglobal\%dleaf(np,:)\ +\ micglobal\%dwood(np,:)\ +\ micglobal\%droot(np,:))\ \ \ \ \ }
+\DoxyCodeLine{01264\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(jmodel==3)\ \textcolor{keywordflow}{then}\ \textcolor{comment}{!\ scale\ orchidee\ NPP\ using\ midNPP}}
+\DoxyCodeLine{01265\ \ \ \ \ \ \ \ \ \ \ micglobal\%dleaf(np,:)\ =\ micglobal\%dleaf(np,:)\ *\ modisnpp\_mp(np)/micglobal\%npp(np)}
+\DoxyCodeLine{01266\ \ \ \ \ \ \ \ \ \ \ micglobal\%dwood(np,:)\ =\ micglobal\%dwood(np,:)\ *\ modisnpp\_mp(np)/micglobal\%npp(np)}
+\DoxyCodeLine{01267\ \ \ \ \ \ \ \ \ \ \ micglobal\%droot(np,:)\ =\ micglobal\%droot(np,:)\ *\ modisnpp\_mp(np)/micglobal\%npp(np)}
+\DoxyCodeLine{01268\ \ \ \ \ \ \ \ \ \ \ micglobal\%npp(np)\ =\ sum(micglobal\%dleaf(np,:)\ +\ micglobal\%dwood(np,:)\ +\ micglobal\%droot(np,:))\ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01269\ \textcolor{keywordflow}{\ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{01270\ }
+\DoxyCodeLine{01271\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micglobal\%npp(np)<100.0\ .or.\ micglobal\%ph(np)<3.0\ .or.\ nsocobs==0)\ micglobal\%area(np)\ =\ -\/1.0\ \ \ \ \ }
+\DoxyCodeLine{01272\ }
+\DoxyCodeLine{01273\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micglobal\%bgctype(np)\ ==bgcopt\ .and.\ micglobal\%area(np)\ >0)\ msite\ =\ msite\ +\ 1\ }
+\DoxyCodeLine{01274\ \textcolor{keywordflow}{\ \ \ \ enddo}\ \ \ \ \textcolor{comment}{!\ "{}np=1,mp"{}}}
+\DoxyCodeLine{01275\ }
+\DoxyCodeLine{01276\ \ \ \ \ sitemax=300}
+\DoxyCodeLine{01277\ \ \ \ \ \textcolor{keywordflow}{if}(msite>2*sitemax)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01278\ }
+\DoxyCodeLine{01279\ \ \ \ \ \ \ \ intval\ =\ msite/sitemax;\ isite=0}
+\DoxyCodeLine{01280\ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{01281\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micglobal\%bgctype(np)\ ==\ bgcopt\ .and.micglobal\%area(np)\ >\ 0.0)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01282\ \ \ \ \ \ \ \ \ \ \ \ \ \ isite\ =\ isite\ +1}
+\DoxyCodeLine{01283\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(int(isite/intval)*intval\ /=\ isite.or.\ isite>sitemax*intval)\ micglobal\%area(np)\ =\ -\/1.0}
+\DoxyCodeLine{01284\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{01285\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micglobal\%area(np)\ >\ 0.0\ .and.\ micglobal\%bgctype(np)\ ==\ bgcopt)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01286\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(*,103)\ isite,np,\ micglobal\%bgctype(np),\ micglobal\%area(np),micglobal\%npp(np),micglobal\%ph(np)}
+\DoxyCodeLine{01287\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{01288\ \textcolor{keywordflow}{\ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{01289\ \ \ \ \ \textcolor{keywordflow}{else}\ }
+\DoxyCodeLine{01290\ }
+\DoxyCodeLine{01291\ \ \ \ \ \ \ isite=0}
+\DoxyCodeLine{01292\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{01293\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micglobal\%area(np)\ >\ 0.0\ .and.\ micglobal\%bgctype(np)\ ==\ bgcopt)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01294\ \ \ \ \ \ \ \ \ \ \ \ \ isite=isite+1\ \ \ \ \ }
+\DoxyCodeLine{01295\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(*,103)\ isite,np,micglobal\%bgctype(np),micglobal\%area(np),micglobal\%npp(np),micglobal\%ph(np)}
+\DoxyCodeLine{01296\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}\ \ \ \ \ }
+\DoxyCodeLine{01297\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{01298\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(isite<10)\ print\ *,\ \textcolor{stringliteral}{'too\ few\ sites\ '},\ isite}
+\DoxyCodeLine{01299\ }
+\DoxyCodeLine{01300\ \textcolor{keywordflow}{\ \ \ \ endif}\ \ \ }
+\DoxyCodeLine{01301\ }
+\DoxyCodeLine{01302\ \ \ \ \ micglobal\%avgts(:)\ =\ sum(sum(micglobal\%tsoil(:,:,:),dim=3),dim=2)/real(ms*ntime)}
+\DoxyCodeLine{01303\ \ \ \ \ micglobal\%avgms(:)\ =\ sum(sum(micglobal\%moist(:,:,:),dim=3),dim=2)/real(ms*ntime)\ \ \ \ }
+\DoxyCodeLine{01304\ }
+\DoxyCodeLine{01305\ \ \ \ \ \textcolor{keywordflow}{if}(jglobal==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01306\ \ \ \ \ \ \ \ \textcolor{keyword}{open}(100,file=\textcolor{stringliteral}{'inputdata.txt'})}
+\DoxyCodeLine{01307\ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{01308\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(100,101)\ micparam\%siteid(np),micglobal\%area(np),micparam\%pft(np),\ \&}
+\DoxyCodeLine{01309\ \ \ \ \ \ \ \ \ \ \ micparam\%isoil(np),micparam\%sorder(np),micparam\%bgctype(np),\ \ \ \&}
+\DoxyCodeLine{01310\ \ \ \ \ \ \ \ \ \ \ micglobal\%npp(np),sum(micglobal\%dleaf(np,:))+sum(micglobal\%dwood(np,:))+sum(micglobal\%droot(np,:)),\ \&}
+\DoxyCodeLine{01311\ \ \ \ \ \ \ \ \ \ \ micglobal\%ph(np),micglobal\%clay(np)+micglobal\%silt(np),micglobal\%bulkd(np),\ \&}
+\DoxyCodeLine{01312\ \ \ \ \ \ \ \ \ \ \ micglobal\%avgts(np),micglobal\%avgms(np),sum(micparam\%csoilobs(np,:)*zse(:))/sum(zse(:))\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01313\ \textcolor{keywordflow}{\ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{01314\ \ \ \ \ \ \ \ \textcolor{keyword}{close}(100)\ }
+\DoxyCodeLine{01315\ \textcolor{keywordflow}{\ \ \ \ endif}\ \ \ \ }
+\DoxyCodeLine{01316\ 101\ \textcolor{keyword}{format}(i5,1x,f8.4,1x,4(i3,1x),20(f10.4,1x))}
+\DoxyCodeLine{01317\ 103\ \textcolor{keyword}{format}(\textcolor{stringliteral}{'\ run\ site'},\ 3(i6,1x),10(f10.3,1x))}
+\DoxyCodeLine{01318\ }
+\DoxyCodeLine{01319\ \ \ \ \ \textcolor{keyword}{deallocate}(ivarx1,fcluster)}
+\DoxyCodeLine{01320\ \ \ \ \ \textcolor{keyword}{deallocate}(varx1float,varx1db,avgts,avgms)}
+\DoxyCodeLine{01321\ \ \ \ \ \textcolor{keyword}{deallocate}(varx2db,fsoc7)}
+\DoxyCodeLine{01322\ \ \ \ \ \textcolor{keyword}{deallocate}(tsoil7,moist7,watpot7)\ \ \ \ }
+\DoxyCodeLine{01323\ \ \ \ \ \textcolor{keyword}{deallocate}(fald,falo,ffed,ffeo)}
+\DoxyCodeLine{01324\ \textcolor{comment}{!\ \ \ \ print\ *,\ 'exit\ getdata\_hwsd'}}
+\DoxyCodeLine{01325\ }
+\DoxyCodeLine{01326\ \textcolor{keyword}{end\ subroutine\ }getdata\_hwsd}
+\DoxyCodeLine{01327\ }
+\DoxyCodeLine{01328\ }
+\DoxyCodeLine{01329\ \textcolor{keyword}{SUBROUTINE\ }cluster(filecluster,lat,lon,fcluster)}
+\DoxyCodeLine{01330\ \ \ \ \ \textcolor{comment}{!\ use\ the\ nearest\ point\ to\ estimate\ the\ cluster\ }}
+\DoxyCodeLine{01331\ \ \ \ \ \textcolor{comment}{!\ output}}
+\DoxyCodeLine{01332\ \ \ \ \ \textcolor{comment}{!\ micparam\%bgctype:\ [1,10]}}
+\DoxyCodeLine{01333\ \ \ \ \ \textcolor{keywordtype}{use\ }netcdf}
+\DoxyCodeLine{01334\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{01335\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{01336\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{01337\ \ \ \ \ \textcolor{keywordtype}{double\ precision},\ \textcolor{keywordtype}{dimension(mp)}\ \ \ \ \ \ \ \ \ \ \ \ \ ::\ lat,lon}
+\DoxyCodeLine{01338\ \ \ \ \ \textcolor{keywordtype}{integer},\ \textcolor{keywordtype}{dimension(mp)}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ fcluster}
+\DoxyCodeLine{01339\ \ \ \ \ \textcolor{keywordtype}{double\ precision}\ lathd(360),\ lonhd(720)}
+\DoxyCodeLine{01340\ \ \ \ \ real*4\ \ \ \ \ \ \ \ \ \ \ varx\_flt(720,360)}
+\DoxyCodeLine{01341\ \ \ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ clusterhd(720,360)}
+\DoxyCodeLine{01342\ \ \ \ \ \textcolor{keywordtype}{character*140}\ \ \ \ filecluster}
+\DoxyCodeLine{01343\ \ \ \ \ \textcolor{keywordtype}{integer}\ ncid,varid,status,i,j,ilon,jlat,np,icluster,freq(10)\ \ \ }
+\DoxyCodeLine{01344\ \ \ \ \ }
+\DoxyCodeLine{01345\ \ \ \ \ \textcolor{comment}{!\ read\ the\ hd\ by\ hd\ cluster\ map}}
+\DoxyCodeLine{01346\ \ \ \ \ }
+\DoxyCodeLine{01347\ \ \ \ \ status\ =\ nf90\_open(filecluster,nf90\_nowrite,ncid)}
+\DoxyCodeLine{01348\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ opening\ fcluster'}}
+\DoxyCodeLine{01349\ \ \ \ \ }
+\DoxyCodeLine{01350\ \ \ \ \ \textcolor{comment}{!\ get\ variables}}
+\DoxyCodeLine{01351\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'lat'},varid)}
+\DoxyCodeLine{01352\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ lat'}}
+\DoxyCodeLine{01353\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,lathd)}
+\DoxyCodeLine{01354\ \ \ \ \ }
+\DoxyCodeLine{01355\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ lat'}}
+\DoxyCodeLine{01356\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'lon'},varid)}
+\DoxyCodeLine{01357\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ lon'}}
+\DoxyCodeLine{01358\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,lonhd)}
+\DoxyCodeLine{01359\ }
+\DoxyCodeLine{01360\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ lon'}}
+\DoxyCodeLine{01361\ \ \ \ \ status\ =\ nf90\_inq\_varid(ncid,\textcolor{stringliteral}{'Band1'},varid)}
+\DoxyCodeLine{01362\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\ \textcolor{stringliteral}{'Error\ inquiring\ data\ Band1'}}
+\DoxyCodeLine{01363\ \ \ \ \ status\ =\ nf90\_get\_var(ncid,varid,varx\_flt)}
+\DoxyCodeLine{01364\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ print*,\textcolor{stringliteral}{'Error\ reading\ data\ Band1'}}
+\DoxyCodeLine{01365\ \ \ \ \ \textcolor{comment}{!\ close\ the\ file}}
+\DoxyCodeLine{01366\ \ \ \ \ status\ =\ nf90\_close(ncid)}
+\DoxyCodeLine{01367\ \ \ \ \ \textcolor{keywordflow}{if}(status\ /=\ nf90\_noerr)\ \textcolor{keyword}{call\ }nc\_abort(status,\ \textcolor{stringliteral}{'Error\ in\ clsoing\ fcluster'})\ \ \ \ }
+\DoxyCodeLine{01368\ }
+\DoxyCodeLine{01369\ \ \ \ \ clusterhd\ =\ int(varx\_flt)}
+\DoxyCodeLine{01370\ \ \ \ \ fcluster\ =\ -\/1}
+\DoxyCodeLine{01371\ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{01372\ \ \ \ \ \ \ \ ilon\ =\ int((lon(np)\ +\ 179.75)/0.5\ +1)}
+\DoxyCodeLine{01373\ \ \ \ \ \ \ \ jlat\ =\ int((lat(np)\ +\ 89.75)/0.5\ \ +1)}
+\DoxyCodeLine{01374\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(clusterhd(ilon,jlat)\ <\ 0\ .or.\ clusterhd(ilon,jlat)\ >10)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01375\ \ \ \ \ \ \ \ \ \ \ freq(1:10)\ =\ 0}
+\DoxyCodeLine{01376\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ i=max(1,ilon-\/5),min(720,ilon+5)}
+\DoxyCodeLine{01377\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ j=max(1,jlat-\/5),min(360,jlat+5)}
+\DoxyCodeLine{01378\ \ \ \ \ \ \ \ \ \ \ \ \ \ icluster=\ clusterhd(i,j)}
+\DoxyCodeLine{01379\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(icluster>0\ .and.\ icluster<11)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01380\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ freq(icluster)\ =\ freq(icluster)\ +1}
+\DoxyCodeLine{01381\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ endif}\ \ \ }
+\DoxyCodeLine{01382\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(sum(freq(:))\ >0)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01383\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fcluster(np)\ =\ maxloc(freq,dim=1)}
+\DoxyCodeLine{01384\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ endif}\ }
+\DoxyCodeLine{01385\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{01386\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ enddo}\ }
+\DoxyCodeLine{01387\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ write(*,101)\ np,fcluster(np),lon(np),lat(np),ilon,jlat,freq(:)\ \ \ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{01388\ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{01389\ \ \ \ \ \ \ \ \ \ \ fcluster(np)\ =\ clusterhd(ilon,jlat)}
+\DoxyCodeLine{01390\ \textcolor{keywordflow}{\ \ \ \ \ \ \ endif}\ \ \ }
+\DoxyCodeLine{01391\ \textcolor{keywordflow}{\ \ \ \ enddo}\ \ \ \ }
+\DoxyCodeLine{01392\ 101\ \textcolor{keyword}{format}(\textcolor{stringliteral}{'freq\ '},i6,1x,i2,1x,2(f7.3,1x),15(i3,1x))\ \ \ \ }
+\DoxyCodeLine{01393\ \textcolor{keyword}{END\ SUBROUTINE\ }cluster}
+\DoxyCodeLine{01394\ }
+\DoxyCodeLine{01395\ }
+\DoxyCodeLine{01396\ \textcolor{keyword}{SUBROUTINE\ }screenout(runmodel,jmodel,bgcopt,xopt,cost)}
+\DoxyCodeLine{01397\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{01398\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{01399\ \ \ \ \ \textcolor{keywordtype}{character*10}\ runmodel}
+\DoxyCodeLine{01400\ \ \ \ \ \textcolor{keywordtype}{integer}\ jmodel,bgcopt}
+\DoxyCodeLine{01401\ \ \ \ \ real*8,\ \ \ \ \textcolor{keywordtype}{dimension(16)}\ \ \ \ \ \ \ \ \ \ \ ::\ xopt}
+\DoxyCodeLine{01402\ \ \ \ \ real*8\ \ \ \ \ cost}
+\DoxyCodeLine{01403\ \ \ \ \ \textcolor{keyword}{write}(*,901)\ runmodel,jmodel,bgcopt,cost,xopt(1:14)}
+\DoxyCodeLine{01404\ 901\ \textcolor{keyword}{format}(a10,2(i3,1x),f12.3,1x,14(f7.3,1x))\ \ \ \ }
+\DoxyCodeLine{01405\ }
+\DoxyCodeLine{01406\ \textcolor{keyword}{END\ SUBROUTINE\ }screenout}
+\DoxyCodeLine{01407\ \textcolor{comment}{!\ \#\#\#\#\#\#\#\#\#\#\#\#\#\#mesc\_inout.f90\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#}}
+
+\end{DoxyCode}

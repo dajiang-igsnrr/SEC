@@ -1,0 +1,27 @@
+\doxysection{main.\+f90}
+\label{main_8f90_source}\index{SEC/src/main.f90@{SEC/src/main.f90}}
+\textbf{ Go to the documentation of this file.}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{!>\ main\ driver\ to\ run\ model\ part\ }}
+\DoxyCodeLine{00002\ \textcolor{comment}{!!\ read\ in\ the\ calibrated\ model\ parameter\ values}}
+\DoxyCodeLine{00003\ \textcolor{comment}{!!\ print\ out\ the\ value\ of\ cost\ function}}
+\DoxyCodeLine{00004\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{program}\ testvmic}
+\DoxyCodeLine{00006\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ real*8}\ (a-\/h,o-\/z)}
+\DoxyCodeLine{00007\ \textcolor{comment}{!\ \ ARRAYS\ FROM\ THE\ INPUT\ DATA}}
+\DoxyCodeLine{00008\ \ \ \ \ \ \ real*8\ xparam(16),xcost}
+\DoxyCodeLine{00009\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nx}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \ \ \ \ \ \ nx=6\ \ }
+\DoxyCodeLine{00012\ \ \ \ \ \ \ \textcolor{keyword}{open}(20,file=\textcolor{stringliteral}{'params\_val.txt'})}
+\DoxyCodeLine{00013\ \ \ \ \ \ \ \textcolor{keyword}{read}(20,*)\ xcost,xparam(1:nx)}
+\DoxyCodeLine{00014\ \ \ \ \ \ \ \textcolor{keyword}{close}(20)}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{!\ \ \ \ \ \ xparam(:)\ =\ 1.0}}
+\DoxyCodeLine{00017\ \ \ \ \ \ \ fa\ =\ functn(nx,xparam)}
+\DoxyCodeLine{00018\ \textcolor{comment}{!\ \ END\ OF\ THE\ MAIN\ PROGRAM}}
+\DoxyCodeLine{00019\ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cost12'},\ xcost,xparam(1:nx),fa}
+\DoxyCodeLine{00020\ \ \ \ \ \ \ stop}
+\DoxyCodeLine{00021\ \textcolor{keyword}{end\ program\ }testvmic}
+
+\end{DoxyCode}

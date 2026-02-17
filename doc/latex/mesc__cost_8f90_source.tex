@@ -1,0 +1,343 @@
+\doxysection{mesc\+\_\+cost.\+f90}
+\label{mesc__cost_8f90_source}\index{SEC/src/mesc\_cost.f90@{SEC/src/mesc\_cost.f90}}
+\textbf{ Go to the documentation of this file.}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{!>\ compute\ cost\ for\ a\ given\ set\ of\ parameter\ values}}
+\DoxyCodeLine{00002\ \textcolor{comment}{!!\ three\ options}}
+\DoxyCodeLine{00003\ \textcolor{comment}{!!\ cost\ function\ for\ 14C\ simulation}}
+\DoxyCodeLine{00004\ \textcolor{comment}{!!\ cost\ function\ SOC\ fraction}}
+\DoxyCodeLine{00005\ \textcolor{comment}{!!\ cost\ function\ for\ hwsd\_SOC\ profiles}}
+\DoxyCodeLine{00006\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00007\ \textcolor{comment}{!\ \#\#\#\#\#\#\#\#\#\#\#\#\#\#mesc\_cost.f90\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#}}
+\DoxyCodeLine{00008\ \ \ \ \ \textcolor{keyword}{subroutine\ }calcost\_c14(nx,isoc14,bgcopt,xopt,micparam,miccpool,micinput,zse,totcost)}
+\DoxyCodeLine{00009\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00010\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \textcolor{keywordtype}{INTENT(INOUT)}\ ::\ micparam}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_cpool),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ ::\ miccpool}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ ::\ micinput}
+\DoxyCodeLine{00015\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ zse(ms)}
+\DoxyCodeLine{00016\ \ \ \ \ \textcolor{keywordtype}{integer}\ nx,isoc14,bgcopt}
+\DoxyCodeLine{00017\ \ \ \ \ real*8\ \ totcost}
+\DoxyCodeLine{00018\ \ \ \ \ real*8,\ \textcolor{keywordtype}{dimension(16)}\ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ xopt}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{comment}{!\ cost\ function}}
+\DoxyCodeLine{00021\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ \ \ \ ::\ xcost,xobs,xobsp,xobsm\ }
+\DoxyCodeLine{00022\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ \ \ \ ::\ xmod,xmodp,xmodm\ \textcolor{comment}{!!\ weighted\ modelled\ SOC,\ POC\ and\ MAOC}}
+\DoxyCodeLine{00023\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ \ \ \ ::\ xfracpmod,xfracmmod,xfracpobs,xfracmobs}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{integer}\ \ \ np,ns,ip}
+\DoxyCodeLine{00025\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ xbdz,small}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ xtop,xbot,x1,x2\ \textcolor{comment}{!!\ cm}}
+\DoxyCodeLine{00028\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ weight}
+\DoxyCodeLine{00029\ \ }
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(xcost(mp),xobs(mp),xobsp(mp),xobsm(mp))}
+\DoxyCodeLine{00033\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(xmod(mp),xmodp(mp),xmodm(mp))}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(xfracpmod(mp),xfracmmod(mp),xfracpobs(mp),xfracmobs(mp))}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ }
+\DoxyCodeLine{00036\ \ \ \ \ \ \ small\ =\ 1.0e-\/6}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ xcost(:)=0.0\ }
+\DoxyCodeLine{00038\ \ \ \ \ \ \ xobs(:)=0.0;\ xobsp(:)=0.0;xobsm(:)=0.0}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00041\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micparam\%bgctype(np)==bgcopt)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00042\ \ \ \ \ \ \ \ \ \ \ \ \ xobs(np)\ \ =\ micparam\%csoilobs(np,1)\ \ \ \textcolor{comment}{!!\ only\ one\ observation\ for\ each\ site}}
+\DoxyCodeLine{00043\ \ \ \ \ \ \ \ \ \ \ \ \ xobsp(np)\ =\ micparam\%csoilobsp(np,1)}
+\DoxyCodeLine{00044\ \ \ \ \ \ \ \ \ \ \ \ \ xobsm(np)\ =\ micparam\%csoilobsm(np,1)}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \ \ \ \ \ \ xfracpobs(np)\ =\ min(1.0,max(0.0,xobsp(np)/(xobsp(np)+xobsm(np))))}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \ \ \ \ \ \ xfracmobs(np)\ =\ 1.0\ -\/\ xfracpobs(np)}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!!\ calculated\ weighted\ average\ of\ modelled\ values\ to\ correspond\ to\ observations}}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \ \ \ \ xmod(np)=0.0;\ xmodp(np)=0.0;\ xmodm(np)=0.0}
+\DoxyCodeLine{00050\ \ \ \ \ \ \ \ \ \ \ \ \ xtop\ =\ real(micparam\%top(np))*0.01\ \ \ \textcolor{comment}{!\ convert\ from\ cm\ to\ m}}
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \ \ \ \ \ \ xbot\ =\ real(micparam\%bot(np))*0.01\ \ }
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ \ \ \ \ x1\ =0.0;\ x2\ =0.0}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ x2=x1+zse(ns)}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (x1\ <=\ xbot\ .and.\ x2\ >=\ xtop)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ weight\ =\ min(xbot,x2)\ -\/\ max(xtop,x1)}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xmod(np)\ \ =\ xmod(np)\ \ +\ weight\ *\ sum(miccpool\%cpooleq(np,ns,3:9))\ \textcolor{comment}{!!\ unit:\ mg\ C\ cm-\/3}}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xmodp(np)\ =\ xmodp(np)\ +\ weight\ *\ (sum(miccpool\%cpooleq(np,ns,3:5))+sum(miccpool\%cpooleq(np,ns,7:8)))\ \textcolor{comment}{!!\ observed\ poc\ =\ modelled\ (aggregate\ c\ +\ lwmc)}}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xmodm(np)\ =\ xmodm(np)\ +\ weight\ *\ (miccpool\%cpooleq(np,ns,6)\ +\ miccpool\%cpooleq(np,ns,9))\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!!\ observed\ maoc\ =\ modelled\ maoc}}
+\DoxyCodeLine{00061\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ end\ if}}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ x1=x2}
+\DoxyCodeLine{00063\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ this\ assumes\ bulk\ density\ constant\ in\ the\ vertical}}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ \ \ \ xmod(np)\ \ \ =\ 1000.0\ *\ xmod(np)\ /((xbot-\/xtop)\ *\ micinput\%bulkd(np,1))\ \ \ \textcolor{comment}{!!\ unit:\ g\ C/kg\ soil}}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ \ \ \ \ \ xmodp(np)\ \ =\ 1000.0\ *\ xmodp(np)/((xbot-\/xtop)\ *\ micinput\%bulkd(np,1))}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ \ \ xmodm(np)\ \ =\ 1000.0\ *\ xmodm(np)/((xbot-\/xtop)\ *\ micinput\%bulkd(np,1))}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00069\ \ \ \ \ \ \ \ \ \ \ \ xfracpmod(np)\ =\ min(1.0,max(0.0,xmodp(np)/(xmodp(np)+xmodm(np))))}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \ \ \ xfracmmod(np)\ =\ 1.0\ -\/\ xfracpmod(np)}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00072\ \ \ \ \ \ \ \ \ \ \ \ miccpool\%cpooleqp(np)\ =\ xmodp(np)}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \ \ \ miccpool\%cpooleqm(np)\ =\ xmodm(np)}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ avoid\ dividing\ by\ zero}}
+\DoxyCodeLine{00075\ \ \ \ \ \ \ \ \ \ \ \ miccpool\%c12pooleqp(np)\ =\ max(small,miccpool\%c12pooleqp(np))}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsp(np)=\ max(small,micparam\%c14soilobsp(np))}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \ \ \ miccpool\%c12pooleqm(np)\ =\ max(small,miccpool\%c12pooleqm(np))}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsm(np)=\ max(small,micparam\%c14soilobsm(np))}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (xmod(np)\ >=\ 1000.0\ .or.\ xmodp(np)\ >=\ 1000.0\ .or.\ xmodm(np)\ >=\ 1000.0)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'abnormal\ value\ of\ model\ simulation\ site='},\ micparam\%siteid(np)}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'parameter\ values\ =\ '},\ \ xopt(1:nx)}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ stop}}
+\DoxyCodeLine{00084\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(isoc14\ ==\ 0)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}((xobsp(np)+xobsm(np))>0.0\ .and.\ (xobsp(np)+xobsm(np))<1000.0)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ xcost(np)\ =\ xcost(np)\ +\ ((xmodp(np)\ -\/\ xobsp(np))/xobsp(np))**2\ +((xmodm(np)\ -\/\ xobsm(np))/xobsm(np))**2}}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xcost(np)\ =\ xcost(np)\ +\ (xfracpmod(np)-\/xfracpobs(np))**\ 2\ +\ (xfracmmod(np)\ -\/\ xfracmobs(np))**2}
+\DoxyCodeLine{00090\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(91,901)\ micparam\%siteid(np),micparam\%pft(np),micparam\%top(np),micparam\%bot(np),xobs(np),xmod(np),xobsp(np),xmodp(np),xobsm(np),xmodm(np)}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns\ =\ 1,ms}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(92,*)\ micparam\%siteid(np),micparam\%pft(np),\ ns,\ (1000.0*miccpool\%cpooleq(np,ns,ip)/micinput\%bulkd(np,ns),ip=1,mcpool)}
+\DoxyCodeLine{00095\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ }
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ \ \ \ \ \ xcost(np)\ =\ xcost(np)\ +(micparam\%c14soilobsp(np)\ -\/\ xmodp(np)/miccpool\%c12pooleqp(np))**2\ \ \&}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +(micparam\%c14soilobsm(np)\ -\/\ xmodm(np)/miccpool\%c12pooleqm(np))**2}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(93,901)\ micparam\%siteid(np),micparam\%pft(np),micparam\%top(np),micparam\%bot(np),\ \&}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xfracpobs(np),xfracpmod(np),xfracmobs(np),xfracmmod(np),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsp(np),xmodp(np)/miccpool\%c12pooleqp(np),\ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%c14soilobsm(np),xmodm(np)/miccpool\%c12pooleqm(np)}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns\ =\ 1,ms}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(94,*)\ micparam\%siteid(np),micparam\%pft(np),\ ns,\ (1000.0*miccpool\%cpooleq(np,ns,ip)/micinput\%bulkd(np,ns),ip=1,mcpool)}
+\DoxyCodeLine{00108\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00109\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ endif}\ }
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00111\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ endif}\ \ \textcolor{comment}{!bgctype(np)=bgcopt}}
+\DoxyCodeLine{00112\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}\ \ \textcolor{comment}{!"{}np"{}}}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ totcost\ =\ sum(xcost(1:mp))}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(xcost,xobs,xobsp,xobsm)}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(xmod,xmodp,xmodm)}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(xfracpmod,xfracmmod,xfracpobs,xfracmobs)}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ 901\ \ \ \textcolor{keyword}{format}(i5,2x,3(i4,2x),12(f10.4,2x))}
+\DoxyCodeLine{00120\ 921\ \ \ \textcolor{keyword}{format}(i7,2x,2(i4,2x),10(f12.4,1x))}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }calcost\_c14}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keyword}{SUBROUTINE\ }calcost\_frc1(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost)}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\textcolor{keywordtype}{INTENT(IN)}\ \ ::\ micpxdef}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ ::\ micparam}
+\DoxyCodeLine{00130\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_cpool),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ ::\ miccpool}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ ::\ micinput}
+\DoxyCodeLine{00132\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_global\_input),\ \textcolor{keywordtype}{INTENT(IN)}\ ::\ micglobal}
+\DoxyCodeLine{00133\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ zse(ms)}
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keywordtype}{integer}\ nx,bgcopt}
+\DoxyCodeLine{00135\ \ \ \ \ real*8\ \ totcost}
+\DoxyCodeLine{00136\ \ \ \ \ real*8,\ \textcolor{keywordtype}{dimension(16)}\ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ xopt}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \ \ \ \ \textcolor{comment}{!\ cost\ function}}
+\DoxyCodeLine{00139\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ ::\ xcost,xobs,xobsp,xobsm\ }
+\DoxyCodeLine{00140\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ ::\ xmod,xmodp,xmodm\ \textcolor{comment}{!!\ weighted\ modelled\ SOC,\ POC\ and\ MAOC}}
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keywordtype}{integer}\ \ \ np,ns,ip,ipsite}
+\DoxyCodeLine{00142\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ xbdz}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ xtop,xbot,x1,x2\ \textcolor{comment}{!!\ cm}}
+\DoxyCodeLine{00145\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ weight}
+\DoxyCodeLine{00146\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ \ ::\ xmodfracp,xmodfracm,xobsfracp,xobsfracm}
+\DoxyCodeLine{00147\ \ }
+\DoxyCodeLine{00148\ \ }
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(xcost(mp),xobs(mp),xobsp(mp),xobsm(mp))}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(xmod(mp),xmodp(mp),xmodm(mp))}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(xmodfracp(mp),xmodfracm(mp),xobsfracp(mp),xobsfracm(mp))}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ }
+\DoxyCodeLine{00153\ \ \ \ \ \ \ }
+\DoxyCodeLine{00154\ \ \ \ \ \ \ ipsite=-\/999}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ xcost(:)=0.0\ }
+\DoxyCodeLine{00156\ \ \ \ \ \ \ xobs(:)=0.0;\ xobsp(:)=0.0;xobsm(:)=0.0;xmodfracp(:)=0.0;xmodfracm(:)=0.0;xobsfracp(:)=0.0;xobsfracm(:)=0.0}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micparam\%bgctype(np)==bgcopt)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ \ \ \ \ ipsite=np\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \ \ \ \ \ \ xobs(np)\ \ =\ micparam\%csoilobs(np,1)\ \textcolor{comment}{!!\ only\ one\ observation\ for\ each\ site}}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \ \ \ \ xobsp(np)\ =\ micparam\%csoilobsp(np,1)}
+\DoxyCodeLine{00163\ \ \ \ \ \ \ \ \ \ \ \ \ xobsm(np)\ =\ micparam\%csoilobsm(np,1)}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!!\ calculated\ weighted\ average\ of\ modelled\ values\ to\ correspond\ to\ observations}}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ \ \ \ \ xmod(np)=0.0;\ xmodp(np)=0.0;\ xmodm(np)=0.0}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \ \ \ \ \ \ xtop\ =\ real(micparam\%top(np))*0.01\ \ \ \textcolor{comment}{!\ convert\ from\ cm\ to\ m}}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \ \ \ \ \ \ xbot\ =\ real(micparam\%bot(np))*0.01\ \ }
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \ \ \ \ \ \ x1\ =0.0;\ x2\ =0.0}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ x2=x1+zse(ns)}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (x1\ <=\ xbot\ .and.\ x2\ >=\ xtop)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ weight\ =\ min(xbot,x2)\ -\/\ max(xtop,x1)}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xmod(np)\ \ =\ xmod(np)\ \ +\ weight\ *\ sum(miccpool\%cpooleq(np,ns,1:9))\ \textcolor{comment}{!!\ unit:\ mg\ C\ cm-\/3}}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xmodp(np)\ =\ xmodp(np)\ +\ weight\ *\ (sum(miccpool\%cpooleq(np,ns,1:5))+sum(miccpool\%cpooleq(np,ns,7:8)))\ \textcolor{comment}{!!\ observed\ poc\ =\ modelled\ (aggregate\ c\ +\ lwmc)}}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xmodm(np)\ =\ xmodm(np)\ +\ weight\ *\ (miccpool\%cpooleq(np,ns,6)\ +\ miccpool\%cpooleq(np,ns,9))\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!!\ observed\ maoc\ =\ modelled\ maoc}}
+\DoxyCodeLine{00178\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ end\ if}}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ x1=x2}
+\DoxyCodeLine{00180\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \ \ \ \ \ xmod(np)\ \ \ =\ 1000.0\ *\ xmod(np)\ /((xbot-\/xtop)*micinput\%bulkd(np,1))\ \ \ \textcolor{comment}{!!\ unit:\ g\ C/kg\ soil}}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \ \ \ \ \ xmodp(np)\ \ =\ 1000.0\ *\ xmodp(np)/((xbot-\/xtop)*micinput\%bulkd(np,1))}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ \ \ \ xmodm(np)\ \ =\ 1000.0\ *\ xmodm(np)/((xbot-\/xtop)*micinput\%bulkd(np,1))}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \ \ \ \ \ xmodfracp(np)\ =\ xmodp(np)/(xmodp(np)+xmodm(np)+1.0e-\/6)}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ \ \ \ xmodfracm(np)\ =\ xmodm(np)/(xmodp(np)+xmodm(np)+1.0e-\/6)}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \ \ \ \ \ xobsfracp(np)\ =\ xobsp(np)/(xobsp(np)+xobsm(np)+1.0e-\/6)}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ \ \ \ \ \ xobsfracm(np)\ =\ xobsm(np)/(xobsp(np)+xobsm(np)+1.0e-\/6)}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (xmod(np)\ >=\ 1000.0\ .or.\ xmodp(np)\ >=\ 1000.0\ .or.\ xmodm(np)\ >=\ 1000.0)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'abnormal\ value\ of\ model\ simulation\ site='},\ micparam\%siteid(np)}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'parameter\ values\ =\ '},\ \ xopt(1:nx)}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ xmodp(np),xmodm(np)}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ stop}}
+\DoxyCodeLine{00196\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(xobsp(np)\ >0.0\ .and.\ xobsm(np)>0.0\ .and.\ xobsfracm(np)\ >1.0e-\/10)\ \textcolor{keywordflow}{then}\ \ \textcolor{comment}{!!\ POC\ is\ not\ available\ for\ some\ sites}}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ xcost(np)\ =\ xcost(np)\ +\ 400.0*(xmodfracm(np)\ -\/\ xobsfracm(np))**2\ \&}}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ 0.01\ *(xmodm(np)+xmodp(np)\ -\/\ xobsm(np)-\/xobsp(np))**2}}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ xcost(np)\ =\ xcost(np)\ +\ 2.0\ *(log(xmodfracm(np))\ -\/\ log(xobsfracm(np)))**2\ \&}}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ 0.1\ *(log(xmodm(np)+xmodp(np))\ -\/\ log(xobsm(np)+xobsp(np)))**2}}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ xcost(np)\ =\ xcost(np)\ +\ 20.0\ *(xmodfracm(np)\ -\/\ xobsfracm(np))**2\ \&}}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ 0.1\ *(log(xmodm(np)+xmodp(np))\ -\/\ log(xobsm(np)+xobsp(np)))**2}}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xcost(np)\ =\ xcost(np)\ +\ 10.0*((xmodfracp(np)\ -\/\ xobsfracp(np))**2\ +\ (xmodfracm(np)\ -\/\ xobsfracm(np))**2)\ \&}
+\DoxyCodeLine{00208\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ 0.1\ *(log(xmodm(np)+xmodp(np))\ -\/\ log(xobsm(np)+xobsp(np)))**2}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(91,901)\ micparam\%siteid(np),micparam\%pft(np),\ \&}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bgctype(np),micglobal\%area(np),xtop,xbot,\ \&}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xobsp(np),xmodp(np),xobsm(np),xmodm(np),xobsfracp(np),xmodfracp(np),xobsfracm(np),xmodfracm(np)}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns\ =\ 1,ms}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(92,921)\ micparam\%siteid(np),micparam\%pft(np),\ \&}
+\DoxyCodeLine{00219\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bgctype(np),micglobal\%area(np),ns,xtop,xbot,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (1000.0*miccpool\%cpooleq(np,ns,ip)/micinput\%bulkd(np,ns),ip=1,mcpool)}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00225\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ endif}\ \ \textcolor{comment}{!bgctype(np)=bgcopt}}
+\DoxyCodeLine{00226\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}\ \ \textcolor{comment}{!"{}np"{}}}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ totcost\ =\ sum(xcost(1:mp))}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(xcost,xobs,xobsp,xobsm)}
+\DoxyCodeLine{00230\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(xmod,xmodp,xmodm)}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(xmodfracp,xmodfracm,xobsfracp,xobsfracm)}
+\DoxyCodeLine{00232\ }
+\DoxyCodeLine{00233\ 901\ \ \ \textcolor{keyword}{format}(i6,1x,2(i3,1x),f8.3,1x,2(f7.3,1x),10(f12.4,1x))}
+\DoxyCodeLine{00234\ 921\ \ \ \textcolor{keyword}{format}(i6,1x,2(i3,1x),f8.3,1x,i2,1x,2(f7.3,1x),14(f12.4,1x))}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ }
+\DoxyCodeLine{00237\ \ \ \ \ \textcolor{keyword}{end\ SUBROUTINE\ }calcost\_frc1}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \ \ \ \ \textcolor{keyword}{subroutine\ }calcost\_hwsd2(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost)}
+\DoxyCodeLine{00240\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00241\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00242\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00243\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ ::\ micparam}
+\DoxyCodeLine{00245\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_cpool),\ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ ::\ miccpool}
+\DoxyCodeLine{00246\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ ::\ micinput}
+\DoxyCodeLine{00247\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_global\_input),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ ::\ micglobal\ \ \ \ }
+\DoxyCodeLine{00248\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ zse(ms)\ \ \ \ }
+\DoxyCodeLine{00249\ \ \ \ \ \textcolor{keywordtype}{integer}\ nx,bgcopt,msobs}
+\DoxyCodeLine{00250\ \ \ \ \ real*8\ \ totcost}
+\DoxyCodeLine{00251\ \ \ \ \ real*8,\ \textcolor{keywordtype}{dimension(16)}\ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ xopt}
+\DoxyCodeLine{00252\ \ \ \ \ \textcolor{comment}{!\ cost\ function}}
+\DoxyCodeLine{00253\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ ::\ xcost,xtop,xbot}
+\DoxyCodeLine{00254\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ ::\ xmod}
+\DoxyCodeLine{00255\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ \ \ \ \ ::\ xobs7,\ xmod7}
+\DoxyCodeLine{00256\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ fracpocm,fracmaocm,fracmicm,fraclabm}
+\DoxyCodeLine{00257\ \ \ \ \ \textcolor{keywordtype}{integer}\ \ \ np,ns,ipsite,v,ip}
+\DoxyCodeLine{00258\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ xbdz}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00260\ \ \ \ \ msobs=7}
+\DoxyCodeLine{00261\ \ \ \ \ \textcolor{keyword}{allocate}(xcost(mp))}
+\DoxyCodeLine{00262\ \ \ \ \ \textcolor{keyword}{allocate}(xmod(mp,ms))}
+\DoxyCodeLine{00263\ \ \ \ \ \textcolor{keyword}{allocate}(xobs7(mp,msobs),\ xmod7(mp,msobs),xtop(msobs),xbot(msobs))}
+\DoxyCodeLine{00264\ \ \ \ \ }
+\DoxyCodeLine{00265\ \ \ \ \ \textcolor{comment}{!\ specific\ to\ HWSD\_SOC,\ total\ 7\ layers\ with\ thickness\ of\ 0.2\ for\ the\ top\ 5\ layers,\ and\ 0.5m\ for\ the\ next\ 2\ layers}}
+\DoxyCodeLine{00266\ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,5}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \ xtop(ns)\ =(ns-\/1)\ *\ 0.2}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ xbot(ns)\ =\ ns\ \ \ \ *\ 0.2}
+\DoxyCodeLine{00269\ \textcolor{keywordflow}{\ \ \ \ enddo}}
+\DoxyCodeLine{00270\ \ \ \ \ xbot(6)=1.5;\ \ \ \ \ xbot(7)=2.0\ \ \ \ }
+\DoxyCodeLine{00271\ \ \ \ \ xtop(6)=xbot(5);\ xtop(7)=xbot(6)\ \ \ \ }
+\DoxyCodeLine{00272\ }
+\DoxyCodeLine{00273\ \ \ \ \ xobs7(:,:)=0.0;\ xmod7(:,:)=0.0;xmod(:,:)=0.0;xcost(:)=0.0}
+\DoxyCodeLine{00274\ \ \ \ \ ipsite=-\/999}
+\DoxyCodeLine{00275\ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00276\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(micparam\%bgctype(np)==bgcopt\ .and.\ micglobal\%area(np)\ >\ 0.0)\ \textcolor{keywordflow}{then}\ \ \ \ \ \ }
+\DoxyCodeLine{00277\ \ \ \ \ \ \ \ \ \ ipsite=np\ }
+\DoxyCodeLine{00278\ \ \ \ \ \ \ \ \ \ xcost(np)\ =\ 0.0}
+\DoxyCodeLine{00279\ \ \ \ \ \ \ \ \ \ v\ =\ 0}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns\ =\ 1,ms}
+\DoxyCodeLine{00282\ \ \ \ \ \ \ \ \ \ \ \ \ xmod(np,ns)\ =\ 1000.0\ *\ sum(miccpool\%cpooleq(np,ns,3:mcpool))/micinput\%bulkd(np,ns)\ \ \ \textcolor{comment}{!\ gC/kg\ soil}}
+\DoxyCodeLine{00283\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ enddo}\ \ \ }
+\DoxyCodeLine{00284\ }
+\DoxyCodeLine{00285\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns\ =\ 1,msobs}
+\DoxyCodeLine{00286\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ns==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xobs7(np,ns)\ =\ (micparam\%csoilobs(np,2)\ *\ zse(2)+\ micparam\%csoilobs(np,3)\ *\ zse(3)\ +\ micparam\%csoilobs(np,4)\ *\ zse(4))\ \&}
+\DoxyCodeLine{00288\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /(zse(2)+zse(3)+zse(4))\ }
+\DoxyCodeLine{00289\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xmod7(np,ns)\ =\ (xmod(np,2)\ *\ zse(2)\ +xmod(np,3)\ *\ zse(3)\ +\ xmod(np,4)\ *\ zse(4))\ \&}
+\DoxyCodeLine{00290\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /(zse(2)+zse(3)+zse(4))\ }
+\DoxyCodeLine{00291\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00292\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xobs7(np,ns)\ =\ micparam\%csoilobs(np,ns+3)\ \ \ }
+\DoxyCodeLine{00293\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xmod7(np,ns)\ =\ xmod(np,ns+3)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ gC/kg\ soil}}
+\DoxyCodeLine{00294\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00295\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00296\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(xmod7(np,ns)\ <0.0\ .or.\ xmod7(np,ns)\ >1.0e3)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00297\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'abnormal\ value\ of\ model\ simulation\ site='},\ micparam\%siteid(np)}
+\DoxyCodeLine{00298\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'parameter\ values\ =\ '},\ \ xopt(1:nx)}
+\DoxyCodeLine{00299\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \ xobs7(np,ns),xmod7(np,ns),xobs7(np,ns)-\/xmod7(np,ns)}
+\DoxyCodeLine{00300\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'\ modelled\ pool\ size=\ '},\ ns,miccpool\%cpooleq(np,ns,:)/micinput\%bulkd(np,ns)}
+\DoxyCodeLine{00301\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!stop}}
+\DoxyCodeLine{00302\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ endif}\ \ \ }
+\DoxyCodeLine{00303\ }
+\DoxyCodeLine{00304\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(xobs7(np,ns)\ >\ 0.0\ .and.\ xobs7(np,ns)\ <1.0e3)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00305\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xcost(np)\ =\ xcost(np)\ +\ (log(xobs7(np,ns))-\/log(xmod7(np,ns)))**2\ }
+\DoxyCodeLine{00306\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ xcost(np)\ =\ xcost(np)\ +\ (xobs7(np,ns)-\/xmod7(np,ns))**2\ }}
+\DoxyCodeLine{00307\ }
+\DoxyCodeLine{00308\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(91,901)\ micparam\%siteid(np),micparam\%pft(np),micparam\%isoil(np),micparam\%sorder(np),\ \&}
+\DoxyCodeLine{00309\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bgctype(np),micglobal\%area(np),ns,\&}
+\DoxyCodeLine{00310\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ xobs7(np,ns),xmod7(np,ns)}
+\DoxyCodeLine{00311\ }
+\DoxyCodeLine{00312\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00313\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ enddo}\ \textcolor{comment}{!"{}ns"{}}}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns\ =\ 1,ms}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ \ \ \ \ \ \ fracpocm\ \ =\ (sum(miccpool\%cpooleq(np,ns,3:8))-\/miccpool\%cpooleq(np,ns,6))/(sum(miccpool\%cpooleq(np,ns,3:mcpool))+1.0e-\/6)}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ \ \ \ \ fracmaocm\ =\ (miccpool\%cpooleq(np,ns,6)+miccpool\%cpooleq(np,ns,9))/(sum(miccpool\%cpooleq(np,ns,3:mcpool))+1.0e-\/6)\ \ \ \ }
+\DoxyCodeLine{00318\ \ \ \ \ \ \ \ \ \ \ \ \ fracmicm\ \ =\ (miccpool\%cpooleq(np,ns,3)+miccpool\%cpooleq(np,ns,4))/(sum(miccpool\%cpooleq(np,ns,3:mcpool))+1.0e-\/6)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00319\ \ \ \ \ \ \ \ \ \ \ \ \ fraclabm\ \ =\ miccpool\%cpooleq(np,ns,7)/(sum(miccpool\%cpooleq(np,ns,3:mcpool))+1.0e-\/6)\ \ }
+\DoxyCodeLine{00320\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{write}(92,921)\ micparam\%siteid(np),micparam\%pft(np),micparam\%isoil(np),micparam\%sorder(np),\ \&}
+\DoxyCodeLine{00321\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%bgctype(np),micglobal\%area(np),\ ns,\ \ \&}
+\DoxyCodeLine{00322\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (1000.0*miccpool\%cpooleq(np,ns,ip)/micinput\%bulkd(np,ns),ip=1,mcpool),\ \&}
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fracpocm,fracmaocm,fracmicm,fraclabm}
+\DoxyCodeLine{00324\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00326\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}\ \textcolor{comment}{!"{}pft"{}}}
+\DoxyCodeLine{00327\ \textcolor{keywordflow}{\ \ \ enddo}\ \ \textcolor{comment}{!"{}np"{}}}
+\DoxyCodeLine{00328\ \ \ \ totcost\ =\ sum(xcost(1:mp))}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00330\ \ \ \ \ \textcolor{keyword}{deallocate}(xcost)}
+\DoxyCodeLine{00331\ \ \ \ \ \textcolor{keyword}{deallocate}(xmod)}
+\DoxyCodeLine{00332\ \ \ \ \ \textcolor{keyword}{deallocate}(xobs7,xmod7,xtop,xbot)}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00334\ 901\ \ \ \textcolor{keyword}{format}(i6,1x,4(i3,1x),f8.3,1x,i2,1x,10(f12.4,1x))}
+\DoxyCodeLine{00335\ 921\ \ \ \textcolor{keyword}{format}(i6,1x,4(i3,1x),f8.3,1x,i2,1x,20(f12.4,1x))}
+\DoxyCodeLine{00336\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }calcost\_hwsd2\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00337\ \textcolor{comment}{!\ \#\#\#\#\#\#\#\#\#\#\#\#\#\#mesc\_cost.f90\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#}}
+
+\end{DoxyCode}

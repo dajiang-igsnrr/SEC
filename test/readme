@@ -1,0 +1,6 @@
+two batch jobs for testing
+sbatch val_f3.sh
+sbatch valc_c3.sh
+
+both jobs can be submitted sequentially using
+sbatch test.sh

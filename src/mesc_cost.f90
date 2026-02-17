@@ -1,3 +1,9 @@
+!> compute cost for a given set of parameter values
+!! three options
+!! cost function for 14C simulation
+!! cost function SOC fraction
+!! cost function for hwsd_SOC profiles
+!!
 ! ##############mesc_cost.f90###########################
     subroutine calcost_c14(nx,isoc14,bgcopt,xopt,micparam,miccpool,micinput,zse,totcost)
     use mic_constant
@@ -115,7 +121,7 @@
     end subroutine calcost_c14
 
 
-    SUBROUTINE calcost_frc1(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,zse,totcost)
+    SUBROUTINE calcost_frc1(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost)
     use mic_constant
     use mic_variable
     implicit none
@@ -123,6 +129,7 @@
     TYPE(mic_parameter), INTENT(IN)    :: micparam
     TYPE(mic_cpool),     INTENT(INOUT) :: miccpool
     TYPE(mic_input),     INTENT(IN)    :: micinput
+    TYPE(mic_global_input), INTENT(IN) :: micglobal
     real(r_2) zse(ms)
     integer nx,bgcopt
     real*8  totcost
@@ -195,16 +202,23 @@
             
             !    xcost(np) = xcost(np) + 2.0 *(log(xmodfracm(np)) - log(xobsfracm(np)))**2 &
             !                          + 0.1 *(log(xmodm(np)+xmodp(np)) - log(xobsm(np)+xobsp(np)))**2
-                xcost(np) = xcost(np) + 20.0 *(xmodfracm(np) - xobsfracm(np))**2 &
-                                      + 0.1 *(log(xmodm(np)+xmodp(np)) - log(xobsm(np)+xobsp(np)))**2
+            !    xcost(np) = xcost(np) + 20.0 *(xmodfracm(np) - xobsfracm(np))**2 &
+            !                          + 0.1 *(log(xmodm(np)+xmodp(np)) - log(xobsm(np)+xobsp(np)))**2
+               xcost(np) = xcost(np) + 10.0*((xmodfracp(np) - xobsfracp(np))**2 + (xmodfracm(np) - xobsfracm(np))**2) &
+                                                + 0.1 *(log(xmodm(np)+xmodp(np)) - log(xobsm(np)+xobsp(np)))**2
+
             endif
 
-            write(91,901) micparam%dataid(np),micparam%siteid(np),micparam%bgctype(np),micparam%top(np),micparam%bot(np), &
+            write(91,901) micparam%siteid(np),micparam%pft(np), &
+                          micparam%bgctype(np),micglobal%area(np),xtop,xbot, &
                           xobsp(np),xmodp(np),xobsm(np),xmodm(np),xobsfracp(np),xmodfracp(np),xobsfracm(np),xmodfracm(np)
+
                   
             do ns = 1,ms
-               write(92,921) micparam%dataid(np),micparam%siteid(np),micparam%bgctype(np),ns,xtop,xbot,&
+               write(92,921) micparam%siteid(np),micparam%pft(np), &
+                             micparam%bgctype(np),micglobal%area(np),ns,xtop,xbot,                        &
                            (1000.0*miccpool%cpooleq(np,ns,ip)/micinput%bulkd(np,ns),ip=1,mcpool)
+
             enddo
 
                         
@@ -216,9 +230,9 @@
       deallocate(xmod,xmodp,xmodm)
       deallocate(xmodfracp,xmodfracm,xobsfracp,xobsfracm)
 
-901   format(i4,1x,i10,1x,3(i4,1x),10(f12.4,1x))
-921   format(i4,1x,i10,1x,2(i3,1x),2(f7.2,1x),14(f10.4,1x))
-911   format(2(i7,1x),4(f12.4,1x),4(f9.5,1x),e15.6)
+901   format(i6,1x,2(i3,1x),f8.3,1x,2(f7.3,1x),10(f12.4,1x))
+921   format(i6,1x,2(i3,1x),f8.3,1x,i2,1x,2(f7.3,1x),14(f12.4,1x))
+
 
     end SUBROUTINE calcost_frc1
 
@@ -291,8 +305,10 @@
                xcost(np) = xcost(np) + (log(xobs7(np,ns))-log(xmod7(np,ns)))**2 
             !   xcost(np) = xcost(np) + (xobs7(np,ns)-xmod7(np,ns))**2 
 
-               write(91,901) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np),ns, &
+               write(91,901) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np), &
+                             micparam%bgctype(np),micglobal%area(np),ns,&
                              xobs7(np,ns),xmod7(np,ns)
+
             endif
          enddo !"ns"
 
@@ -301,7 +317,8 @@
             fracmaocm = (miccpool%cpooleq(np,ns,6)+miccpool%cpooleq(np,ns,9))/(sum(miccpool%cpooleq(np,ns,3:mcpool))+1.0e-6)    
             fracmicm  = (miccpool%cpooleq(np,ns,3)+miccpool%cpooleq(np,ns,4))/(sum(miccpool%cpooleq(np,ns,3:mcpool))+1.0e-6)                   
             fraclabm  = miccpool%cpooleq(np,ns,7)/(sum(miccpool%cpooleq(np,ns,3:mcpool))+1.0e-6)  
-            write(92,921) micparam%siteid(np),micparam%sorder(np), ns,  &
+            write(92,921) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np), &
+                          micparam%bgctype(np),micglobal%area(np), ns,  &
                           (1000.0*miccpool%cpooleq(np,ns,ip)/micinput%bulkd(np,ns),ip=1,mcpool), &
                           fracpocm,fracmaocm,fracmicm,fraclabm
          enddo
@@ -314,7 +331,7 @@
     deallocate(xmod)
     deallocate(xobs7,xmod7,xtop,xbot)
 
-901   format(i6,1x,4(i3,1x),10(f12.4,1x))
-921   format(i7,2x,2(i4,2x),20(f12.4,1x))
+901   format(i6,1x,4(i3,1x),f8.3,1x,i2,1x,10(f12.4,1x))
+921   format(i6,1x,4(i3,1x),f8.3,1x,i2,1x,20(f12.4,1x))
     end subroutine calcost_hwsd2        
 ! ##############mesc_cost.f90###########################

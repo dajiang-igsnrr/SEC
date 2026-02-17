@@ -1,0 +1,37 @@
+var namespaces_dup =
+[
+    [ "mic_constant", "namespacemic__constant.html", [
+      [ "cnleaf1", "namespacemic__constant.html#aa6ec0c2ab7e9013a728c9b8f3c7315a9", null ],
+      [ "cnleaf2", "namespacemic__constant.html#ac5a839c7adcecf3556205be6e7ca6f63", null ],
+      [ "cnroot1", "namespacemic__constant.html#a1ea5612f7cea6a9755ad0dd2c456fc34", null ],
+      [ "cnroot2", "namespacemic__constant.html#a17345e39a73600d767d5d384f9feb659", null ],
+      [ "cnwood1", "namespacemic__constant.html#af63403230f7d4d6fe4413703d91eb7b1", null ],
+      [ "cnwood2", "namespacemic__constant.html#a8ac57cabc086279121a92e44a1590bf9", null ],
+      [ "delt", "namespacemic__constant.html#a44ac91cb6c19e20a79ddf04ca669dc28", null ],
+      [ "diag", "namespacemic__constant.html#ae7d7d461b97d2b98aab704f57a94e309", null ],
+      [ "ligleaf1", "namespacemic__constant.html#a95fab4866ac3530e9b976bf8bf3a2151", null ],
+      [ "ligleaf2", "namespacemic__constant.html#ac79ccba450aafb718e8078ff1a6097d2", null ],
+      [ "ligroot1", "namespacemic__constant.html#a41c510e7aa9c999e68694c41f009e6ac", null ],
+      [ "ligroot2", "namespacemic__constant.html#a81aef92635fa9d30d6c09204d49a2875", null ],
+      [ "ligwood1", "namespacemic__constant.html#abf0cdb687ee9bb96d02fd96d70aac0ce", null ],
+      [ "ligwood2", "namespacemic__constant.html#aae473b08ae8b48096a0894cf6c0a6ab3", null ],
+      [ "mbgc", "namespacemic__constant.html#abe66059cf68df61216c8b7cacec36d4d", null ],
+      [ "mcpool", "namespacemic__constant.html#a85eb75c06537a77932993b961fe14629", null ],
+      [ "mp", "namespacemic__constant.html#afebcb434fb034cee1009832b97a62864", null ],
+      [ "mpft", "namespacemic__constant.html#aaba27c34fe1b2b7ce7bf688f3aa62007", null ],
+      [ "ms", "namespacemic__constant.html#a19d719d3411c4160099209eaa0b5335f", null ],
+      [ "nfvar", "namespacemic__constant.html#a087c15e1a54d20c2d5855cc5ca77c866", null ],
+      [ "nlat", "namespacemic__constant.html#adce4545e4f006bcda6dd52a2e7c028d4", null ],
+      [ "nlon", "namespacemic__constant.html#a6ea6bdea72a040ce8d50e6339f5c11af", null ],
+      [ "ntime", "namespacemic__constant.html#a7cf7735772889036e6f39da2914f0c86", null ],
+      [ "nyec14", "namespacemic__constant.html#a96dff41e4dbecc428bd7c0c0209fbe31", null ],
+      [ "nyic14", "namespacemic__constant.html#aa8f78a7e99537c06b5d526f4859b38ca", null ],
+      [ "outp", "namespacemic__constant.html#a795a71236f7794b66969132073407f80", null ],
+      [ "r_2", "namespacemic__constant.html#a56e1eee4bf88d14150a04063b3b2256b", null ],
+      [ "thresh_patchfrac", "namespacemic__constant.html#ad32d0112699f6105c40eae08ba57f40c", null ],
+      [ "tvc14", "namespacemic__constant.html#a3d948aa41c6fca9600f0c3718d39b40f", null ],
+      [ "xrootcable", "namespacemic__constant.html#a6d71f652224aaf49955942c6c52c48cc", null ],
+      [ "xrootorchidee", "namespacemic__constant.html#ae59562409edce718cf5eee6493207ab0", null ]
+    ] ],
+    [ "mic_variable", "namespacemic__variable.html", "namespacemic__variable" ]
+];

@@ -1,3 +1,14 @@
+!> interface between the "mesc_function.f90" and "mesc_model.f90" for doing the following tasks
+!! (1) assign parameter values (vmic_param_xscale) or read parameter values from lookup table (functn_global)
+!! (2) calling one of the following routines
+!!     vmicsoil_c14; vmicsoil_frc1_cpu; vmicsoil_hwsd_cpu
+!! (3) within each of three subroutines; we do the following tasks
+!! (3a) assign parameters with constant values across different "bgc types"
+!! (3b) assign initial pool sizes
+!! (3c) compute time-varying parameter values
+!! (3d) read in restart file (if) jrestart==1
+!! (3d) call model for each of mp and integration over time 
+!!
 ! ##############mesc_interface.f90###########################
 !
 SUBROUTINE vmic_param_constant(kinetics,micpxdef,micpdef,micparam,zse) 
@@ -114,6 +125,35 @@ subroutine vmic_param_time(kinetics,micpxdef,micpdef,micparam,micinput,micnpool)
       call Kmt(micpxdef,micpdef,micparam,micinput)
   
 end subroutine vmic_param_time
+
+
+subroutine vmic_param_time_single(kinetics,micpxdef,micpdef,micparam,micinput,micnpool,np)
+    ! time-dependent model parameters, called every time step if the forcing, such air temperature
+    ! varies every time step
+    ! otherwise only called at the start the integration	
+    use mic_constant 
+    use mic_variable
+    implicit none
+    TYPE(mic_param_xscale),       INTENT(IN)      :: micpxdef      
+    TYPE(mic_param_default),      INTENT(IN)      :: micpdef  
+    TYPE(mic_parameter),          INTENT(INout)   :: micparam
+    TYPE(mic_input),              INTENT(INout)   :: micinput
+    TYPE(mic_npool),              INTENT(INOUT)   :: micnpool
+    integer,                      INTENT(IN)      :: np
+
+    integer  kinetics
+      ! compute fractions
+      call bgc_fractions_single(micpxdef,micpdef,micparam,micinput,np)
+      ! compute microbial growth efficiency
+      call mget_single(micpdef,micparam,micinput,micnpool,np)
+      ! compute microbial turnover rates
+      call turnovert_single(kinetics,micpxdef,micpdef,micparam,micinput,np)
+      if(kinetics/=3) call Desorpt_single(micpxdef,micparam,micinput,np) 
+      call Vmaxt_single(micpxdef,micpdef,micparam,micinput,np)
+      call Kmt_single(micpxdef,micpdef,micparam,micinput,np)
+  
+end subroutine vmic_param_time_single
+
 
 subroutine vmic_init(miccpool,micnpool)
     use mic_constant
@@ -258,6 +298,38 @@ subroutine variable_time(year,doy,micglobal,micinput,micnpool)
      enddo !"np"
 
 end subroutine variable_time
+
+subroutine variable_time_single(year,doy,micglobal,micinput,micnpool,np)
+    use mic_constant 
+    use mic_variable
+    implicit none
+    integer year,doy
+    TYPE(mic_global_input),  INTENT(IN)   :: micglobal
+    TYPE(mic_input),         INTENT(INout)   :: micinput
+    TYPE(mic_npool),         INTENT(INOUT)   :: micnpool
+    integer, INTENT(IN) :: np
+    integer ns
+
+    
+!        print *, 'calling global2np- ntime', ntime
+   micinput%fcnpp(np)      = max(0.0,micglobal%npp(np))              !gc/m2/year
+   micinput%Dleaf(np)      = (micglobal%dleaf(np,doy)/24.0)*delt     !gc/m2/delt
+   micinput%Droot(np)      = (micglobal%droot(np,doy)/24.0)*delt     !gc/m2/delt
+   micinput%Dwood(np)      = (micglobal%dwood(np,doy)/24.0)*delt     !gc/m2/delt
+
+   do ns=1,ms
+      micinput%tavg(np,ns)     = micglobal%tsoil(np,ns,doy)  ! average temperature in deg C
+      micinput%wavg(np,ns)     = micglobal%moist(np,ns,doy)  ! average soil water content mm3/mm3
+      micinput%matpot(np,ns)   = micglobal%matpot(np,ns,doy)
+      micinput%clay(np,ns)     = micglobal%clay(np)          ! clay content (fraction)
+      micinput%silt(np,ns)     = micglobal%silt(np)          ! silt content (fraction)
+      micinput%ph(np,ns)       = micglobal%ph(np)
+      micinput%porosity(np,ns) = micglobal%poros(np)         ! porosity mm3/mm3
+      micinput%bulkd(np,ns)    = micglobal%bulkd(np)
+      micnpool%mineralN(np,ns) = 0.1                         ! g N /kg soil
+   enddo !"ns"    
+
+end subroutine variable_time_single
 
     subroutine vmicsoil_c14(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,ifsoc14,bgcopt,nyeqpool, &
                     zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
@@ -631,22 +703,23 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
     integer jrestart,isoc14,kinetics,bgcopt,nyeqpool
 
     ! local variables
-    ! real(r_2),    dimension(:), allocatable  :: xpool0,xpool1
-    ! real(r_2),    dimension(:), allocatable  :: ypooli,ypoole,fluxsoc,cfluxa
+    real(r_2),    dimension(:), allocatable  :: xpool0,xpool1
+    real(r_2),    dimension(:), allocatable  :: ypooli,ypoole,fluxsoc,cfluxa
 
-    real(r_2),    dimension(mcpool)  :: xpool0,xpool1
-    real(r_2),    dimension(ms)      :: ypooli,ypoole,fluxsoc,cfluxa
+ !   real(r_2),    dimension(mcpool)  :: xpool0,xpool1
+ !   real(r_2),    dimension(ms)      :: ypooli,ypoole,fluxsoc,cfluxa
     
     integer       ndelt,i,j,year,ip,np,ns,ny
     integer       nyrun,ip5
     real(r_2)     timex,delty,fluxdocsx,diffsocxx
     
     character*140  frestart_in,frestart_out,foutput
-    real(r_2)     cpool0, cpool1, totcinput  
-    
+    real(r_2)      cpool0, cpool1, totcinput  
+    integer       station_count, station_index
+    integer, dimension(:), allocatable :: stations_used    
 
-    !   allocate(xpool0(mcpool),xpool1(mcpool))
-    !   allocate(ypooli(ms),ypoole(ms),fluxsoc(ms),cfluxa(ms))
+       allocate(xpool0(mcpool),xpool1(mcpool))
+       allocate(ypooli(ms),ypoole(ms),fluxsoc(ms),cfluxa(ms))
 
     !   print *, 'calling vmic_param_constant'
        call vmic_param_constant(kinetics,micpxdef,micpdef,micparam,zse) 
@@ -658,24 +731,37 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
   
        ndelt   = int(24*365/delt) ! number of time step per year in "delt" unit
 
-   do year=1,nyeqpool
-      ny = year-nyeqpool
-       do i=1,ntime
-         call variable_time(year,i,micglobal,micinput,micnpool)
-      
-        ! calculate parameter values that depend on soil temperature or moisture (varying with time)
-         call vmic_param_time(kinetics,micpxdef,micpdef,micparam,micinput,micnpool)   
-
+   !check which stations to calculate
+   station_count = 0
+   allocate(stations_used(mp))
+   do station_index=1,mp
+      if (micparam%bgctype(station_index)==bgcopt .and. micglobal%area(station_index)>0.0) then
+         stations_used(station_count+1) = station_index
+         station_count = station_count + 1
+      endif   !bgctype(np) = bgcopt
+   enddo
+   
 !$OMP PARALLEL DEFAULT(NONE) SHARED (micparam,micpxdef,micnpool,micinput,micglobal,miccpool,micoutput,micpdef,&
-!$OMP kinetics,isoc14,nyeqpool,bgcopt,ndelt,zse,mp,ms,ny,i,year) &
-!$OMP PRIVATE (np,timex,delty,ns,ip,&
-!$OMP xpool0,xpool1,fluxsoc,diffsocxx,ypooli,ypoole,cpool0,cpool1,totcinput,cfluxa)
+!$OMP kinetics,isoc14,nyeqpool,bgcopt,ndelt,zse,mp,ms,ny,i,year,stations_used) &
+!$OMP PRIVATE (np,timex,delty,ns,ip,station_index,&
+!$OMP xpool0,xpool1,fluxsoc,diffsocxx,ypooli,ypoole,cpool0,cpool1,totcinput,cfluxa) &
+!$OMP FIRSTPRIVATE (ntime,station_count)
+!!$OMP REDUCTION (+:data_count,data_used)  &,
 !$OMP DO   
 
-        do np=1,mp
-      
-         if(micparam%bgctype(np)==bgcopt .and. micglobal%area(np)>0.0) then   ! optimizing parameters for each soil order
-            micoutput%fluxcinput(np)=0.0; micoutput%fluxrsoil(np) = 0.0; micoutput%fluxcleach(np)= 0.0    ! yearly fluxes
+   do station_index=1,station_count
+      np=stations_used(station_index)
+
+
+      do year=1,nyeqpool
+         ny = year-nyeqpool
+
+         micoutput%fluxcinput(np)=0.0; micoutput%fluxrsoil(np) = 0.0; micoutput%fluxcleach(np)= 0.0    ! yearly fluxes
+            
+         do i=1,ntime
+            call variable_time_single(year,i,micglobal,micinput,micnpool,np)
+         ! calculate parameter values that depend on soil temperature or moisture (varying with time)
+            call vmic_param_time_single(kinetics,micpxdef,micpdef,micparam,micinput,micnpool,np)
 
                ! for each soil layer
                ! sum last all C pools of all layers for compute the soil respiration = input - sum(delCpool)
@@ -764,21 +850,20 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
             !   write(*,201) year, np, miccpool%cpool(np,1,:),miccpool%cpool(np,ms,:)
 201             format('vmicsoil:cpool',2(i5,1x),30(f7.4,1x))               
             ! endif 
-           
-            endif   !bgctype(np) = bgcopt
-          enddo !"mp"  
+         enddo   !"i: day of year (ntime)"
+      enddo !"year (nyeqpool)"
+    
+   enddo !" station_index(station_count)"  
 !$OMP END DO
 !$OMP END PARALLEL	
-         enddo   !"i: day of year"
-      enddo !"year"
 
      miccpool%cpooleq(:,:,:) = miccpool%cpool(:,:,:)
      
     ! call vmic_output_write(foutput,micinput,micoutput)
     ! call vmic_restart_write(frestart_out,miccpool,micnpool)
 
-    ! deallocate(xpool0,xpool1)
-    ! deallocate(ypooli,ypoole,fluxsoc,cfluxa)
+    deallocate(xpool0,xpool1)
+    deallocate(ypooli,ypoole,fluxsoc,cfluxa)
 
     end subroutine vmicsoil_hwsd_cpu
 

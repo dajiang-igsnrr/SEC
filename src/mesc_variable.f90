@@ -1,6 +1,11 @@
+!> declarre all variables and assign values to model constants
+!! allocate   variables
+!! deallocate variables 
+!!
+
 !###############mesc_variable.f90###########################
 !
-! this version is designed to work with monthly focings from ORCHIDEE model
+! this version is designed to work with monthly focings from CABLE/ORCHIDEE model
 !+==========github checked version 0.0
 ! tasks to do
 ! (6) add comments and tidy up the codes

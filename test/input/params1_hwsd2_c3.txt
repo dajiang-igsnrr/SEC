@@ -1,0 +1,7 @@
+jglobal  ifsoc14  kinetics pftopt jopt jrestart jmodel                                                                                                
+   0        0        3       3     0     0        1                                                                                                   
+/datasets/work/af-tern-ghg-modelling/work/mes-c/obs/hwsd1990/kmeans/version2/data_extraction_cable_model_calibration_cluster.nc                       
+/datasets/work/af-tern-ghg-modelling/work/mes-c/obs/hwsd1990/kmeans/version3/global_10_clusters_0-20cm.nc
+/datasets/work/af-tern-ghg-modelling/work/mes-c/obs/hwsd1990/cable/MODIS_npp_2001-2009_cable.nc                                             
+1.0000 8.2340 1.0000 1.0000 6.9410 0.5550 1.0000 1.0000 1.0000 2.0510 1.0000 1.6940 1.0000 1.5950
+  1    10    7     3   14    5  

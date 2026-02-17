@@ -1,5 +1,3 @@
-📘 **English** | 📕 [中文](doc/README_zh.md)
-
 # SEC 
 *A Fortran-based pmicrobial-explicit soil carbon cycle model.*
 
@@ -28,6 +26,10 @@ SEC/
 │
 ├── cmake/                # CMake helper modules
 │   └── FindNetCDFFortran.cmake
+│
+├── doc/                  # Documentation
+│   ├── html              # html
+│   └── latex             # pdf
 │
 ├── test/                 # Test and example runs
 │

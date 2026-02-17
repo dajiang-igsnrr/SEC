@@ -1,4 +1,7 @@
-
+!> The core routines for the mesc_model
+!! calculate model parameters as function of enrvironmental variablles that vary with time
+!! model integration using rk4
+!!
 ! ##############mesc_model.f90###########################   
     subroutine rk4modelx(timex,delty,ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,xpool0,xpool1)
     use mic_constant
@@ -80,6 +83,51 @@
       
     end subroutine Kmt
 
+
+    subroutine Kmt_single(micpxdef,micpdef,micparam,micinput,np)
+      ! unit: mg Mic C/cm3
+      use mic_constant
+      use mic_variable
+      implicit none
+      TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef
+      TYPE(mic_param_default), INTENT(IN)      :: micpdef
+      TYPE(mic_parameter),     INTENT(INOUT)   :: micparam
+      TYPE(mic_input),         INTENT(IN)      :: micinput
+      integer,                 INTENT(IN)      :: np
+  
+      ! local variable
+      real(r_2), dimension(:,:), allocatable   :: xkclay,km,kmx
+      integer nopt,ns
+
+      allocate(xkclay(mp,ms),km(mp,ms),kmx(mp,ms))
+      do ns=1,ms
+         nopt=micparam%bgctype(np)
+         xkclay(np,ns) = 1.0/(2.0*exp(-2.0*sqrt(micinput%clay(np,ns))))
+         km(np,ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%sk * micinput%tavg(np,ns) + micpdef%bk)
+         micparam%K1(np,ns) =  km(np,ns)/micpdef%xk1
+         micparam%K3(np,ns) =  km(np,ns) * xkclay(np,ns)/micpdef%xk3
+         micparam%J1(np,ns) =  km(np,ns)/micpdef%xj1
+         micparam%J3(np,ns) =  km(np,ns) * xkclay(np,ns)/micpdef%xj3
+
+         kmx(np,ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%skx * micinput%tavg(np,ns) + micpdef%bk)       
+         micparam%K2(np,ns) =  kmx(np,ns)/micpdef%xk2
+         micparam%J2(np,ns) =  kmx(np,ns)/micpdef%xj2
+      enddo
+
+      if(diag==1.and.np==outp) then   
+         print *, 'Kmt',micinput%clay(outp,1),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
+         print *, 'K1=',micparam%K1(outp,1)
+         print *, 'K2=',micparam%K2(outp,1)
+         print *, 'K3=',micparam%K3(outp,1)
+         print *, 'J1=',micparam%J1(outp,1)
+         print *, 'J2=',micparam%J2(outp,1)
+         print *, 'J3=',micparam%J3(outp,1)   
+      endif
+      deallocate(xkclay,km,kmx)  
+      
+    end subroutine Kmt_single
+
+
     subroutine Vmaxt(micpxdef,micpdef,micparam,micinput)
       ! mg Cs per mg mic C per hour
       use mic_constant
@@ -140,6 +188,68 @@
       
     end subroutine Vmaxt
 
+
+    subroutine Vmaxt_single(micpxdef,micpdef,micparam,micinput,np)
+      ! mg Cs per mg mic C per hour
+      use mic_constant
+      use mic_variable
+      implicit none
+      TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef
+      TYPE(mic_param_default), INTENT(IN)     :: micpdef
+      TYPE(mic_parameter),     INTENT(INOUT)  :: micparam
+      TYPE(mic_input),         INTENT(IN)     :: micinput
+      integer,                 INTENT(IN)     :: np
+
+      ! local variables
+      real(r_2),dimension(:,:), allocatable :: vmax
+      integer nopt,ns
+      real(r_2), dimension(:), allocatable   :: sdepthz
+
+      allocate(vmax(mp,ms))
+      allocate(sdepthz(ms))
+      
+      sdepthz=0.0
+  
+ 
+      sdepthz=0.0
+      nopt=micparam%bgctype(np)
+      do ns=1,ms 
+         if(ns==1) then
+            sdepthz(ns) = 0.5 * micparam%sdepth(np,ns)
+         else
+            sdepthz(ns) = sdepthz(ns-1) + micparam%sdepth(np,ns)
+         endif  
+      !   vmax(np,ns) =  micpxdef%xav * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv) * delt
+      !   vmax(np,ns) =  exp(-2.0* sdepthz(ns)) * micpxdef%xav(npft) * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv) * delt
+         vmax(np,ns) =  exp(-micpdef%vmaxbeta * micpxdef%xvmaxbeta(nopt) * sdepthz(ns))     &
+                              * micpxdef%xav(nopt) * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv)  * delt
+
+         micparam%V1(np,ns)   =  micpdef%xv1 * vmax(np,ns) 
+         micparam%V2(np,ns)   =  micpdef%xv2 * vmax(np,ns) 
+         micparam%V3(np,ns)   =  micpdef%xv3 * vmax(np,ns) 
+
+         micparam%W1(np,ns)   =  micpdef%xw1 * vmax(np,ns) 
+         micparam%W2(np,ns)   =  micpdef%xw2 * vmax(np,ns)  
+         micparam%W3(np,ns)   =  micpdef%xw3 * vmax(np,ns) 
+      enddo
+
+         
+      if(diag==1.and.np==outp) then 
+         print *, 'Vmaxt',micinput%tavg(outp,1),vmax(outp,1)
+         print *, 'V1=',micparam%V1(outp,1)
+         print *, 'V2=',micparam%V2(outp,1)
+         print *, 'V3=',micparam%V3(outp,1)
+         print *, 'W1=',micparam%W1(outp,1)
+         print *, 'W2=',micparam%W2(outp,1)
+         print *, 'W3=',micparam%W3(outp,1)
+      endif
+
+      deallocate(vmax)
+      deallocate(sdepthz)
+      
+    end subroutine Vmaxt_single
+
+
     subroutine Desorpt(micpxdef,micpdef,micparam,micinput)
       use mic_constant
       use mic_variable
@@ -164,6 +274,35 @@
       endif
   
     end subroutine Desorpt
+
+
+    subroutine Desorpt_single(micpxdef,micparam,micinput,np)
+      use mic_constant
+      use mic_variable
+      implicit none
+!      real(r_2)              xdesorp
+!,micpdef
+      TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef
+!      TYPE(mic_param_default), INTENT(IN)     :: micpdef
+      TYPE(mic_parameter), INTENT(INOUT)      :: micparam 
+      TYPE(mic_input), INTENT(IN)             :: micinput
+      integer,                 INTENT(IN)    :: np
+      integer nopt,ns 
+
+  
+      do ns=1,ms 
+         nopt=micparam%bgctype(np)
+         micparam%desorp(np,ns) = micpxdef%xdesorp(nopt) * (1.5e-5) * exp(-1.5*micinput%clay(np,ns)) 
+      enddo
+
+
+      if(diag==1.and. np==outp) then
+         print *, 'Desorpt'
+         print *, 'desorpt=',micparam%desorp(outp,:)
+      endif
+  
+    end subroutine Desorpt_single
+
 
   subroutine mget(micpdef,micparam,micinput,micnpool)
      use mic_constant
@@ -215,6 +354,58 @@
         
   end subroutine mget
 
+
+  subroutine mget_single(micpdef,micparam,micinput,micnpool,np)
+     use mic_constant
+     use mic_variable
+     implicit none
+     TYPE(mic_param_default), INTENT(IN)     :: micpdef
+     TYPE(mic_parameter),     INTENT(INOUT)  :: micparam 
+     TYPE(mic_input),         INTENT(IN)     :: micinput
+     TYPE(mic_npool),         INTENT(IN)     :: micnpool 
+     integer,                 INTENT(IN)     :: np
+
+     ! local variables
+     integer ns
+
+      
+      do ns=1,ms 
+         ! variable mge 
+
+      !  micparam%mgeR1(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,1)/micparam%cn_r(np,ns,3)) &
+      !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
+
+      !  micparam%mgeR2(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,2)/micparam%cn_r(np,ns,3)) &
+      !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
+
+      !  micparam%mgeR3(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,7)/micparam%cn_r(np,ns,3)) &
+      !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
+
+      !  micparam%mgeK1(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,1)/micparam%cn_r(np,ns,4)) &
+      !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
+
+      !  micparam%mgeK2(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,2)/micparam%cn_r(np,ns,4)) &
+      !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
+
+      !  micparam%mgeK3(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,7)/micparam%cn_r(np,ns,4)) &
+      !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
+      ! fixed mge
+         micparam%mgeR1(np,ns) = micpdef%epislon1 * exp(-0.015 *micinput%tavg(np,ns))
+         micparam%mgeR2(np,ns) = micpdef%epislon2 * exp(-0.015 *micinput%tavg(np,ns))
+         micparam%mgeR3(np,ns) = micpdef%epislon1 * exp(-0.015 *micinput%tavg(np,ns))
+         micparam%mgeK1(np,ns) = micpdef%epislon3 * exp(-0.015 *micinput%tavg(np,ns))
+         micparam%mgeK2(np,ns) = micpdef%epislon4 * exp(-0.015 *micinput%tavg(np,ns))
+         micparam%mgeK3(np,ns) = micpdef%epislon3 * exp(-0.015 *micinput%tavg(np,ns))
+      enddo
+      
+      if(diag==1.and.np==outp) then
+         print *, 'mget'
+         print *, 'epislon1-4=',micpdef%epislon1,micpdef%epislon2,micpdef%epislon3,micpdef%epislon4
+      endif
+        
+  end subroutine mget_single
+
+
   subroutine turnovert(kinetics,micpxdef,micpdef,micparam,micinput)
       use mic_constant
       use mic_variable
@@ -257,6 +448,53 @@
         endif
       deallocate(tvref) 
   end subroutine turnovert
+
+
+  subroutine turnovert_single(kinetics,micpxdef,micpdef,micparam,micinput,np)
+      use mic_constant
+      use mic_variable
+      implicit none
+      TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef
+      TYPE(mic_param_default), INTENT(IN)      :: micpdef
+      TYPE(mic_parameter),     INTENT(INOUT)   :: micparam
+      TYPE(mic_input),         INTENT(IN)      :: micinput  
+      integer,                 INTENT(IN)      :: np
+
+      integer nx,kinetics
+      real(r_2)  xbeta
+ 
+      ! local variable
+      integer nopt,ns
+      real(r_2), dimension(:), allocatable    :: tvref
+
+      allocate(tvref(mp)) 
+      nopt=micparam%bgctype(np)
+      tvref(np) = sqrt(micinput%fcnpp(np)/micpdef%xtv)
+      tvref(np) = max(0.6,min(1.3,tvref(np)))          ! 0.8-1.2 based on Wieder et al., 2015
+
+!         if(kinetics==3) then
+!            tvref(np) = 1.0
+!            tvref(np) = 1.0           
+!         endif
+
+      do ns=1,ms
+         micparam%tvmicR(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicR * tvref(np) * exp(0.3 * micparam%fmetave(np,ns)) * delt
+         micparam%tvmicK(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicK * tvref(np) * exp(0.1 * micparam%fmetave(np,ns)) * delt
+         micparam%betamicR(np,ns) = micpdef%betamic * micpxdef%xbeta(nopt)
+         micparam%betamicK(np,ns) = micpdef%betamic * micpxdef%xbeta(nopt)
+      enddo
+
+
+      if(diag==1.and.np==outp) then
+         print *, 'turnovert'
+         print *, 'tvref fmetave =', tvref(np),micparam%fmetave(np,:)
+         print *, 'xtvmic xbeta = ', micpxdef%xtvmic(micparam%bgctype(np)),micpxdef%xbeta(micparam%bgctype(np))
+         print *, 'tvmicR=',micparam%tvmicR(outp,:) 
+         print *, 'tvmicR=',micparam%tvmicR(outp,:) 
+      endif
+      deallocate(tvref) 
+  end subroutine turnovert_single
+
 
 
     subroutine bgc_fractions(micpxdef,micpdef,micparam,micinput)
@@ -391,6 +629,143 @@
      deallocate(cninp)   
    
    end subroutine bgc_fractions
+
+
+   subroutine bgc_fractions_single(micpxdef,micpdef,micparam,micinput,np)
+      use mic_constant
+      use mic_variable
+      implicit none
+      TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef
+      TYPE(mic_param_default), INTENT(IN)     :: micpdef
+      TYPE(mic_parameter),     INTENT(INOUT)  :: micparam  
+      TYPE(mic_input),         INTENT(INOUT)  :: micinput
+      integer,                 INTENT(IN)     :: np
+      !local variables
+      integer npft,ns
+      real(r_2), dimension(:),     allocatable :: fmetleaf,fmetroot,fmetwood
+      real(r_2), dimension(:,:),   allocatable :: dleafx,drootx,dwoodx
+      real(r_2), dimension(:,:),   allocatable :: cinputm,cinputs
+      real(r_2), dimension(:,:,:), allocatable :: cninp
+      
+      
+      allocate(fmetleaf(mp),fmetroot(mp),fmetwood(mp))
+      allocate(dleafx(mp,ms),drootx(mp,ms),dwoodx(mp,ms))
+      allocate(cinputm(mp,ms),cinputs(mp,ms))
+      allocate(cninp(mp,ms,2))
+
+
+      npft=micparam%pft(np)
+      fmetleaf(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligleaf(np) * micparam%xcnleaf(np)))
+      fmetroot(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligroot(np) * micparam%xcnroot(np)))
+      fmetwood(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligwood(np) * micparam%xcnwood(np)))
+
+      ! Initial C:N ratio of each C pool
+      do ns=1,ms
+
+         ! **this is a temporary solution, to be modified after N cycle is included
+         micparam%cn_r(np,ns,1) = max( 5.0,0.5*(micparam%xcnleaf(np)+micparam%xcnroot(np)))
+         micparam%cn_r(np,ns,2) = max(10.0,0.5*micparam%xcnleaf(np))
+         micparam%cn_r(np,ns,3) =  7.4
+         micparam%cn_r(np,ns,4) = 13.4
+         micparam%cn_r(np,ns,5) = 12.0
+         micparam%cn_r(np,ns,6) = 16.0
+         micparam%cn_r(np,ns,7) = 10.0
+
+
+         ! here zse in m, litter input in g/m2/delt, *0.001 to mgc/cm3/delt and "zse" in m.
+         if(ns==1) then
+            dleafx(np,ns) = micpxdef%xNPP(npft) * 0.001* micinput%dleaf(np)/micparam%sdepth(np,1)                               ! mgc/cm3/delt
+            drootx(np,ns) = micpxdef%xNPP(npft) * 0.001* micparam%fracroot(np,1) * micinput%droot(np)/micparam%sdepth(np,1)     ! mgc/cm3/delt
+            dwoodx(np,ns) = micpxdef%xNPP(npft) * 0.001* micinput%dwood(np)/micparam%sdepth(np,1)                               ! mgc/cm3/delt
+         else
+            dleafx(np,ns) = 0.0
+            drootx(np,ns) = micpxdef%xNPP(npft) * 0.001 * micparam%fracroot(np,ns) * micinput%droot(np)/micparam%sdepth(np,ns)  ! mgc/cm3/delt
+            dwoodx(np,ns) = 0.0
+         endif
+
+         !! calculate soil texture and litter quaility dependent parameter values
+         ! C input to metabolic litter 
+         micinput%cinputm(np,ns) = dleafx(np,ns)*fmetleaf(np)        &
+                                 + drootx(np,ns)*fmetroot(np)        &       
+                                 + dwoodx(np,ns)*fmetwood(np)         
+         ! C input to structural litter
+         micinput%cinputs(np,ns) = dleafx(np,ns)*(1.0-fmetleaf(np))  &
+                                 + drootx(np,ns)*(1.0-fmetroot(np))  & 
+                                 + dwoodx(np,ns)*(1.0-fmetwood(np)) 
+
+         ! if((dleafx(np,ns)+drootx(np,ns))>0.0) then 
+         ! C:N input of litter input to the metabolic pool 
+         cninp(np,ns,1) = micinput%cinputm(np,ns)                          &
+                        /(dleafx(np,ns)*fmetleaf(np)/micparam%xcnleaf(np)  &
+                        +drootx(np,ns)*fmetroot(np)/micparam%xcnroot(np)   &
+                        +dwoodx(np,ns)*fmetwood(np)/micparam%xcnwood(np))
+         ! C:N input of litter input to the structural pool
+         cninp(np,ns,2) = micinput%cinputs(np,ns)                               &
+                        /(dleafx(np,ns)*(1.0-fmetleaf(np))/micparam%xcnleaf(np) &
+                        +drootx(np,ns)*(1.0-fmetroot(np))/micparam%xcnroot(np)  &
+                        +dwoodx(np,ns)*(1.0-fmetwood(np))/micparam%xcnwood(np))
+
+         micparam%fmetave(np,ns) = (dleafx(np,ns)*fmetleaf(np) + drootx(np,ns)*fmetroot(np) + dwoodx(np,ns) * fmetwood(np))  &
+                                 /(dleafx(np,ns) + drootx(np,ns) + dwoodx(np,ns) + 1.0e-10)
+
+         !  else
+         !    if(ns==1) then
+         !       cninp(np,ns,1)          = micparam%xcnleaf(np)
+         !       cninp(np,ns,2)          = micparam%xcnleaf(np)
+         !       micparam%fmetave(np,ns) = fmetleaf(np)
+         !    else
+         !       cninp(np,ns,1)          = micparam%xcnroot(np)
+         !       cninp(np,ns,2)          = micparam%xcnroot(np)
+         !       micparam%fmetave(np,ns) = fmetroot(np)
+         !    endif
+         !  endif
+
+         micparam%cn_r(np,ns,1) = cninp(np,ns,1); micparam%cn_r(np,ns,2)=cninp(np,ns,2)
+
+         ! micparam%fr2p(np,ns) = micpdef%fmicsom1 * 0.30 * exp(1.3*micinput%clay(np,ns)) *1.0                   ! 3.0
+         ! micparam%fk2p(np,ns) = micpdef%fmicsom2 * 0.20 * exp(0.8*micinput%clay(np,ns)) *1.0                   ! 3.0
+         ! micparam%fr2c(np,ns) = min(1.0-micparam%fr2p(np,ns), micpdef%fmicsom3 * 0.10 * exp(-micpdef%fmicsom5 * micparam%fmetave(np,ns))*1.0 )    ! 9.0   to invoid a negative value of fr2a  ZHC
+         ! micparam%fk2c(np,ns) = min(1.0-micparam%fk2p(np,ns), micpdef%fmicsom4 * 0.30 * exp(-micpdef%fmicsom5 * micparam%fmetave(np,ns))*1.0)     ! 9.0   to invoid a negative value of fk2a ZHC
+         ! micparam%fr2a(np,ns) = 1.00 - micparam%fr2p(np,ns) - micparam%fr2c(np,ns)
+         ! micparam%fk2a(np,ns) = 1.00 - micparam%fk2p(np,ns) - micparam%fk2c(np,ns)
+         ! changes made to accommodate added aggregated pools
+
+         micparam%fr2p(np,ns) =  0.30 * exp(1.3*micinput%clay(np,ns))                    ! 3.0
+         micparam%fk2p(np,ns) =  0.20 * exp(0.8*micinput%clay(np,ns))                    ! 3.0
+         micparam%fr2c(np,ns) = min(1.0, micparam%fr2p(np,ns) + 0.10 * exp(-3.0 * micparam%fmetave(np,ns)))     ! 9.0   to invoid a negative value of fr2a  ZHC
+         micparam%fk2c(np,ns) = min(1.0, micparam%fk2p(np,ns) + 0.30 * exp(-3.0 * micparam%fmetave(np,ns)))     ! 9.0   to invoid a negative value of fk2a ZHC
+         micparam%fr2p(np,ns) =  0.0
+         micparam%fk2p(np,ns) =  0.0
+         micparam%fr2a(np,ns) = max(0.0,1.00 - micparam%fr2c(np,ns))
+         micparam%fk2a(np,ns) = max(0.0,1.00 - micparam%fk2c(np,ns))
+      enddo   !"ns"
+
+
+      if(diag==1.and.np ==outp) then
+         print *,'bgc_fraction parameters and pft',micparam%pft(np)
+         print *, 'empirical params1-4=', micpdef%fmicsom1,micpdef%fmicsom2,micpdef%fmicsom3,micpdef%fmicsom4
+         print *, 'fligleaf,xcnleaf=', micparam%fligleaf(np),micparam%xcnleaf(np)
+         print *, 'fracroot sdepth', micparam%fracroot(np,:),micparam%sdepth(np,:)
+         print *, 'cinputm=', micinput%cinputm(outp,:)
+         print *, 'cinputs=',micinput%cinputs(outp,:)
+         print *, 'fmetave=',micparam%fmetave(outp,:)
+         print *, 'cn_r1=',micparam%cn_r(outp,:,1) 
+         print *, 'cn_r2=',micparam%cn_r(outp,:,2)
+         print *, 'fr2p=',micparam%fr2p(outp,:) 
+         print *, 'fk2p=',micparam%fk2p(outp,:) 
+         print *, 'fr2c=',micparam%fr2c(outp,:)
+         print *, 'fk2c=',micparam%fk2c(outp,:)
+         print *, 'fr2a=',micparam%fr2a(outp,:) 
+         print *, 'fk2a=',micparam%fk2a(outp,:)
+      endif
+
+      deallocate(fmetleaf,fmetroot,fmetwood)
+      deallocate(dleafx,drootx,dwoodx)
+      deallocate(cinputm,cinputs)
+      deallocate(cninp)   
+   
+   end subroutine bgc_fractions_single
+
 
    subroutine bioturb(ndelt,ms,zse,delt,diffsocxx,fluxsoc,xpooli,xpoole)
    ! multi-layered soil BGC including DOC and bioturbation using microbially-based BGC modeling

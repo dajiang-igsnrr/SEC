@@ -1,4 +1,11 @@
-! ###############mesc_function.f90###########################
+!> functions to be called by the function functn called from main.for
+!! functn: called from main.for with the following options from "case.txt"
+!! functn_c14 (case=1):       12C and 14C                   
+!! functn_frc1 (case=2):      SOC fractions                        
+!! functn_soc_wosis(case=3):  WOSIS SOC profiles  (not activated)    
+!! functn_soc_hwsd (case=4):  hwsd SOC profiles      
+!! functn_global (case=5):    global SOC profile (not activated) 
+!! ###############mesc_function.f90###########################
 !
  real*8 function functn_c14(nx,xparam16)
    use mic_constant
@@ -144,7 +151,8 @@ real*8 function functn_frc1(nx,xparam16)
     character*140 frestart_in,frestart_out,foutput
     character*140 cfraction,filecluster
     real(r_2), dimension(:), allocatable :: zse
-
+    integer mpx
+    
       jrestart=0;xopt(:)=1.0
       do nparam=1,16
          nxopt(nparam) = nparam
@@ -171,8 +179,8 @@ real*8 function functn_frc1(nx,xparam16)
     !  print *, xopt
       
       close(1)
-      !mp = 2210
-      mp = 2206;ntime=1
+      !mp = 2206
+      ntime=1
       
       totcost1 = 0.0
       nyeqpool= 1000
@@ -182,7 +190,8 @@ real*8 function functn_frc1(nx,xparam16)
       allocate(zse(ms))
       zse(1) =0.02;zse(2)=0.04;zse(3)=0.06;zse(4)=0.08
       zse(5:8)=0.2;zse(9:10)=0.5
-      
+      call getdata_frc_dim(cfraction,mpx)
+      mp = mpx
       call mic_allocate_parameter(mpft,mbgc,mp,ms,micpxdef,micparam)
       call mic_allocate_input(mp,ms,nlon,nlat,ntime,micinput,micglobal)
       call mic_allocate_output(mp,micoutput)
@@ -199,7 +208,7 @@ real*8 function functn_frc1(nx,xparam16)
                         zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
 
     !  print *, 'calcost_frc1'
-      call calcost_frc1(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,zse,totcost1)
+      call calcost_frc1(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost1)
       
       close(1)
 
@@ -309,7 +318,6 @@ END function functn_frc1
       call mic_deallocate_cpool(mp,ms,miccpool)
       call mic_deallocate_npool(mp,ms,micnpool) 
 
-      close(1)
       call screenout('hwsd_soc',jmodel,bgcopt,xopt,totcost1)      
         
 

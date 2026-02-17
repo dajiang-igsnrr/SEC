@@ -1,0 +1,1286 @@
+\doxysection{mesc\+\_\+model.\+f90}
+\label{mesc__model_8f90_source}\index{SEC/src/mesc\_model.f90@{SEC/src/mesc\_model.f90}}
+\textbf{ Go to the documentation of this file.}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{!>\ The\ core\ routines\ for\ the\ mesc\_model}}
+\DoxyCodeLine{00002\ \textcolor{comment}{!!\ calculate\ model\ parameters\ as\ function\ of\ enrvironmental\ variablles\ that\ vary\ with\ time}}
+\DoxyCodeLine{00003\ \textcolor{comment}{!!\ model\ integration\ using\ rk4}}
+\DoxyCodeLine{00004\ \textcolor{comment}{!!}}
+\DoxyCodeLine{00005\ \textcolor{comment}{!\ \#\#\#\#\#\#\#\#\#\#\#\#\#\#mesc\_model.f90\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\ \ \ }}
+\DoxyCodeLine{00006\ \ \ \ \ \textcolor{keyword}{subroutine\ }rk4modelx(timex,delty,ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,xpool0,xpool1)}
+\DoxyCodeLine{00007\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00008\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00009\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00010\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ ::\ micpdef}
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ ::\ micparam}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ ::\ micinput}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ np,ns,\ kinetics,ny,isoc14}
+\DoxyCodeLine{00014\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ \ \ timex,delty,h}
+\DoxyCodeLine{00015\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \ \ \textcolor{keywordtype}{dimension(mcpool)},\textcolor{keywordtype}{intent(inout)}\ \ \ \ \ ::\ xpool0,xpool1}
+\DoxyCodeLine{00016\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \ \ \textcolor{keywordtype}{dimension(mcpool)}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ y1,y2,y3,y4,dy1dt,dy2dt,dy3dt,dy4dt}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \ \ \ \ \ h=delty}
+\DoxyCodeLine{00019\ \ \ \ \ \ y1(:)\ =\ xpool0(:)}
+\DoxyCodeLine{00020\ \ \ \ \ }
+\DoxyCodeLine{00021\ \ \ \ \ \ \textcolor{keyword}{call\ }vmic\_c(ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,y1,dy1dt)}
+\DoxyCodeLine{00022\ \ \ \ \ \ y2(:)\ =\ y1(:)\ +\ 0.5\ *\ h\ *\ dy1dt(:)}
+\DoxyCodeLine{00023\ \ \ \ \ \ \textcolor{keyword}{call\ }vmic\_c(ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,y2,dy2dt)}
+\DoxyCodeLine{00024\ \ \ \ \ \ y3(:)\ =\ y1(:)\ +\ 0.5\ *\ h\ *\ dy2dt(:)}
+\DoxyCodeLine{00025\ \ \ \ \ \ \textcolor{keyword}{call\ }vmic\_c(ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,y3,dy3dt)}
+\DoxyCodeLine{00026\ \ \ \ \ \ y4(:)\ =\ y1(:)\ +\ \ \ \ \ \ \ h\ *\ dy3dt(:)}
+\DoxyCodeLine{00027\ \ \ \ \ \ \textcolor{keyword}{call\ }vmic\_c(ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,y4,dy4dt)}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{comment}{!\ RK4}}
+\DoxyCodeLine{00029\ \ \ \ \ \ xpool1(:)\ =\ xpool0(:)\ +\ (dy1dt(:)/6.0\ +\ dy2dt(:)/3.0\ +\ dy3dt(:)/3.0\ +\ dy4dt(:)/6.0)\ *\ h}
+\DoxyCodeLine{00030\ \ \ \ \ \ }
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{comment}{!\ Euler\ }}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{!\ xpool1(:)\ =\ xpool0(:)\ +\ dy1dt(:)\ *\ h}}
+\DoxyCodeLine{00033\ \ \ \ \ \ }
+\DoxyCodeLine{00034\ \ \ \ \ \ }
+\DoxyCodeLine{00035\ \textcolor{comment}{!\ \ \ \ write(*,101)\ np,ns,delty,micinput\%cinputm(np,ns)+micinput\%cinputs(np,ns),sum(dy1dt(1:7)),\ \&}}
+\DoxyCodeLine{00036\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%cinputm(np,ns)+micinput\%cinputs(np,ns)-\/sum(dy1dt(1:7))}}
+\DoxyCodeLine{00037\ 101\ \textcolor{keyword}{format}(\textcolor{stringliteral}{'rk4:\ input,\ sumdelc\ rsoil'},2(i3,1x),f6.2,1x,3(f10.6,1x))\ }
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }rk4modelx}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keyword}{subroutine\ }kmt(micpxdef,micpdef,micparam,micinput)}
+\DoxyCodeLine{00042\ \ \ \ \ \ \ \textcolor{comment}{!\ unit:\ mg\ Mic\ C/cm3}}
+\DoxyCodeLine{00043\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00044\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ micparam}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ }
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \textcolor{comment}{!\ local\ variable}}
+\DoxyCodeLine{00053\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \textcolor{keywordtype}{allocatable}\ \ \ ::\ xkclay,km,kmx}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nopt,np,ns}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \ \ \ \ \ \textcolor{keyword}{allocate}(xkclay(mp,ms),km(mp,ms),kmx(mp,ms))}
+\DoxyCodeLine{00057\ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \ \ \ nopt=micparam\%bgctype(np)}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ \ xkclay(np,ns)\ =\ 1.0/(2.0*exp(-\/2.0*sqrt(micinput\%clay(np,ns))))}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ \ \ \ km(np,ns)\ =\ \ micpxdef\%xak(nopt)\ *\ micpdef\%ak\ *\ exp(micpdef\%sk\ *\ micinput\%tavg(np,ns)\ +\ micpdef\%bk)}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ \ micparam\%K1(np,ns)\ =\ \ km(np,ns)/micpdef\%xk1}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \ micparam\%K3(np,ns)\ =\ \ km(np,ns)\ *\ xkclay(np,ns)/micpdef\%xk3}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \ micparam\%J1(np,ns)\ =\ \ km(np,ns)/micpdef\%xj1}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ \ micparam\%J3(np,ns)\ =\ \ km(np,ns)\ *\ xkclay(np,ns)/micpdef\%xj3}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ kmx(np,ns)\ =\ \ micpxdef\%xak(nopt)\ *\ micpdef\%ak\ *\ exp(micpdef\%skx\ *\ micinput\%tavg(np,ns)\ +\ micpdef\%bk)\ \ \ \ \ \ \ }
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \ micparam\%K2(np,ns)\ =\ \ kmx(np,ns)/micpdef\%xk2}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ \ \ \ micparam\%J2(np,ns)\ =\ \ kmx(np,ns)/micpdef\%xj2}
+\DoxyCodeLine{00070\ \textcolor{keywordflow}{\ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00071\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np==outp)\ \textcolor{keywordflow}{then}\ \ \ }
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'Kmt'},micinput\%clay(outp,1),micinput\%tavg(outp,1),km(outp,1),kmx(outp,1)}
+\DoxyCodeLine{00075\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'K1='},micparam\%K1(outp,1)}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'K2='},micparam\%K2(outp,1)}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'K3='},micparam\%K3(outp,1)}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'J1='},micparam\%J1(outp,1)}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'J2='},micparam\%J2(outp,1)}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'J3='},micparam\%J3(outp,1)\ \ \ }
+\DoxyCodeLine{00081\ \textcolor{keywordflow}{\ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(xkclay,km,kmx)\ \ }
+\DoxyCodeLine{00083\ \ \ \ \ \ \ }
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }kmt}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keyword}{subroutine\ }kmt\_single(micpxdef,micpdef,micparam,micinput,np)}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \textcolor{comment}{!\ unit:\ mg\ Mic\ C/cm3}}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ micparam}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ np}
+\DoxyCodeLine{00097\ \ \ }
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \textcolor{comment}{!\ local\ variable}}
+\DoxyCodeLine{00099\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \textcolor{keywordtype}{allocatable}\ \ \ ::\ xkclay,km,kmx}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nopt,ns}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(xkclay(mp,ms),km(mp,ms),kmx(mp,ms))}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ nopt=micparam\%bgctype(np)}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \ xkclay(np,ns)\ =\ 1.0/(2.0*exp(-\/2.0*sqrt(micinput\%clay(np,ns))))}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ \ km(np,ns)\ =\ \ micpxdef\%xak(nopt)\ *\ micpdef\%ak\ *\ exp(micpdef\%sk\ *\ micinput\%tavg(np,ns)\ +\ micpdef\%bk)}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ micparam\%K1(np,ns)\ =\ \ km(np,ns)/micpdef\%xk1}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \ micparam\%K3(np,ns)\ =\ \ km(np,ns)\ *\ xkclay(np,ns)/micpdef\%xk3}
+\DoxyCodeLine{00109\ \ \ \ \ \ \ \ \ \ micparam\%J1(np,ns)\ =\ \ km(np,ns)/micpdef\%xj1}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \ micparam\%J3(np,ns)\ =\ \ km(np,ns)\ *\ xkclay(np,ns)/micpdef\%xj3}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \ \ \ kmx(np,ns)\ =\ \ micpxdef\%xak(nopt)\ *\ micpdef\%ak\ *\ exp(micpdef\%skx\ *\ micinput\%tavg(np,ns)\ +\ micpdef\%bk)\ \ \ \ \ \ \ }
+\DoxyCodeLine{00113\ \ \ \ \ \ \ \ \ \ micparam\%K2(np,ns)\ =\ \ kmx(np,ns)/micpdef\%xk2}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ \ micparam\%J2(np,ns)\ =\ \ kmx(np,ns)/micpdef\%xj2}
+\DoxyCodeLine{00115\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np==outp)\ \textcolor{keywordflow}{then}\ \ \ }
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'Kmt'},micinput\%clay(outp,1),micinput\%tavg(outp,1),km(outp,1),kmx(outp,1)}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'K1='},micparam\%K1(outp,1)}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'K2='},micparam\%K2(outp,1)}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'K3='},micparam\%K3(outp,1)}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'J1='},micparam\%J1(outp,1)}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'J2='},micparam\%J2(outp,1)}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'J3='},micparam\%J3(outp,1)\ \ \ }
+\DoxyCodeLine{00125\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(xkclay,km,kmx)\ \ }
+\DoxyCodeLine{00127\ \ \ \ \ \ \ }
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }kmt\_single}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keyword}{subroutine\ }vmaxt(micpxdef,micpdef,micparam,micinput)}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \textcolor{comment}{!\ mg\ Cs\ per\ mg\ mic\ C\ per\ hour}}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micparam}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00140\ \ \ }
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00143\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:,:)},\ \textcolor{keywordtype}{allocatable}\ ::\ vmax}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nopt,np,ns}
+\DoxyCodeLine{00145\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ ::\ sdepthz}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(vmax(mp,ms))}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(sdepthz(ms))}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ }
+\DoxyCodeLine{00150\ \ \ \ \ \ \ sdepthz=0.0}
+\DoxyCodeLine{00151\ \ \ }
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ \ \ \ sdepthz=0.0}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \ \ \ \ \ nopt=micparam\%bgctype(np)}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms\ }
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ns==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ sdepthz(ns)\ =\ 0.5\ *\ micparam\%sdepth(np,ns)}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ sdepthz(ns)\ =\ sdepthz(ns-\/1)\ +\ micparam\%sdepth(np,ns)}
+\DoxyCodeLine{00160\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ endif}\ \ }
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ vmax(np,ns)\ =\ \ micpxdef\%xav\ *\ micpdef\%av\ *\ exp(micpdef\%sv*micinput\%tavg(np,ns)\ +\ micpdef\%bv)\ *\ delt}}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ vmax(np,ns)\ =\ \ exp(-\/2.0*\ sdepthz(ns))\ *\ micpxdef\%xav(npft)\ *\ micpdef\%av\ *\ exp(micpdef\%sv*micinput\%tavg(np,ns)\ +\ micpdef\%bv)\ *\ delt}}
+\DoxyCodeLine{00163\ \ \ \ \ \ \ \ \ \ \ \ vmax(np,ns)\ =\ \ exp(-\/micpdef\%vmaxbeta\ *\ micpxdef\%xvmaxbeta(nopt)\ *\ sdepthz(ns))\ \ \ \ \ \&}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ micpxdef\%xav(nopt)\ *\ micpdef\%av\ *\ exp(micpdef\%sv*micinput\%tavg(np,ns)\ +\ micpdef\%bv)\ \ *\ delt}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ \ \ \ micparam\%V1(np,ns)\ \ \ =\ \ micpdef\%xv1\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \ \ \ \ \ micparam\%V2(np,ns)\ \ \ =\ \ micpdef\%xv2\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \ \ \ \ \ micparam\%V3(np,ns)\ \ \ =\ \ micpdef\%xv3\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00169\ \ \ \ \ \ \ }
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \ \ \ \ \ micparam\%W1(np,ns)\ \ \ =\ \ micpdef\%xw1\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ \ \ \ micparam\%W2(np,ns)\ \ \ =\ \ micpdef\%xw2\ *\ vmax(np,ns)\ \ }
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ \ \ \ micparam\%W3(np,ns)\ \ \ =\ \ micpdef\%xw3\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00173\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00174\ \textcolor{keywordflow}{\ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np==outp)\ \textcolor{keywordflow}{then}\ }
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'Vmaxt'},micinput\%tavg(outp,1),vmax(outp,1)}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'V1='},micparam\%V1(outp,1)}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'V2='},micparam\%V2(outp,1)}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'V3='},micparam\%V3(outp,1)}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'W1='},micparam\%W1(outp,1)}
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'W2='},micparam\%W2(outp,1)}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'W3='},micparam\%W3(outp,1)}
+\DoxyCodeLine{00184\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00185\ }
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(vmax)}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(sdepthz)}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ }
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }vmaxt}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \ \ \ \ \textcolor{keyword}{subroutine\ }vmaxt\_single(micpxdef,micpdef,micparam,micinput,np)}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ \textcolor{comment}{!\ mg\ Cs\ per\ mg\ mic\ C\ per\ hour}}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00198\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micparam}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ np}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00204\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\textcolor{keywordtype}{dimension(:,:)},\ \textcolor{keywordtype}{allocatable}\ ::\ vmax}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nopt,ns}
+\DoxyCodeLine{00206\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ ::\ sdepthz}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(vmax(mp,ms))}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(sdepthz(ms))}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ }
+\DoxyCodeLine{00211\ \ \ \ \ \ \ sdepthz=0.0}
+\DoxyCodeLine{00212\ \ \ }
+\DoxyCodeLine{00213\ \ }
+\DoxyCodeLine{00214\ \ \ \ \ \ \ sdepthz=0.0}
+\DoxyCodeLine{00215\ \ \ \ \ \ \ nopt=micparam\%bgctype(np)}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms\ }
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ns==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ \ \ \ \ sdepthz(ns)\ =\ 0.5\ *\ micparam\%sdepth(np,ns)}
+\DoxyCodeLine{00219\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ \ \ \ \ \ \ sdepthz(ns)\ =\ sdepthz(ns-\/1)\ +\ micparam\%sdepth(np,ns)}
+\DoxyCodeLine{00221\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}\ \ }
+\DoxyCodeLine{00222\ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ vmax(np,ns)\ =\ \ micpxdef\%xav\ *\ micpdef\%av\ *\ exp(micpdef\%sv*micinput\%tavg(np,ns)\ +\ micpdef\%bv)\ *\ delt}}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ vmax(np,ns)\ =\ \ exp(-\/2.0*\ sdepthz(ns))\ *\ micpxdef\%xav(npft)\ *\ micpdef\%av\ *\ exp(micpdef\%sv*micinput\%tavg(np,ns)\ +\ micpdef\%bv)\ *\ delt}}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ \ vmax(np,ns)\ =\ \ exp(-\/micpdef\%vmaxbeta\ *\ micpxdef\%xvmaxbeta(nopt)\ *\ sdepthz(ns))\ \ \ \ \ \&}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ micpxdef\%xav(nopt)\ *\ micpdef\%av\ *\ exp(micpdef\%sv*micinput\%tavg(np,ns)\ +\ micpdef\%bv)\ \ *\ delt}
+\DoxyCodeLine{00226\ }
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \ micparam\%V1(np,ns)\ \ \ =\ \ micpdef\%xv1\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00228\ \ \ \ \ \ \ \ \ \ micparam\%V2(np,ns)\ \ \ =\ \ micpdef\%xv2\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \ \ \ micparam\%V3(np,ns)\ \ \ =\ \ micpdef\%xv3\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ \ micparam\%W1(np,ns)\ \ \ =\ \ micpdef\%xw1\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \ \ \ micparam\%W2(np,ns)\ \ \ =\ \ micpdef\%xw2\ *\ vmax(np,ns)\ \ }
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ \ micparam\%W3(np,ns)\ \ \ =\ \ micpdef\%xw3\ *\ vmax(np,ns)\ }
+\DoxyCodeLine{00234\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00237\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np==outp)\ \textcolor{keywordflow}{then}\ }
+\DoxyCodeLine{00238\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'Vmaxt'},micinput\%tavg(outp,1),vmax(outp,1)}
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'V1='},micparam\%V1(outp,1)}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'V2='},micparam\%V2(outp,1)}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'V3='},micparam\%V3(outp,1)}
+\DoxyCodeLine{00242\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'W1='},micparam\%W1(outp,1)}
+\DoxyCodeLine{00243\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'W2='},micparam\%W2(outp,1)}
+\DoxyCodeLine{00244\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'W3='},micparam\%W3(outp,1)}
+\DoxyCodeLine{00245\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(vmax)}
+\DoxyCodeLine{00248\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(sdepthz)}
+\DoxyCodeLine{00249\ \ \ \ \ \ \ }
+\DoxyCodeLine{00250\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }vmaxt\_single}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00253\ \ \ \ \ \textcolor{keyword}{subroutine\ }desorpt(micpxdef,micpdef,micparam,micinput)}
+\DoxyCodeLine{00254\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00255\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00256\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00257\ \textcolor{comment}{!\ \ \ \ \ \ real(r\_2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ xdesorp}}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ \ \ \ ::\ micparam\ }
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ \ \ \ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nopt,np,ns\ }
+\DoxyCodeLine{00263\ }
+\DoxyCodeLine{00264\ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms\ }
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \ \ \ nopt=micparam\%bgctype(np)}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \ \ \ micparam\%desorp(np,ns)\ =\ micpxdef\%xdesorp(nopt)\ *\ (1.5e-\/5)\ *\ exp(-\/1.5*micinput\%clay(np,ns))\ }
+\DoxyCodeLine{00268\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00269\ \textcolor{keywordflow}{\ \ \ \ \ enddo}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.\ np==outp)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00272\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'Desorpt'}}
+\DoxyCodeLine{00273\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'desorpt='},micparam\%desorp(outp,:)}
+\DoxyCodeLine{00274\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{00275\ \ \ }
+\DoxyCodeLine{00276\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }desorpt}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ }
+\DoxyCodeLine{00279\ \ \ \ \ \textcolor{keyword}{subroutine\ }desorpt\_single(micpxdef,micparam,micinput,np)}
+\DoxyCodeLine{00280\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00281\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00282\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00283\ \textcolor{comment}{!\ \ \ \ \ \ real(r\_2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ xdesorp}}
+\DoxyCodeLine{00284\ \textcolor{comment}{!,micpdef}}
+\DoxyCodeLine{00285\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00286\ \textcolor{comment}{!\ \ \ \ \ \ TYPE(mic\_param\_default),\ INTENT(IN)\ \ \ \ \ ::\ micpdef}}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ \ \ \ ::\ micparam\ }
+\DoxyCodeLine{00288\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ \ \ \ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00289\ \ \ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ ::\ np}
+\DoxyCodeLine{00290\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nopt,ns\ }
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \ \ }
+\DoxyCodeLine{00293\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms\ }
+\DoxyCodeLine{00294\ \ \ \ \ \ \ \ \ \ nopt=micparam\%bgctype(np)}
+\DoxyCodeLine{00295\ \ \ \ \ \ \ \ \ \ micparam\%desorp(np,ns)\ =\ micpxdef\%xdesorp(nopt)\ *\ (1.5e-\/5)\ *\ exp(-\/1.5*micinput\%clay(np,ns))\ }
+\DoxyCodeLine{00296\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00299\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.\ np==outp)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00300\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'Desorpt'}}
+\DoxyCodeLine{00301\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'desorpt='},micparam\%desorp(outp,:)}
+\DoxyCodeLine{00302\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{00303\ \ \ }
+\DoxyCodeLine{00304\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }desorpt\_single}
+\DoxyCodeLine{00305\ }
+\DoxyCodeLine{00306\ }
+\DoxyCodeLine{00307\ \ \ \textcolor{keyword}{subroutine\ }mget(micpdef,micparam,micinput,micnpool)}
+\DoxyCodeLine{00308\ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00309\ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00310\ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00311\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00312\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micparam\ }
+\DoxyCodeLine{00313\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00314\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_npool),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micnpool\ }
+\DoxyCodeLine{00315\ }
+\DoxyCodeLine{00316\ \ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00317\ \ \ \ \ \ \textcolor{keywordtype}{integer}\ np,ns}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00319\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00320\ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms\ }
+\DoxyCodeLine{00321\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ variable\ mge\ }}
+\DoxyCodeLine{00322\ }
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeR1(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,1)/micparam\%cn\_r(np,ns,3))\ \&}}
+\DoxyCodeLine{00324\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeR2(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,2)/micparam\%cn\_r(np,ns,3))\ \&}}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00328\ }
+\DoxyCodeLine{00329\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeR3(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,7)/micparam\%cn\_r(np,ns,3))\ \&}}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00331\ }
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeK1(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,1)/micparam\%cn\_r(np,ns,4))\ \&}}
+\DoxyCodeLine{00333\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00334\ }
+\DoxyCodeLine{00335\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeK2(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,2)/micparam\%cn\_r(np,ns,4))\ \&}}
+\DoxyCodeLine{00336\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00337\ }
+\DoxyCodeLine{00338\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeK3(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,7)/micparam\%cn\_r(np,ns,4))\ \&}}
+\DoxyCodeLine{00339\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00340\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ fixed\ mge}}
+\DoxyCodeLine{00341\ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR1(np,ns)\ =\ micpdef\%epislon1\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00342\ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR2(np,ns)\ =\ micpdef\%epislon2\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00343\ \ \ \ \ \ \ \ \ \ \ micparam\%mgeR3(np,ns)\ =\ micpdef\%epislon1\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK1(np,ns)\ =\ micpdef\%epislon3\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00345\ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK2(np,ns)\ =\ micpdef\%epislon4\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00346\ \ \ \ \ \ \ \ \ \ \ micparam\%mgeK3(np,ns)\ =\ micpdef\%epislon3\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00347\ \textcolor{keywordflow}{\ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00348\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np==outp)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00351\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'mget'}}
+\DoxyCodeLine{00352\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'epislon1-\/4='},micpdef\%epislon1,micpdef\%epislon2,micpdef\%epislon3,micpdef\%epislon4}
+\DoxyCodeLine{00353\ \textcolor{keywordflow}{\ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00354\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00355\ \ \ \textcolor{keyword}{end\ subroutine\ }mget}
+\DoxyCodeLine{00356\ }
+\DoxyCodeLine{00357\ }
+\DoxyCodeLine{00358\ \ \ \textcolor{keyword}{subroutine\ }mget\_single(micpdef,micparam,micinput,micnpool,np)}
+\DoxyCodeLine{00359\ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00360\ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00361\ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00362\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00363\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micparam\ }
+\DoxyCodeLine{00364\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00365\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_npool),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micnpool\ }
+\DoxyCodeLine{00366\ \ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ np}
+\DoxyCodeLine{00367\ }
+\DoxyCodeLine{00368\ \ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00369\ \ \ \ \ \ \textcolor{keywordtype}{integer}\ ns}
+\DoxyCodeLine{00370\ }
+\DoxyCodeLine{00371\ \ \ \ \ \ \ }
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms\ }
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ variable\ mge\ }}
+\DoxyCodeLine{00374\ }
+\DoxyCodeLine{00375\ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeR1(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,1)/micparam\%cn\_r(np,ns,3))\ \&}}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00377\ }
+\DoxyCodeLine{00378\ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeR2(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,2)/micparam\%cn\_r(np,ns,3))\ \&}}
+\DoxyCodeLine{00379\ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00380\ }
+\DoxyCodeLine{00381\ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeR3(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,7)/micparam\%cn\_r(np,ns,3))\ \&}}
+\DoxyCodeLine{00382\ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00383\ }
+\DoxyCodeLine{00384\ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeK1(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,1)/micparam\%cn\_r(np,ns,4))\ \&}}
+\DoxyCodeLine{00385\ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00386\ }
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeK2(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,2)/micparam\%cn\_r(np,ns,4))\ \&}}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00389\ }
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \textcolor{comment}{!\ \ micparam\%mgeK3(np,ns)\ =\ micpdef\%cuemax*min(1.0,(micparam\%cn\_r(np,ns,7)/micparam\%cn\_r(np,ns,4))\ \&}}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **(micpdef\%cue\_coef1*(micnpool\%mineralN(np,ns)-\/micpdef\%cue\_coef2)))}}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \textcolor{comment}{!\ fixed\ mge}}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \ \ \ micparam\%mgeR1(np,ns)\ =\ micpdef\%epislon1\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \ micparam\%mgeR2(np,ns)\ =\ micpdef\%epislon2\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \ \ \ micparam\%mgeR3(np,ns)\ =\ micpdef\%epislon1\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ \ \ \ micparam\%mgeK1(np,ns)\ =\ micpdef\%epislon3\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00397\ \ \ \ \ \ \ \ \ \ micparam\%mgeK2(np,ns)\ =\ micpdef\%epislon4\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ \ \ \ micparam\%mgeK3(np,ns)\ =\ micpdef\%epislon3\ *\ exp(-\/0.015\ *micinput\%tavg(np,ns))}
+\DoxyCodeLine{00399\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ }
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np==outp)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'mget'}}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'epislon1-\/4='},micpdef\%epislon1,micpdef\%epislon2,micpdef\%epislon3,micpdef\%epislon4}
+\DoxyCodeLine{00404\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{00405\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00406\ \ \ \textcolor{keyword}{end\ subroutine\ }mget\_single}
+\DoxyCodeLine{00407\ }
+\DoxyCodeLine{00408\ }
+\DoxyCodeLine{00409\ \ \ \textcolor{keyword}{subroutine\ }turnovert(kinetics,micpxdef,micpdef,micparam,micinput)}
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00412\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00415\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ micparam}
+\DoxyCodeLine{00416\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micinput\ \ }
+\DoxyCodeLine{00417\ }
+\DoxyCodeLine{00418\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nx,kinetics}
+\DoxyCodeLine{00419\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2)\ \ xbeta}
+\DoxyCodeLine{00420\ \ }
+\DoxyCodeLine{00421\ \ \ \ \ \ \ \textcolor{comment}{!\ local\ variable}}
+\DoxyCodeLine{00422\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nopt,np,ns}
+\DoxyCodeLine{00423\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ ::\ tvref}
+\DoxyCodeLine{00424\ }
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(tvref(mp))\ }
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00427\ \ \ \ \ \ \ \ \ \ \ \ nopt=micparam\%bgctype(np)}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \ \ \ \ \ tvref(np)\ =\ sqrt(micinput\%fcnpp(np)/micpdef\%xtv)}
+\DoxyCodeLine{00429\ \ \ \ \ \ \ \ \ \ \ \ tvref(np)\ =\ max(0.6,min(1.3,tvref(np)))\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ 0.8-\/1.2\ based\ on\ Wieder\ et\ al.,\ 2015}}
+\DoxyCodeLine{00430\ }
+\DoxyCodeLine{00431\ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ if(kinetics==3)\ then}}
+\DoxyCodeLine{00432\ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ tvref(np)\ =\ 1.0}}
+\DoxyCodeLine{00433\ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ tvref(np)\ =\ 1.0\ \ \ \ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{00434\ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00435\ }
+\DoxyCodeLine{00436\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00437\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvmicR(np,ns)\ \ \ =\ micpxdef\%xtvmic(nopt)\ *\ micpdef\%tvmicR\ *\ tvref(np)\ *\ exp(0.3\ *\ micparam\%fmetave(np,ns))\ *\ delt}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%tvmicK(np,ns)\ \ \ =\ micpxdef\%xtvmic(nopt)\ *\ micpdef\%tvmicK\ *\ tvref(np)\ *\ exp(0.1\ *\ micparam\%fmetave(np,ns))\ *\ delt}
+\DoxyCodeLine{00439\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%betamicR(np,ns)\ =\ micpdef\%betamic\ *\ micpxdef\%xbeta(nopt)}
+\DoxyCodeLine{00440\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%betamicK(np,ns)\ =\ micpdef\%betamic\ *\ micpxdef\%xbeta(nopt)}
+\DoxyCodeLine{00441\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00442\ \textcolor{keywordflow}{\ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00443\ }
+\DoxyCodeLine{00444\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np==outp)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00445\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'turnovert'}}
+\DoxyCodeLine{00446\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'tvmicR='},micparam\%tvmicR(outp,:)\ }
+\DoxyCodeLine{00447\ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'tvmicR='},micparam\%tvmicR(outp,:)\ }
+\DoxyCodeLine{00448\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00449\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(tvref)\ }
+\DoxyCodeLine{00450\ \ \ \textcolor{keyword}{end\ subroutine\ }turnovert}
+\DoxyCodeLine{00451\ }
+\DoxyCodeLine{00452\ }
+\DoxyCodeLine{00453\ \ \ \textcolor{keyword}{subroutine\ }turnovert\_single(kinetics,micpxdef,micpdef,micparam,micinput,np)}
+\DoxyCodeLine{00454\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00455\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00456\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00457\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00458\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00459\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ ::\ micparam}
+\DoxyCodeLine{00460\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micinput\ \ }
+\DoxyCodeLine{00461\ \ \ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ np}
+\DoxyCodeLine{00462\ }
+\DoxyCodeLine{00463\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nx,kinetics}
+\DoxyCodeLine{00464\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2)\ \ xbeta}
+\DoxyCodeLine{00465\ \ }
+\DoxyCodeLine{00466\ \ \ \ \ \ \ \textcolor{comment}{!\ local\ variable}}
+\DoxyCodeLine{00467\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ nopt,ns}
+\DoxyCodeLine{00468\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \textcolor{keywordtype}{allocatable}\ \ \ \ ::\ tvref}
+\DoxyCodeLine{00469\ }
+\DoxyCodeLine{00470\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(tvref(mp))\ }
+\DoxyCodeLine{00471\ \ \ \ \ \ \ nopt=micparam\%bgctype(np)}
+\DoxyCodeLine{00472\ \ \ \ \ \ \ tvref(np)\ =\ sqrt(micinput\%fcnpp(np)/micpdef\%xtv)}
+\DoxyCodeLine{00473\ \ \ \ \ \ \ tvref(np)\ =\ max(0.6,min(1.3,tvref(np)))\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ 0.8-\/1.2\ based\ on\ Wieder\ et\ al.,\ 2015}}
+\DoxyCodeLine{00474\ }
+\DoxyCodeLine{00475\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ if(kinetics==3)\ then}}
+\DoxyCodeLine{00476\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ tvref(np)\ =\ 1.0}}
+\DoxyCodeLine{00477\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ tvref(np)\ =\ 1.0\ \ \ \ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{00478\ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00479\ }
+\DoxyCodeLine{00480\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00481\ \ \ \ \ \ \ \ \ \ micparam\%tvmicR(np,ns)\ \ \ =\ micpxdef\%xtvmic(nopt)\ *\ micpdef\%tvmicR\ *\ tvref(np)\ *\ exp(0.3\ *\ micparam\%fmetave(np,ns))\ *\ delt}
+\DoxyCodeLine{00482\ \ \ \ \ \ \ \ \ \ micparam\%tvmicK(np,ns)\ \ \ =\ micpxdef\%xtvmic(nopt)\ *\ micpdef\%tvmicK\ *\ tvref(np)\ *\ exp(0.1\ *\ micparam\%fmetave(np,ns))\ *\ delt}
+\DoxyCodeLine{00483\ \ \ \ \ \ \ \ \ \ micparam\%betamicR(np,ns)\ =\ micpdef\%betamic\ *\ micpxdef\%xbeta(nopt)}
+\DoxyCodeLine{00484\ \ \ \ \ \ \ \ \ \ micparam\%betamicK(np,ns)\ =\ micpdef\%betamic\ *\ micpxdef\%xbeta(nopt)}
+\DoxyCodeLine{00485\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00486\ }
+\DoxyCodeLine{00487\ }
+\DoxyCodeLine{00488\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np==outp)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00489\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'turnovert'}}
+\DoxyCodeLine{00490\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'tvref\ fmetave\ ='},\ tvref(np),micparam\%fmetave(np,:)}
+\DoxyCodeLine{00491\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'xtvmic\ xbeta\ =\ '},\ micpxdef\%xtvmic(micparam\%bgctype(np)),micpxdef\%xbeta(micparam\%bgctype(np))}
+\DoxyCodeLine{00492\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'tvmicR='},micparam\%tvmicR(outp,:)\ }
+\DoxyCodeLine{00493\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'tvmicR='},micparam\%tvmicR(outp,:)\ }
+\DoxyCodeLine{00494\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{00495\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(tvref)\ }
+\DoxyCodeLine{00496\ \ \ \textcolor{keyword}{end\ subroutine\ }turnovert\_single}
+\DoxyCodeLine{00497\ }
+\DoxyCodeLine{00498\ }
+\DoxyCodeLine{00499\ }
+\DoxyCodeLine{00500\ \ \ \ \ \textcolor{keyword}{subroutine\ }bgc\_fractions(micpxdef,micpdef,micparam,micinput)}
+\DoxyCodeLine{00501\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00502\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00503\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00504\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00505\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00506\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micparam\ \ }
+\DoxyCodeLine{00507\ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micinput}
+\DoxyCodeLine{00508\ \ \ \ \ \textcolor{comment}{!local\ variables}}
+\DoxyCodeLine{00509\ \ \ \ \ \textcolor{keywordtype}{integer}\ npft,np,ns}
+\DoxyCodeLine{00510\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \textcolor{keywordtype}{allocatable}\ ::\ fmetleaf,fmetroot,fmetwood}
+\DoxyCodeLine{00511\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \textcolor{keywordtype}{allocatable}\ ::\ dleafx,drootx,dwoodx}
+\DoxyCodeLine{00512\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \textcolor{keywordtype}{allocatable}\ ::\ cinputm,cinputs}
+\DoxyCodeLine{00513\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:,:)},\ \textcolor{keywordtype}{allocatable}\ ::\ cninp}
+\DoxyCodeLine{00514\ \ \ \ \ }
+\DoxyCodeLine{00515\ \ \ \ \ }
+\DoxyCodeLine{00516\ \ \ \ \ \ \textcolor{keyword}{allocate}(fmetleaf(mp),fmetroot(mp),fmetwood(mp))}
+\DoxyCodeLine{00517\ \ \ \ \ \ \textcolor{keyword}{allocate}(dleafx(mp,ms),drootx(mp,ms),dwoodx(mp,ms))}
+\DoxyCodeLine{00518\ \ \ \ \ \ \textcolor{keyword}{allocate}(cinputm(mp,ms),cinputs(mp,ms))}
+\DoxyCodeLine{00519\ \ \ \ \ \ \textcolor{keyword}{allocate}(cninp(mp,ms,2))}
+\DoxyCodeLine{00520\ }
+\DoxyCodeLine{00521\ \ \ \ \ \ \textcolor{keywordflow}{do}\ np=1,mp}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \ \ \ \ npft=micparam\%pft(np)}
+\DoxyCodeLine{00523\ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00524\ \ \ \ \ \ \ \ \ \ \ fmetleaf(np)\ =\ max(0.0,\ 1.0\ *\ (0.85\ -\/\ 0.013\ *\ micparam\%fligleaf(np)\ *\ micparam\%xcnleaf(np)))}
+\DoxyCodeLine{00525\ \ \ \ \ \ \ \ \ \ \ fmetroot(np)\ =\ max(0.0,\ 1.0\ *\ (0.85\ -\/\ 0.013\ *\ micparam\%fligroot(np)\ *\ micparam\%xcnroot(np)))}
+\DoxyCodeLine{00526\ \ \ \ \ \ \ \ \ \ \ fmetwood(np)\ =\ max(0.0,\ 1.0\ *\ (0.85\ -\/\ 0.013\ *\ micparam\%fligwood(np)\ *\ micparam\%xcnwood(np)))}
+\DoxyCodeLine{00527\ }
+\DoxyCodeLine{00528\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ Initial\ C:N\ ratio\ of\ each\ C\ pool}}
+\DoxyCodeLine{00529\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00530\ }
+\DoxyCodeLine{00531\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ **this\ is\ a\ temporary\ solution,\ to\ be\ modified\ after\ N\ cycle\ is\ included}}
+\DoxyCodeLine{00532\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,1)\ =\ max(\ 5.0,0.5*(micparam\%xcnleaf(np)+micparam\%xcnroot(np)))}
+\DoxyCodeLine{00533\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,2)\ =\ max(10.0,0.5*micparam\%xcnleaf(np))}
+\DoxyCodeLine{00534\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,3)\ =\ \ 7.4}
+\DoxyCodeLine{00535\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,4)\ =\ 13.4}
+\DoxyCodeLine{00536\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,5)\ =\ 12.0}
+\DoxyCodeLine{00537\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,6)\ =\ 16.0}
+\DoxyCodeLine{00538\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,7)\ =\ 10.0}
+\DoxyCodeLine{00539\ \ }
+\DoxyCodeLine{00540\ \ }
+\DoxyCodeLine{00541\ \ \ \ \ \ \ \ \textcolor{comment}{!\ here\ zse\ in\ m,\ litter\ input\ in\ g/m2/delt,\ *0.001\ to\ mgc/cm3/delt\ and\ "{}zse"{}\ in\ m.}}
+\DoxyCodeLine{00542\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ns==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00543\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ dleafx(np,ns)\ =\ micpxdef\%xNPP(npft)\ *\ 0.001*\ micinput\%dleaf(np)/micparam\%sdepth(np,1)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ mgc/cm3/delt}}
+\DoxyCodeLine{00544\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ drootx(np,ns)\ =\ micpxdef\%xNPP(npft)\ *\ 0.001*\ micparam\%fracroot(np,1)\ *\ micinput\%droot(np)/micparam\%sdepth(np,1)\ \ \ \ \ \textcolor{comment}{!\ mgc/cm3/delt}}
+\DoxyCodeLine{00545\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ dwoodx(np,ns)\ =\ micpxdef\%xNPP(npft)\ *\ 0.001*\ micinput\%dwood(np)/micparam\%sdepth(np,1)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ mgc/cm3/delt}}
+\DoxyCodeLine{00546\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00547\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ dleafx(np,ns)\ =\ 0.0}
+\DoxyCodeLine{00548\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ drootx(np,ns)\ =\ micpxdef\%xNPP(npft)\ *\ 0.001\ *\ micparam\%fracroot(np,ns)\ *\ micinput\%droot(np)/micparam\%sdepth(np,ns)\ \ \textcolor{comment}{!\ mgc/cm3/delt}}
+\DoxyCodeLine{00549\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ dwoodx(np,ns)\ =\ 0.0}
+\DoxyCodeLine{00550\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00551\ }
+\DoxyCodeLine{00552\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!!\ calculate\ soil\ texture\ and\ litter\ quaility\ dependent\ parameter\ values}}
+\DoxyCodeLine{00553\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ C\ input\ to\ metabolic\ litter\ }}
+\DoxyCodeLine{00554\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%cinputm(np,ns)\ =\ dleafx(np,ns)*fmetleaf(np)\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00555\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ drootx(np,ns)*fmetroot(np)\ \ \ \ \ \ \ \ \&\ \ \ \ \ \ \ }
+\DoxyCodeLine{00556\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ dwoodx(np,ns)*fmetwood(np)\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00557\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ C\ input\ to\ structural\ litter}}
+\DoxyCodeLine{00558\ \ \ \ \ \ \ \ \ \ \ \ \ \ micinput\%cinputs(np,ns)\ =\ dleafx(np,ns)*(1.0-\/fmetleaf(np))\ \ \&}
+\DoxyCodeLine{00559\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ drootx(np,ns)*(1.0-\/fmetroot(np))\ \ \&\ }
+\DoxyCodeLine{00560\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ dwoodx(np,ns)*(1.0-\/fmetwood(np))\ }
+\DoxyCodeLine{00561\ \ }
+\DoxyCodeLine{00562\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ if((dleafx(np,ns)+drootx(np,ns))>0.0)\ then\ }}
+\DoxyCodeLine{00563\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ C:N\ input\ of\ litter\ input\ to\ the\ metabolic\ pool\ }}
+\DoxyCodeLine{00564\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ cninp(np,ns,1)\ =\ micinput\%cinputm(np,ns)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00565\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /(dleafx(np,ns)*fmetleaf(np)/micparam\%xcnleaf(np)\ \ \&}
+\DoxyCodeLine{00566\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +drootx(np,ns)*fmetroot(np)/micparam\%xcnroot(np)\ \ \ \&}
+\DoxyCodeLine{00567\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +dwoodx(np,ns)*fmetwood(np)/micparam\%xcnwood(np))}
+\DoxyCodeLine{00568\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ C:N\ input\ of\ litter\ input\ to\ the\ structural\ pool}}
+\DoxyCodeLine{00569\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ cninp(np,ns,2)\ =\ micinput\%cinputs(np,ns)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00570\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /(dleafx(np,ns)*(1.0-\/fmetleaf(np))/micparam\%xcnleaf(np)\ \&}
+\DoxyCodeLine{00571\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +drootx(np,ns)*(1.0-\/fmetroot(np))/micparam\%xcnroot(np)\ \ \&}
+\DoxyCodeLine{00572\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +dwoodx(np,ns)*(1.0-\/fmetwood(np))/micparam\%xcnwood(np))}
+\DoxyCodeLine{00573\ }
+\DoxyCodeLine{00574\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fmetave(np,ns)\ =\ (dleafx(np,ns)*fmetleaf(np)\ +\ drootx(np,ns)*fmetroot(np)\ +\ dwoodx(np,ns)\ *\ fmetwood(np))\ \ \&}
+\DoxyCodeLine{00575\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /(dleafx(np,ns)\ +\ drootx(np,ns)\ +\ dwoodx(np,ns)\ +\ 1.0e-\/10)}
+\DoxyCodeLine{00576\ }
+\DoxyCodeLine{00577\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ else}}
+\DoxyCodeLine{00578\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ if(ns==1)\ then}}
+\DoxyCodeLine{00579\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ cninp(np,ns,1)\ \ \ \ \ \ \ \ \ \ =\ micparam\%xcnleaf(np)}}
+\DoxyCodeLine{00580\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ cninp(np,ns,2)\ \ \ \ \ \ \ \ \ \ =\ micparam\%xcnleaf(np)}}
+\DoxyCodeLine{00581\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ micparam\%fmetave(np,ns)\ =\ fmetleaf(np)}}
+\DoxyCodeLine{00582\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ else}}
+\DoxyCodeLine{00583\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ cninp(np,ns,1)\ \ \ \ \ \ \ \ \ \ =\ micparam\%xcnroot(np)}}
+\DoxyCodeLine{00584\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ cninp(np,ns,2)\ \ \ \ \ \ \ \ \ \ =\ micparam\%xcnroot(np)}}
+\DoxyCodeLine{00585\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ micparam\%fmetave(np,ns)\ =\ fmetroot(np)}}
+\DoxyCodeLine{00586\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ endif}}
+\DoxyCodeLine{00587\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ endif}}
+\DoxyCodeLine{00588\ }
+\DoxyCodeLine{00589\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,1)\ =\ cninp(np,ns,1);\ micparam\%cn\_r(np,ns,2)=cninp(np,ns,2)}
+\DoxyCodeLine{00590\ }
+\DoxyCodeLine{00591\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fr2p(np,ns)\ =\ micpdef\%fmicsom1\ *\ 0.30\ *\ exp(1.3*micinput\%clay(np,ns))\ *1.0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ 3.0}}
+\DoxyCodeLine{00592\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fk2p(np,ns)\ =\ micpdef\%fmicsom2\ *\ 0.20\ *\ exp(0.8*micinput\%clay(np,ns))\ *1.0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ 3.0}}
+\DoxyCodeLine{00593\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fr2c(np,ns)\ =\ min(1.0-\/micparam\%fr2p(np,ns),\ micpdef\%fmicsom3\ *\ 0.10\ *\ exp(-\/micpdef\%fmicsom5\ *\ micparam\%fmetave(np,ns))*1.0\ )\ \ \ \ !\ 9.0\ \ \ to\ invoid\ a\ negative\ value\ of\ fr2a\ \ ZHC}}
+\DoxyCodeLine{00594\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fk2c(np,ns)\ =\ min(1.0-\/micparam\%fk2p(np,ns),\ micpdef\%fmicsom4\ *\ 0.30\ *\ exp(-\/micpdef\%fmicsom5\ *\ micparam\%fmetave(np,ns))*1.0)\ \ \ \ \ !\ 9.0\ \ \ to\ invoid\ a\ negative\ value\ of\ fk2a\ ZHC}}
+\DoxyCodeLine{00595\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fr2a(np,ns)\ =\ 1.00\ -\/\ micparam\%fr2p(np,ns)\ -\/\ micparam\%fr2c(np,ns)}}
+\DoxyCodeLine{00596\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fk2a(np,ns)\ =\ 1.00\ -\/\ micparam\%fk2p(np,ns)\ -\/\ micparam\%fk2c(np,ns)}}
+\DoxyCodeLine{00597\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ changes\ made\ to\ accommodate\ added\ aggregated\ pools}}
+\DoxyCodeLine{00598\ }
+\DoxyCodeLine{00599\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2p(np,ns)\ =\ \ 0.30\ *\ exp(1.3*micinput\%clay(np,ns))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ 3.0}}
+\DoxyCodeLine{00600\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2p(np,ns)\ =\ \ 0.20\ *\ exp(0.8*micinput\%clay(np,ns))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ 3.0}}
+\DoxyCodeLine{00601\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2c(np,ns)\ =\ min(1.0,\ micparam\%fr2p(np,ns)\ +\ 0.10\ *\ exp(-\/3.0\ *\ micparam\%fmetave(np,ns)))\ \ \ \ \ \textcolor{comment}{!\ 9.0\ \ \ to\ invoid\ a\ negative\ value\ of\ fr2a\ \ ZHC}}
+\DoxyCodeLine{00602\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2c(np,ns)\ =\ min(1.0,\ micparam\%fk2p(np,ns)\ +\ 0.30\ *\ exp(-\/3.0\ *\ micparam\%fmetave(np,ns)))\ \ \ \ \ \textcolor{comment}{!\ 9.0\ \ \ to\ invoid\ a\ negative\ value\ of\ fk2a\ ZHC}}
+\DoxyCodeLine{00603\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2p(np,ns)\ =\ \ 0.0}
+\DoxyCodeLine{00604\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2p(np,ns)\ =\ \ 0.0}
+\DoxyCodeLine{00605\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fr2a(np,ns)\ =\ max(0.0,1.00\ -\/\ micparam\%fr2c(np,ns))}
+\DoxyCodeLine{00606\ \ \ \ \ \ \ \ \ \ \ \ \ \ micparam\%fk2a(np,ns)\ =\ max(0.0,1.00\ -\/\ micparam\%fk2c(np,ns))}
+\DoxyCodeLine{00607\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ enddo}\ \ \ \textcolor{comment}{!"{}ns"{}}}
+\DoxyCodeLine{00608\ \textcolor{keywordflow}{\ \ \ \ \ enddo}\ \ \ \ \ \ \ \textcolor{comment}{!"{}np"{}}}
+\DoxyCodeLine{00609\ }
+\DoxyCodeLine{00610\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np\ ==outp)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00611\ \ \ \ \ \ \ \ \ \ print\ *,\textcolor{stringliteral}{'bgc\_fraction\ parameters'}}
+\DoxyCodeLine{00612\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'empirical\ params1-\/4='},\ micpdef\%fmicsom1,micpdef\%fmicsom2,micpdef\%fmicsom3,micpdef\%fmicsom4}
+\DoxyCodeLine{00613\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'clay='},\ micinput\%clay(np,:)}
+\DoxyCodeLine{00614\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cinputm='},\ micinput\%cinputm(outp,:)}
+\DoxyCodeLine{00615\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cinputs='},micinput\%cinputs(outp,:)}
+\DoxyCodeLine{00616\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fmetave='},micparam\%fmetave(outp,:)}
+\DoxyCodeLine{00617\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cn\_r1='},micparam\%cn\_r(outp,:,1)\ }
+\DoxyCodeLine{00618\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cn\_r2='},micparam\%cn\_r(outp,:,2)}
+\DoxyCodeLine{00619\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fr2p='},micparam\%fr2p(outp,:)\ }
+\DoxyCodeLine{00620\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fk2p='},micparam\%fk2p(outp,:)\ }
+\DoxyCodeLine{00621\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fr2c='},micparam\%fr2c(outp,:)}
+\DoxyCodeLine{00622\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fk2c='},micparam\%fk2c(outp,:)}
+\DoxyCodeLine{00623\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fr2a='},micparam\%fr2a(outp,:)\ }
+\DoxyCodeLine{00624\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fk2a='},micparam\%fk2a(outp,:)}
+\DoxyCodeLine{00625\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{00626\ \ \ \ \ \ \textcolor{keyword}{deallocate}(fmetleaf,fmetroot,fmetwood)}
+\DoxyCodeLine{00627\ \ \ \ \ \ \textcolor{keyword}{deallocate}(dleafx,drootx,dwoodx)}
+\DoxyCodeLine{00628\ \ \ \ \ \ \textcolor{keyword}{deallocate}(cinputm,cinputs)}
+\DoxyCodeLine{00629\ \ \ \ \ \ \textcolor{keyword}{deallocate}(cninp)\ \ \ }
+\DoxyCodeLine{00630\ \ \ \ }
+\DoxyCodeLine{00631\ \ \ \ \textcolor{keyword}{end\ subroutine\ }bgc\_fractions}
+\DoxyCodeLine{00632\ }
+\DoxyCodeLine{00633\ }
+\DoxyCodeLine{00634\ \ \ \ \textcolor{keyword}{subroutine\ }bgc\_fractions\_single(micpxdef,micpdef,micparam,micinput,np)}
+\DoxyCodeLine{00635\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00636\ \ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00637\ \ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00638\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_xscale),\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpxdef}
+\DoxyCodeLine{00639\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpdef}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micparam\ \ }
+\DoxyCodeLine{00641\ \ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ ::\ micinput}
+\DoxyCodeLine{00642\ \ \ \ \ \ \ \textcolor{keywordtype}{integer},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ np}
+\DoxyCodeLine{00643\ \ \ \ \ \ \ \textcolor{comment}{!local\ variables}}
+\DoxyCodeLine{00644\ \ \ \ \ \ \ \textcolor{keywordtype}{integer}\ npft,ns}
+\DoxyCodeLine{00645\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:)},\ \ \ \ \ \textcolor{keywordtype}{allocatable}\ ::\ fmetleaf,fmetroot,fmetwood}
+\DoxyCodeLine{00646\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \textcolor{keywordtype}{allocatable}\ ::\ dleafx,drootx,dwoodx}
+\DoxyCodeLine{00647\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:)},\ \ \ \textcolor{keywordtype}{allocatable}\ ::\ cinputm,cinputs}
+\DoxyCodeLine{00648\ \textcolor{keywordtype}{\ \ \ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(:,:,:)},\ \textcolor{keywordtype}{allocatable}\ ::\ cninp}
+\DoxyCodeLine{00649\ \ \ \ \ \ \ }
+\DoxyCodeLine{00650\ \ \ \ \ \ \ }
+\DoxyCodeLine{00651\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(fmetleaf(mp),fmetroot(mp),fmetwood(mp))}
+\DoxyCodeLine{00652\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(dleafx(mp,ms),drootx(mp,ms),dwoodx(mp,ms))}
+\DoxyCodeLine{00653\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(cinputm(mp,ms),cinputs(mp,ms))}
+\DoxyCodeLine{00654\ \ \ \ \ \ \ \textcolor{keyword}{allocate}(cninp(mp,ms,2))}
+\DoxyCodeLine{00655\ }
+\DoxyCodeLine{00656\ }
+\DoxyCodeLine{00657\ \ \ \ \ \ \ npft=micparam\%pft(np)}
+\DoxyCodeLine{00658\ \ \ \ \ \ \ fmetleaf(np)\ =\ max(0.0,\ 1.0\ *\ (0.85\ -\/\ 0.013\ *\ micparam\%fligleaf(np)\ *\ micparam\%xcnleaf(np)))}
+\DoxyCodeLine{00659\ \ \ \ \ \ \ fmetroot(np)\ =\ max(0.0,\ 1.0\ *\ (0.85\ -\/\ 0.013\ *\ micparam\%fligroot(np)\ *\ micparam\%xcnroot(np)))}
+\DoxyCodeLine{00660\ \ \ \ \ \ \ fmetwood(np)\ =\ max(0.0,\ 1.0\ *\ (0.85\ -\/\ 0.013\ *\ micparam\%fligwood(np)\ *\ micparam\%xcnwood(np)))}
+\DoxyCodeLine{00661\ }
+\DoxyCodeLine{00662\ \ \ \ \ \ \ \textcolor{comment}{!\ Initial\ C:N\ ratio\ of\ each\ C\ pool}}
+\DoxyCodeLine{00663\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00664\ }
+\DoxyCodeLine{00665\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ **this\ is\ a\ temporary\ solution,\ to\ be\ modified\ after\ N\ cycle\ is\ included}}
+\DoxyCodeLine{00666\ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,1)\ =\ max(\ 5.0,0.5*(micparam\%xcnleaf(np)+micparam\%xcnroot(np)))}
+\DoxyCodeLine{00667\ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,2)\ =\ max(10.0,0.5*micparam\%xcnleaf(np))}
+\DoxyCodeLine{00668\ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,3)\ =\ \ 7.4}
+\DoxyCodeLine{00669\ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,4)\ =\ 13.4}
+\DoxyCodeLine{00670\ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,5)\ =\ 12.0}
+\DoxyCodeLine{00671\ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,6)\ =\ 16.0}
+\DoxyCodeLine{00672\ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,7)\ =\ 10.0}
+\DoxyCodeLine{00673\ }
+\DoxyCodeLine{00674\ }
+\DoxyCodeLine{00675\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ here\ zse\ in\ m,\ litter\ input\ in\ g/m2/delt,\ *0.001\ to\ mgc/cm3/delt\ and\ "{}zse"{}\ in\ m.}}
+\DoxyCodeLine{00676\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ns==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00677\ \ \ \ \ \ \ \ \ \ \ \ \ dleafx(np,ns)\ =\ micpxdef\%xNPP(npft)\ *\ 0.001*\ micinput\%dleaf(np)/micparam\%sdepth(np,1)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ mgc/cm3/delt}}
+\DoxyCodeLine{00678\ \ \ \ \ \ \ \ \ \ \ \ \ drootx(np,ns)\ =\ micpxdef\%xNPP(npft)\ *\ 0.001*\ micparam\%fracroot(np,1)\ *\ micinput\%droot(np)/micparam\%sdepth(np,1)\ \ \ \ \ \textcolor{comment}{!\ mgc/cm3/delt}}
+\DoxyCodeLine{00679\ \ \ \ \ \ \ \ \ \ \ \ \ dwoodx(np,ns)\ =\ micpxdef\%xNPP(npft)\ *\ 0.001*\ micinput\%dwood(np)/micparam\%sdepth(np,1)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ mgc/cm3/delt}}
+\DoxyCodeLine{00680\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00681\ \ \ \ \ \ \ \ \ \ \ \ \ dleafx(np,ns)\ =\ 0.0}
+\DoxyCodeLine{00682\ \ \ \ \ \ \ \ \ \ \ \ \ drootx(np,ns)\ =\ micpxdef\%xNPP(npft)\ *\ 0.001\ *\ micparam\%fracroot(np,ns)\ *\ micinput\%droot(np)/micparam\%sdepth(np,ns)\ \ \textcolor{comment}{!\ mgc/cm3/delt}}
+\DoxyCodeLine{00683\ \ \ \ \ \ \ \ \ \ \ \ \ dwoodx(np,ns)\ =\ 0.0}
+\DoxyCodeLine{00684\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00685\ }
+\DoxyCodeLine{00686\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!!\ calculate\ soil\ texture\ and\ litter\ quaility\ dependent\ parameter\ values}}
+\DoxyCodeLine{00687\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ C\ input\ to\ metabolic\ litter\ }}
+\DoxyCodeLine{00688\ \ \ \ \ \ \ \ \ \ micinput\%cinputm(np,ns)\ =\ dleafx(np,ns)*fmetleaf(np)\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00689\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ drootx(np,ns)*fmetroot(np)\ \ \ \ \ \ \ \ \&\ \ \ \ \ \ \ }
+\DoxyCodeLine{00690\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ dwoodx(np,ns)*fmetwood(np)\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00691\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ C\ input\ to\ structural\ litter}}
+\DoxyCodeLine{00692\ \ \ \ \ \ \ \ \ \ micinput\%cinputs(np,ns)\ =\ dleafx(np,ns)*(1.0-\/fmetleaf(np))\ \ \&}
+\DoxyCodeLine{00693\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ drootx(np,ns)*(1.0-\/fmetroot(np))\ \ \&\ }
+\DoxyCodeLine{00694\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ dwoodx(np,ns)*(1.0-\/fmetwood(np))\ }
+\DoxyCodeLine{00695\ }
+\DoxyCodeLine{00696\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ if((dleafx(np,ns)+drootx(np,ns))>0.0)\ then\ }}
+\DoxyCodeLine{00697\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ C:N\ input\ of\ litter\ input\ to\ the\ metabolic\ pool\ }}
+\DoxyCodeLine{00698\ \ \ \ \ \ \ \ \ \ cninp(np,ns,1)\ =\ micinput\%cinputm(np,ns)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00699\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /(dleafx(np,ns)*fmetleaf(np)/micparam\%xcnleaf(np)\ \ \&}
+\DoxyCodeLine{00700\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +drootx(np,ns)*fmetroot(np)/micparam\%xcnroot(np)\ \ \ \&}
+\DoxyCodeLine{00701\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +dwoodx(np,ns)*fmetwood(np)/micparam\%xcnwood(np))}
+\DoxyCodeLine{00702\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ C:N\ input\ of\ litter\ input\ to\ the\ structural\ pool}}
+\DoxyCodeLine{00703\ \ \ \ \ \ \ \ \ \ cninp(np,ns,2)\ =\ micinput\%cinputs(np,ns)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00704\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /(dleafx(np,ns)*(1.0-\/fmetleaf(np))/micparam\%xcnleaf(np)\ \&}
+\DoxyCodeLine{00705\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +drootx(np,ns)*(1.0-\/fmetroot(np))/micparam\%xcnroot(np)\ \ \&}
+\DoxyCodeLine{00706\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +dwoodx(np,ns)*(1.0-\/fmetwood(np))/micparam\%xcnwood(np))}
+\DoxyCodeLine{00707\ }
+\DoxyCodeLine{00708\ \ \ \ \ \ \ \ \ \ micparam\%fmetave(np,ns)\ =\ (dleafx(np,ns)*fmetleaf(np)\ +\ drootx(np,ns)*fmetroot(np)\ +\ dwoodx(np,ns)\ *\ fmetwood(np))\ \ \&}
+\DoxyCodeLine{00709\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /(dleafx(np,ns)\ +\ drootx(np,ns)\ +\ dwoodx(np,ns)\ +\ 1.0e-\/10)}
+\DoxyCodeLine{00710\ }
+\DoxyCodeLine{00711\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ else}}
+\DoxyCodeLine{00712\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ if(ns==1)\ then}}
+\DoxyCodeLine{00713\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ cninp(np,ns,1)\ \ \ \ \ \ \ \ \ \ =\ micparam\%xcnleaf(np)}}
+\DoxyCodeLine{00714\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ cninp(np,ns,2)\ \ \ \ \ \ \ \ \ \ =\ micparam\%xcnleaf(np)}}
+\DoxyCodeLine{00715\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ micparam\%fmetave(np,ns)\ =\ fmetleaf(np)}}
+\DoxyCodeLine{00716\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ else}}
+\DoxyCodeLine{00717\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ cninp(np,ns,1)\ \ \ \ \ \ \ \ \ \ =\ micparam\%xcnroot(np)}}
+\DoxyCodeLine{00718\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ cninp(np,ns,2)\ \ \ \ \ \ \ \ \ \ =\ micparam\%xcnroot(np)}}
+\DoxyCodeLine{00719\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ micparam\%fmetave(np,ns)\ =\ fmetroot(np)}}
+\DoxyCodeLine{00720\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ endif}}
+\DoxyCodeLine{00721\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ endif}}
+\DoxyCodeLine{00722\ }
+\DoxyCodeLine{00723\ \ \ \ \ \ \ \ \ \ micparam\%cn\_r(np,ns,1)\ =\ cninp(np,ns,1);\ micparam\%cn\_r(np,ns,2)=cninp(np,ns,2)}
+\DoxyCodeLine{00724\ }
+\DoxyCodeLine{00725\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fr2p(np,ns)\ =\ micpdef\%fmicsom1\ *\ 0.30\ *\ exp(1.3*micinput\%clay(np,ns))\ *1.0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ 3.0}}
+\DoxyCodeLine{00726\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fk2p(np,ns)\ =\ micpdef\%fmicsom2\ *\ 0.20\ *\ exp(0.8*micinput\%clay(np,ns))\ *1.0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ 3.0}}
+\DoxyCodeLine{00727\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fr2c(np,ns)\ =\ min(1.0-\/micparam\%fr2p(np,ns),\ micpdef\%fmicsom3\ *\ 0.10\ *\ exp(-\/micpdef\%fmicsom5\ *\ micparam\%fmetave(np,ns))*1.0\ )\ \ \ \ !\ 9.0\ \ \ to\ invoid\ a\ negative\ value\ of\ fr2a\ \ ZHC}}
+\DoxyCodeLine{00728\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fk2c(np,ns)\ =\ min(1.0-\/micparam\%fk2p(np,ns),\ micpdef\%fmicsom4\ *\ 0.30\ *\ exp(-\/micpdef\%fmicsom5\ *\ micparam\%fmetave(np,ns))*1.0)\ \ \ \ \ !\ 9.0\ \ \ to\ invoid\ a\ negative\ value\ of\ fk2a\ ZHC}}
+\DoxyCodeLine{00729\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fr2a(np,ns)\ =\ 1.00\ -\/\ micparam\%fr2p(np,ns)\ -\/\ micparam\%fr2c(np,ns)}}
+\DoxyCodeLine{00730\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ micparam\%fk2a(np,ns)\ =\ 1.00\ -\/\ micparam\%fk2p(np,ns)\ -\/\ micparam\%fk2c(np,ns)}}
+\DoxyCodeLine{00731\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ changes\ made\ to\ accommodate\ added\ aggregated\ pools}}
+\DoxyCodeLine{00732\ }
+\DoxyCodeLine{00733\ \ \ \ \ \ \ \ \ \ micparam\%fr2p(np,ns)\ =\ \ 0.30\ *\ exp(1.3*micinput\%clay(np,ns))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ 3.0}}
+\DoxyCodeLine{00734\ \ \ \ \ \ \ \ \ \ micparam\%fk2p(np,ns)\ =\ \ 0.20\ *\ exp(0.8*micinput\%clay(np,ns))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ 3.0}}
+\DoxyCodeLine{00735\ \ \ \ \ \ \ \ \ \ micparam\%fr2c(np,ns)\ =\ min(1.0,\ micparam\%fr2p(np,ns)\ +\ 0.10\ *\ exp(-\/3.0\ *\ micparam\%fmetave(np,ns)))\ \ \ \ \ \textcolor{comment}{!\ 9.0\ \ \ to\ invoid\ a\ negative\ value\ of\ fr2a\ \ ZHC}}
+\DoxyCodeLine{00736\ \ \ \ \ \ \ \ \ \ micparam\%fk2c(np,ns)\ =\ min(1.0,\ micparam\%fk2p(np,ns)\ +\ 0.30\ *\ exp(-\/3.0\ *\ micparam\%fmetave(np,ns)))\ \ \ \ \ \textcolor{comment}{!\ 9.0\ \ \ to\ invoid\ a\ negative\ value\ of\ fk2a\ ZHC}}
+\DoxyCodeLine{00737\ \ \ \ \ \ \ \ \ \ micparam\%fr2p(np,ns)\ =\ \ 0.0}
+\DoxyCodeLine{00738\ \ \ \ \ \ \ \ \ \ micparam\%fk2p(np,ns)\ =\ \ 0.0}
+\DoxyCodeLine{00739\ \ \ \ \ \ \ \ \ \ micparam\%fr2a(np,ns)\ =\ max(0.0,1.00\ -\/\ micparam\%fr2c(np,ns))}
+\DoxyCodeLine{00740\ \ \ \ \ \ \ \ \ \ micparam\%fk2a(np,ns)\ =\ max(0.0,1.00\ -\/\ micparam\%fk2c(np,ns))}
+\DoxyCodeLine{00741\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}\ \ \ \textcolor{comment}{!"{}ns"{}}}
+\DoxyCodeLine{00742\ }
+\DoxyCodeLine{00743\ }
+\DoxyCodeLine{00744\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(diag==1.and.np\ ==outp)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00745\ \ \ \ \ \ \ \ \ \ print\ *,\textcolor{stringliteral}{'bgc\_fraction\ parameters\ and\ pft'},micparam\%pft(np)}
+\DoxyCodeLine{00746\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'empirical\ params1-\/4='},\ micpdef\%fmicsom1,micpdef\%fmicsom2,micpdef\%fmicsom3,micpdef\%fmicsom4}
+\DoxyCodeLine{00747\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fligleaf,xcnleaf='},\ micparam\%fligleaf(np),micparam\%xcnleaf(np)}
+\DoxyCodeLine{00748\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fracroot\ sdepth'},\ micparam\%fracroot(np,:),micparam\%sdepth(np,:)}
+\DoxyCodeLine{00749\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cinputm='},\ micinput\%cinputm(outp,:)}
+\DoxyCodeLine{00750\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cinputs='},micinput\%cinputs(outp,:)}
+\DoxyCodeLine{00751\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fmetave='},micparam\%fmetave(outp,:)}
+\DoxyCodeLine{00752\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cn\_r1='},micparam\%cn\_r(outp,:,1)\ }
+\DoxyCodeLine{00753\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'cn\_r2='},micparam\%cn\_r(outp,:,2)}
+\DoxyCodeLine{00754\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fr2p='},micparam\%fr2p(outp,:)\ }
+\DoxyCodeLine{00755\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fk2p='},micparam\%fk2p(outp,:)\ }
+\DoxyCodeLine{00756\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fr2c='},micparam\%fr2c(outp,:)}
+\DoxyCodeLine{00757\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fk2c='},micparam\%fk2c(outp,:)}
+\DoxyCodeLine{00758\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fr2a='},micparam\%fr2a(outp,:)\ }
+\DoxyCodeLine{00759\ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'fk2a='},micparam\%fk2a(outp,:)}
+\DoxyCodeLine{00760\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{00761\ }
+\DoxyCodeLine{00762\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(fmetleaf,fmetroot,fmetwood)}
+\DoxyCodeLine{00763\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(dleafx,drootx,dwoodx)}
+\DoxyCodeLine{00764\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(cinputm,cinputs)}
+\DoxyCodeLine{00765\ \ \ \ \ \ \ \textcolor{keyword}{deallocate}(cninp)\ \ \ }
+\DoxyCodeLine{00766\ \ \ \ }
+\DoxyCodeLine{00767\ \ \ \ \textcolor{keyword}{end\ subroutine\ }bgc\_fractions\_single}
+\DoxyCodeLine{00768\ }
+\DoxyCodeLine{00769\ }
+\DoxyCodeLine{00770\ \ \ \ \textcolor{keyword}{subroutine\ }bioturb(ndelt,ms,zse,delt,diffsocxx,fluxsoc,xpooli,xpoole)}
+\DoxyCodeLine{00771\ \ \ \ \textcolor{comment}{!\ multi-\/layered\ soil\ BGC\ including\ DOC\ and\ bioturbation\ using\ microbially-\/based\ BGC\ modeling}}
+\DoxyCodeLine{00772\ \ \ \ \textcolor{comment}{!\ step\ 1:\ litter-\/C\ and\ SOC\ bioturbation\ treated\ as\ a\ diffusion\ process}}
+\DoxyCodeLine{00773\ \ \ \ \textcolor{comment}{!\ step\ 2:\ advection\ of\ DOC\ along\ with\ water\ flux}}
+\DoxyCodeLine{00774\ \ \ \ \textcolor{comment}{!\ solve\ dc/dt=Dd2c/dx\ +F(z)\ where\ c\ is\ total\ SOC\ concentration\ in\ each\ soil\ layer}}
+\DoxyCodeLine{00775\ \ \ \ \textcolor{comment}{!\ bioturbation\ diffusion\ rate\ }}
+\DoxyCodeLine{00776\ \ \ \ \textcolor{comment}{!\ boundary\ conditions:\ at\ the\ top\ \ \ \ \ -\/Ddc/dx\ =\ F0+F(1)\ \ at\ x=0}}
+\DoxyCodeLine{00777\ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ at\ the\ bottom:\ dC/dx=0\ \ \ \ \ \ \ \ \ \ \ \ at\ x=h}}
+\DoxyCodeLine{00778\ \ \ \ \textcolor{comment}{!\ using\ the\ fully\ implicit\ method\ together\ with\ Thomas\ method}}
+\DoxyCodeLine{00779\ \ \ \ \textcolor{comment}{!\ unit\ for\ pool:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mgc/cm3\ \ \ \ \ \ (=kg\ C/m3)}}
+\DoxyCodeLine{00780\ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ for\ flux:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mgc/cm3/delt\ (=kg\ c/m3/delt):\ g/m2/delt\ =\ 0.1\ mg/cm2/delt}}
+\DoxyCodeLine{00781\ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ for\ length:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ cm}}
+\DoxyCodeLine{00782\ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ for\ diffsion\ coefficient:\ cm2/delt}}
+\DoxyCodeLine{00783\ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant,\ \ \textcolor{keywordtype}{ONLY}\ :\ r\_2}
+\DoxyCodeLine{00784\ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00785\ \ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ndelt,ms}
+\DoxyCodeLine{00786\ \textcolor{keywordtype}{\ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(ms)}\ \ \ \ ::\ zse}
+\DoxyCodeLine{00787\ \textcolor{keywordtype}{\ \ \ real}(r\_2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ delt,diffsocxx}
+\DoxyCodeLine{00788\ \textcolor{keywordtype}{\ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(ms)}\ \ \ \ ::\ xpooli,xpoole,xpool,fluxsoc}
+\DoxyCodeLine{00789\ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00790\ \ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ i,j}
+\DoxyCodeLine{00791\ \textcolor{keywordtype}{\ \ \ real}(r\_2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ deltD,tot0,\ tot1,\ totflux}
+\DoxyCodeLine{00792\ \textcolor{keywordtype}{\ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(ms)}\ \ \ \ ::\ xzse}
+\DoxyCodeLine{00793\ \textcolor{keywordtype}{\ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(ms+1)}\ \ ::\ sdepthx}
+\DoxyCodeLine{00794\ \textcolor{keywordtype}{\ \ \ real}(r\_2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ coeffA,\ coeffB}
+\DoxyCodeLine{00795\ \textcolor{keywordtype}{\ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(ms)}\ \ \ \ ::\ at,bt,ct,rt}
+\DoxyCodeLine{00796\ }
+\DoxyCodeLine{00797\ \ \ \ \ \ \ \textcolor{comment}{!\ calculate\ the\ mid-\/point\ of\ each\ layer}}
+\DoxyCodeLine{00798\ \ \ \ \ \ sdepthx(1)\ =\ 0.0\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ depth\ of\ a\ layer\ from\ the\ top\ (x\_0.5=0.0\ eg\ soil\ surface)}}
+\DoxyCodeLine{00799\ \ \ \ \ \ \textcolor{keywordflow}{do}\ j=2,ms+1}
+\DoxyCodeLine{00800\ \ \ \ \ \ \ \ \ sdepthx(j)\ =\ sdepthx(j-\/1)\ +\ zse(j-\/1)*100.0\ \ \ \ \ \textcolor{comment}{!\ depth\ of\ the\ bottom\ of\ each\ layer\ (eg\ x\_j+0.5)}}
+\DoxyCodeLine{00801\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!*100\ to\ convert\ from\ m\ to\ cm}}
+\DoxyCodeLine{00802\ \textcolor{keywordflow}{\ \ \ \ \ enddo}}
+\DoxyCodeLine{00803\ }
+\DoxyCodeLine{00804\ \ \ \ \ \ \textcolor{keywordflow}{do}\ j=1,ms}
+\DoxyCodeLine{00805\ \ \ \ \ \ \ \ \ xzse(j)\ =\ 0.5\ *\ (sdepthx(j)\ +\ sdepthx(j+1))\ \ \ \ \textcolor{comment}{!\ depth\ of\ midpoint\ of\ a\ layer\ j\ \ (x\_j)}}
+\DoxyCodeLine{00806\ \textcolor{keywordflow}{\ \ \ \ \ enddo}}
+\DoxyCodeLine{00807\ }
+\DoxyCodeLine{00808\ \ \ \ \ \ deltd\ =\ diffsocxx\ *\ delt}
+\DoxyCodeLine{00809\ }
+\DoxyCodeLine{00810\ \ \ \ \ \ \ xpool\ =\ xpooli}
+\DoxyCodeLine{00811\ \ \ \ \ \ \ tot0\ =\ 0.0}
+\DoxyCodeLine{00812\ \ \ \ \ \ \textcolor{keywordflow}{do}\ j=1,ms}
+\DoxyCodeLine{00813\ \ \ \ \ \ \ \ \ tot0\ =\ tot0\ +\ xpool(j)\ *\ zse(j)*100.0\ \ \ \ \ \ \ \ \ \textcolor{comment}{!*100\ convert\ m\ to\ cm}}
+\DoxyCodeLine{00814\ \textcolor{keywordflow}{\ \ \ \ \ enddo}}
+\DoxyCodeLine{00815\ \ \ }
+\DoxyCodeLine{00816\ \ \ \ \ \ \textcolor{keywordflow}{do}\ i=1,ndelt}
+\DoxyCodeLine{00817\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ j=1,ms}
+\DoxyCodeLine{00818\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(j==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00819\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ coeffb\ =\ 1.0/(sdepthx(2)-\/sdepthx(1))}
+\DoxyCodeLine{00820\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ coeffa\ =\ deltd*coeffb/(xzse(2)-\/xzse(1))}
+\DoxyCodeLine{00821\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ Crank-\/Nicholson}}
+\DoxyCodeLine{00822\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ at(1)\ =\ 0.0}
+\DoxyCodeLine{00823\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bt(1)\ =\ 1.0\ +\ 0.5\ *\ coeffa}
+\DoxyCodeLine{00824\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ct(1)\ =\ \ \ \ \ -\/\ 0.5\ *\ coeffa}
+\DoxyCodeLine{00825\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ rt(1)\ =\ (1.0-\/0.5*coeffa)\ *\ xpool(1)\ +\ 0.5\ *\ coeffa\ *\ xpool(2)\ \&}
+\DoxyCodeLine{00826\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ \ fluxsoc(1)\ *\ delt\ }
+\DoxyCodeLine{00827\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00828\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(j>1.and.j<ms)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00829\ \ \ \ \ \ \ \ \ \ \ \ \ \ coeffa\ =\ deltd/((xzse(j+1)-\/xzse(j))*(sdepthx(j+1)-\/sdepthx(j)))}
+\DoxyCodeLine{00830\ \ \ \ \ \ \ \ \ \ \ \ \ \ coeffb\ =\ (xzse(j+1)-\/xzse(j))/(xzse(j)-\/xzse(j-\/1))}
+\DoxyCodeLine{00831\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ Crank-\/Nicholson}}
+\DoxyCodeLine{00832\ \ \ \ \ \ \ \ \ \ \ \ \ \ at(j)\ =\ \ \ \ -\/0.5\ *\ coeffa\ *\ coeffb}
+\DoxyCodeLine{00833\ \ \ \ \ \ \ \ \ \ \ \ \ \ bt(j)\ =\ 1.0+0.5\ *\ coeffa\ *(1.0+coeffb)}
+\DoxyCodeLine{00834\ \ \ \ \ \ \ \ \ \ \ \ \ \ ct(j)\ =\ \ \ \ -\/0.5\ *\ coeffa}
+\DoxyCodeLine{00835\ \ \ \ \ \ \ \ \ \ \ \ \ \ rt(j)\ =\ 0.5\ *\ coeffa\ *\ coeffb\ *\ xpool(j-\/1)\ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00836\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +(1.0-\/0.5*\ coeffa*(1.0+coeffb))*xpool(j)\ \ \&}
+\DoxyCodeLine{00837\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ 0.5*\ coeffa\ *\ xpool(j+1)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00838\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ fluxsoc(j)\ *delt}
+\DoxyCodeLine{00839\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00840\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(j==ms)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00841\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ coeffa\ =\ deltd/((xzse(ms)-\/xzse(ms-\/1))*(sdepthx(ms+1)\ -\/\ sdepthx(ms)))}
+\DoxyCodeLine{00842\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ Crank-\/Nicholson}}
+\DoxyCodeLine{00843\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ at(ms)\ =\ -\/0.5\ *\ coeffa}
+\DoxyCodeLine{00844\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bt(ms)\ =\ 1.0\ +\ 0.5\ *\ coeffa}
+\DoxyCodeLine{00845\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ct(ms)\ =\ 0.0}
+\DoxyCodeLine{00846\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ rt(ms)\ =\ 0.5*\ coeffa\ \ *\ xpool(ms-\/1)\ +\ (1.0-\/0.5\ *\ coeffa)\ *\ xpool(ms)\ \&}
+\DoxyCodeLine{00847\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ fluxsoc(ms)\ *\ delt}
+\DoxyCodeLine{00848\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00849\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00850\ \ }
+\DoxyCodeLine{00851\ \ \ \ \ \ \ \ \ \textcolor{keyword}{call\ }tridag(at,bt,ct,rt,xpool,ms)}
+\DoxyCodeLine{00852\ \textcolor{keywordflow}{\ \ \ \ \ enddo}}
+\DoxyCodeLine{00853\ \ \ \ \ \ xpoole\ =\ xpool}
+\DoxyCodeLine{00854\ \ \ \ \ \ }
+\DoxyCodeLine{00855\ \ \ \ \ \ tot1\ =\ 0.0}
+\DoxyCodeLine{00856\ \ \ \ \ \ totflux=0.0}
+\DoxyCodeLine{00857\ \ \ \ \ \ \textcolor{keywordflow}{do}\ j=1,ms}
+\DoxyCodeLine{00858\ \ \ \ \ \ \ \ \ tot1\ =\ tot1\ +\ xpool(j)\ *\ zse(j)\ *100.0}
+\DoxyCodeLine{00859\ \ \ \ \ \ \ \ \ totflux\ =\ totflux\ +\ fluxsoc(j)\ *\ zse(j)\ *100.0}
+\DoxyCodeLine{00860\ \textcolor{keywordflow}{\ \ \ \ \ enddo}}
+\DoxyCodeLine{00861\ \ \ }
+\DoxyCodeLine{00862\ \textcolor{keyword}{end\ subroutine\ }bioturb}
+\DoxyCodeLine{00863\ }
+\DoxyCodeLine{00864\ \ \ \ \textcolor{keyword}{subroutine\ }tridag(at,bt,ct,rt,u,ms)}
+\DoxyCodeLine{00865\ \ \ \ \textcolor{comment}{!\ solving\ the\ triadigonal\ matrix\ (numerical\ recipes,\ p43)}}
+\DoxyCodeLine{00866\ \ \ \ \textcolor{comment}{!\ linear\ equation:\ A*\ u(i-\/1)\ +\ B\ *u(i)\ +\ C\ *\ u(i+1)\ =\ R,\ }}
+\DoxyCodeLine{00867\ \ \ \ \textcolor{comment}{!\ where\ i\ is\ soil\ layer,\ u(i-\/1),\ u(i)\ and\ u(i+1)\ are\ at\ time\ step\ t}}
+\DoxyCodeLine{00868\ \ \ \ \textcolor{comment}{!\ NOTE:\ bt(1)\ should\ not\ be\ equal\ to\ 0.0,\ otherwise\ rewrite\ the\ equation}}
+\DoxyCodeLine{00869\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant,\ \ \textcolor{keywordtype}{ONLY}\ :\ r\_2}
+\DoxyCodeLine{00870\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00871\ \ \ \ \ \textcolor{keywordtype}{integer},\ \textcolor{keywordtype}{parameter}\ \ \ \ ::\ nmax=500}
+\DoxyCodeLine{00872\ \ \ \ \ \textcolor{keywordtype}{integer}\ ms}
+\DoxyCodeLine{00873\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(ms)}\ \ \ \ ::\ at,bt,ct,rt,u}
+\DoxyCodeLine{00874\ \ \ \ \ \textcolor{keywordtype}{integer}\ j}
+\DoxyCodeLine{00875\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ bet}
+\DoxyCodeLine{00876\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(nmax)}\ ::\ gam}
+\DoxyCodeLine{00877\ \ \ \ \ \ }
+\DoxyCodeLine{00878\ \ \ \ \ \ \ bet\ \ =\ bt(1)}
+\DoxyCodeLine{00879\ \ \ \ \ \ \ u(1)\ =\ rt(1)/bet}
+\DoxyCodeLine{00880\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ j=2,ms}
+\DoxyCodeLine{00881\ \ \ \ \ \ \ \ \ \ gam(j)\ =\ ct(j-\/1)/bet}
+\DoxyCodeLine{00882\ \ \ \ \ \ \ \ \ \ bet\ =\ bt(j)-\/at(j)*\ gam(j)}
+\DoxyCodeLine{00883\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(bet\ ==0)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00884\ \ \ \ \ \ \ \ \ \ \ \ \ print\ *,\ \textcolor{stringliteral}{'triag\ failed'}}
+\DoxyCodeLine{00885\ \ \ \ \ \ \ \ \ \ \ \ \ stop}
+\DoxyCodeLine{00886\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00887\ \ \ \ \ \ \ \ \ \ u(j)\ =\ (rt(j)\ -\/\ at(j)\ *\ u(j-\/1))/bet}
+\DoxyCodeLine{00888\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00889\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ j=ms-\/1,1,-\/1}
+\DoxyCodeLine{00890\ \ \ \ \ \ \ \ \ \ u(j)\ =\ u(j)\ -\/gam(j+1)\ *\ u(j+1)}
+\DoxyCodeLine{00891\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00892\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }tridag}
+\DoxyCodeLine{00893\ }
+\DoxyCodeLine{00894\ }
+\DoxyCodeLine{00895\ \ \ \ \ \textcolor{keyword}{subroutine\ }advecdoc(deltx,zse,fluxsoilwx,fluxdocsx,vsoilwx,ypool)}
+\DoxyCodeLine{00896\ \ \ \ \ \textcolor{comment}{!\ to\ be\ modified\ using\ an\ implicit\ solver\ to\ ensure\ mass\ conservation}}
+\DoxyCodeLine{00897\ \ \ \ \ \textcolor{comment}{!}}
+\DoxyCodeLine{00898\ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00899\ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00900\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ deltx}
+\DoxyCodeLine{00901\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(ms)}\ \ \ \ \ \ \ \ ::\ zse,fluxsoilwx,vsoilwx,ypool}
+\DoxyCodeLine{00902\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2),\ \textcolor{keywordtype}{dimension(ms)}\ \ \ \ \ \ \ \ ::\ dypool,ypool1}
+\DoxyCodeLine{00903\ \textcolor{keywordtype}{\ \ \ \ real}(r\_2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fluxdocsx,totdoc0,totdoc1,fluxdocbot\ }
+\DoxyCodeLine{00904\ \ \ \ \ \textcolor{keywordtype}{integer}\ ns,iter}
+\DoxyCodeLine{00905\ \ \ \ \ \ }
+\DoxyCodeLine{00906\ \ \ \ \ \ ypool1=\ ypool}
+\DoxyCodeLine{00907\ \ \ \ \ \ fluxdocbot\ =\ 0.0}
+\DoxyCodeLine{00908\ \ \ \ \ \ \textcolor{keywordflow}{do}\ iter=1,100}
+\DoxyCodeLine{00909\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00910\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ns==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00911\ \ \ \ \ \ \ \ \ \ \ \ dypool(1)\ \ =\ (fluxdocsx\ -\/\ fluxsoilwx(1)*ypool1(1)/vsoilwx(1))*deltx*0.01/zse(1)}
+\DoxyCodeLine{00912\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00913\ \ \ \ \ \ \ \ \ \ \ \ dypool(ns)\ =\ (fluxsoilwx(ns-\/1)*ypool1(ns-\/1)/vsoilwx(ns-\/1)\ \&}
+\DoxyCodeLine{00914\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ -\/fluxsoilwx(ns)\ \ *ypool1(ns)/vsoilwx(ns))\ \ \ \ \ \ \ *deltx*0.01/zse(ns)}
+\DoxyCodeLine{00915\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00916\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ns==ms)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00917\ \ \ \ \ \ \ \ \ \ \ \ fluxdocbot\ =\ fluxdocbot\ +\ fluxsoilwx(ns)\ \ *ypool1(ns)/vsoilwx(ns)\ *deltx*\ 0.01}
+\DoxyCodeLine{00918\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{00919\ \textcolor{keywordflow}{\ \ \ \ \ \ enddo}}
+\DoxyCodeLine{00920\ \ \ \ \ \ \ ypool1\ =\ max(0.0,ypool1+dypool)}
+\DoxyCodeLine{00921\ \textcolor{keywordflow}{\ \ \ \ \ enddo}}
+\DoxyCodeLine{00922\ \ \ \ \ \ \textcolor{comment}{!\ check\ mass\ conservation}}
+\DoxyCodeLine{00923\ \ \ \ \ \ totdoc0=0.0;\ totdoc1=0.0}
+\DoxyCodeLine{00924\ \ \ \ \ \ \textcolor{keywordflow}{do}\ ns=1,ms}
+\DoxyCodeLine{00925\ \ \ \ \ \ \ \ \ totdoc0\ =\ totdoc0\ +\ ypool(ns)\ \ *zse(ns)}
+\DoxyCodeLine{00926\ \ \ \ \ \ \ \ \ totdoc1\ =\ totdoc1\ +\ ypool1(ns)\ *zse(ns)}
+\DoxyCodeLine{00927\ \textcolor{keywordflow}{\ \ \ \ \ enddo}}
+\DoxyCodeLine{00928\ \ \ \ \ \textcolor{comment}{!\ print\ *,\ 'mass\ cons\ DOC',\ totdoc0,totdoc1,(totdoc1-\/totdoc0)-\/(fluxdocsx\ -\/\ fluxdocbot)*deltx}}
+\DoxyCodeLine{00929\ \ \ \ \ }
+\DoxyCodeLine{00930\ \ \ \ \ \ ypool\ =\ ypool1}
+\DoxyCodeLine{00931\ \ \ \ \ \ }
+\DoxyCodeLine{00932\ \ \ \ \ \textcolor{keyword}{end\ subroutine\ }advecdoc}
+\DoxyCodeLine{00933\ }
+\DoxyCodeLine{00934\ }
+\DoxyCodeLine{00935\ \ \ \ \ \textcolor{keyword}{subroutine\ }vmic\_c(ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,xpool,y)}
+\DoxyCodeLine{00936\ \ \ \ \ \textcolor{comment}{!\ MIMICS\ as\ modified\ by\ Zhang\ et\ al.\ (2019,\ GCB).}}
+\DoxyCodeLine{00937\ \ \ \ \ \textcolor{comment}{!\ Seven\ pools:\ metabolic\ litter\ (1),\ Structural\ litter,\ microbe-\/R\ (3),\ microbe-\/K(4),}}
+\DoxyCodeLine{00938\ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ Physical\ protected\ (5),\ chemically-\/protected\ (6),\ active\ (7)}}
+\DoxyCodeLine{00939\ \ \ \ \ \textcolor{comment}{!\ for\ each\ layer}}
+\DoxyCodeLine{00940\ \ \ \ \ \textcolor{comment}{!\ input:\ aboveground\ litter\ and\ belowground\ in\ the\ surface\ layer}}
+\DoxyCodeLine{00941\ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ belowground\ input\ in\ other\ layers}}
+\DoxyCodeLine{00942\ \ \ \ \ \textcolor{comment}{!\ kinetics:\ Michaelis-\/Mennten}}
+\DoxyCodeLine{00943\ \ \ \ \ \textcolor{comment}{!\ unit:}}
+\DoxyCodeLine{00944\ \ \ \ \ \textcolor{comment}{!\ all\ carbon\ pools\ :\ mg\ C/cm3}}
+\DoxyCodeLine{00945\ \ \ \ \ \textcolor{comment}{!\ time\ step\ :\ \ \ \ \ \ \ \ one\ hour}}
+\DoxyCodeLine{00946\ \ \ \ \ \textcolor{comment}{!}}
+\DoxyCodeLine{00947\ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_constant}
+\DoxyCodeLine{00948\ \ \ \ \ \ \textcolor{keywordtype}{use\ }mic\_variable}
+\DoxyCodeLine{00949\ \ \ \ \ \ \textcolor{keywordtype}{implicit\ none}}
+\DoxyCodeLine{00950\ \ \ \ \ \ }
+\DoxyCodeLine{00951\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_param\_default),\ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micpdef\ \ \ \ }
+\DoxyCodeLine{00952\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_parameter),\ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micparam}
+\DoxyCodeLine{00953\ \ \ \ \ \ \textcolor{keywordtype}{TYPE}(mic\_input),\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ ::\ micinput}
+\DoxyCodeLine{00954\ }
+\DoxyCodeLine{00955\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2),\ \ \textcolor{keywordtype}{parameter}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ \ kamin\ =\ 0.2\ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ Abramoff\ et\ al.\ (2022)}}
+\DoxyCodeLine{00956\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2),\ \ \textcolor{keywordtype}{parameter}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::\ \ lamda\ =\ 2.01e-\/4\ \ \textcolor{comment}{!1/kPa\ \ \ \ \ Abramoof\ et\ al.\ (2022)\ }}
+\DoxyCodeLine{00957\ }
+\DoxyCodeLine{00958\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2),\ \ \textcolor{keywordtype}{dimension(mcpool)},\ \ \textcolor{keywordtype}{INTENT(IN)}\ \ \ \ \ \ \ \ ::\ xpool\ }
+\DoxyCodeLine{00959\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2),\ \ \textcolor{keywordtype}{dimension(mcpool)},\ \ \textcolor{keywordtype}{INTENT(INOUT)}\ \ \ \ \ ::\ y\ \ \ \textcolor{comment}{!=dxpool/dt\ \ \ \ \ !\ local\ variables}}
+\DoxyCodeLine{00960\ \ \ \ \ \ \textcolor{comment}{!\ local\ variables}}
+\DoxyCodeLine{00961\ \ \ \ \ \ \textcolor{keywordtype}{integer}\ \ \ \ \ np,ns,kinetics,ny,isoc14,ip\ \ }
+\DoxyCodeLine{00962\ }
+\DoxyCodeLine{00963\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ betamicR,betamicK,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00964\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ cinputmx,cinputsx,fmx,fsx,\ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00965\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fr2px,fr2cx,fr2ax,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00966\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fk2px,fk2cx,fk2ax,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00967\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mgeRx1,mgeRx2,mgeRx3,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00968\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mgeKx1,mgeKx2,mgeKx3,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00969\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tvmicRx,tvmicKx,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00970\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tavgx,clayx,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00971\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ desorpx,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00972\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ V1x,V2x,V3x,W1x,W2x,W3x,\ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00973\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ J1x,J2x,J3x,K1x,K2x,K3x,\ \ \ \ \ \ \ \ \ \ \ \&}
+\DoxyCodeLine{00974\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Q1x,Q2x}
+\DoxyCodeLine{00975\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00976\ }
+\DoxyCodeLine{00977\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ cfluxm2r,\ cfluxm2k,\ cfluxs2r,\ cfluxs2k,\ cfluxr,\ \ \ cfluxk}
+\DoxyCodeLine{00978\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ cfluxr2p,\ cfluxk2p,\ cfluxp2a,\ cfluxr2c,\ cfluxk2c}
+\DoxyCodeLine{00979\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ cfluxc2a,\ cfluxr2a,\ cfluxk2a,\ cfluxa2r,\ cfluxa2k}
+\DoxyCodeLine{00980\ \ \ \ \ \ }
+\DoxyCodeLine{00981\ \ \ \ \ \ \textcolor{comment}{!\ additional\ variables\ for\ kinetics3}}
+\DoxyCodeLine{00982\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ cfluxa,cfluxp,cfluxc2p,cfluxa2c,cfluxp2c}
+\DoxyCodeLine{00983\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ kadsorpx,kdesorpx,fp2ax,moistx,soilphx,porex,xwater,phx1,phx2,phx3,siltx,tvcpoolx,tvppoolx,tvacx\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00984\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ smexpa,smopt,qmaxcoeffx,qmax}
+\DoxyCodeLine{00985\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ swbx,swdx,matpotx,xwater1,xwater2}
+\DoxyCodeLine{00986\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ rsoil}
+\DoxyCodeLine{00987\ \textcolor{keywordtype}{\ \ \ \ \ real}(r\_2)\ \ cfluxp2m,cfluxp2s\ \ \ \ }
+\DoxyCodeLine{00988\ }
+\DoxyCodeLine{00989\ \ \ \ \ \ \ \textcolor{comment}{!\ matpotx\ =-\/15.0\ !dummy\ value\ for\ the\ time\ being}}
+\DoxyCodeLine{00990\ }
+\DoxyCodeLine{00991\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(isoc14==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00992\ }
+\DoxyCodeLine{00993\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(ny<1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{00994\ \ \ \ \ \ \ \ \ \ \ \ \ cinputmx\ =\ micinput\%cinputm(np,ns)\ *\ \ micparam\%c14atm(1,micparam\%region(np),2)\ \ \ \ \ \ \ \ \textcolor{comment}{!\ using\ fraction\ modern\ before\ 1941}}
+\DoxyCodeLine{00995\ \ \ \ \ \ \ \ \ \ \ \ \ cinputsx\ =\ micinput\%cinputs(np,ns)\ *\ \ micparam\%c14atm(1,micparam\%region(np),2)}
+\DoxyCodeLine{00996\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00997\ \ \ \ \ \ \ \ \ \ \ \ \ cinputmx\ =\ micinput\%cinputm(np,ns)\ *\ \ micparam\%c14atm(ny,micparam\%region(np),2)\ \ \ \ \ \ \ \textcolor{comment}{!\ using\ fraction\ modern\ after\ 1941}}
+\DoxyCodeLine{00998\ \ \ \ \ \ \ \ \ \ \ \ \ cinputsx\ =\ micinput\%cinputs(np,ns)\ *\ \ micparam\%c14atm(ny,micparam\%region(np),2)}
+\DoxyCodeLine{00999\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{01000\ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{01001\ \ \ \ \ \ \ \ \ \ cinputmx\ =\ micinput\%cinputm(np,ns)}
+\DoxyCodeLine{01002\ \ \ \ \ \ \ \ \ \ cinputsx\ =\ micinput\%cinputs(np,ns)}
+\DoxyCodeLine{01003\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{01004\ \ \ }
+\DoxyCodeLine{01005\ \ \ \ \ \ \ tavgx\ \ \ \ =\ micinput\%tavg(np,ns);\ \ \ \ \ \ clayx\ \ \ \ =\ micinput\%clay(np,ns);\ \ \ \ siltx\ \ \ \ =\ micinput\%silt(np,ns)\ \ }
+\DoxyCodeLine{01006\ }
+\DoxyCodeLine{01007\ \ \ \ \ \ \ fmx\ \ \ \ \ \ =\ micparam\%fm(np,ns);\ \ \ \ \ \ \ \ fsx\ \ \ \ \ \ =\ micparam\%fs(np,ns)\ \ }
+\DoxyCodeLine{01008\ \ \ \ \ \ \ fr2px\ \ \ \ =\ micparam\%fr2p(np,ns);\ \ \ \ \ \ fr2cx\ \ \ \ =\ micparam\%fr2c(np,ns)}
+\DoxyCodeLine{01009\ \ \ \ \ \ \ fr2ax\ \ \ \ =\ micparam\%fr2a(np,ns);\ \ \ \ \ \ fk2px\ \ \ \ =\ micparam\%fk2p(np,ns)}
+\DoxyCodeLine{01010\ \ \ \ \ \ \ fk2cx\ \ \ \ =\ micparam\%fk2c(np,ns);\ \ \ \ \ \ fk2ax\ \ \ \ =\ micparam\%fk2a(np,ns)}
+\DoxyCodeLine{01011\ \ \ \ \ \ \ mgerx1\ \ \ =\ micparam\%mgeR1(np,ns);\ \ \ \ \ mgerx2\ \ \ =\ micparam\%mgeR2(np,ns);\ \ \ mgerx3\ =\ micparam\%mgeR3(np,ns)}
+\DoxyCodeLine{01012\ \ \ \ \ \ \ mgekx1\ \ \ =\ micparam\%mgeK1(np,ns);\ \ \ \ \ mgekx2\ \ \ =\ micparam\%mgeK2(np,ns);\ \ \ mgekx3\ =\ micparam\%mgeK3(np,ns)}
+\DoxyCodeLine{01013\ \ \ \ \ \ \ tvmicrx\ \ =\ micparam\%tvmicR(np,ns);\ \ \ \ tvmickx\ \ =\ micparam\%tvmicK(np,ns)\ }
+\DoxyCodeLine{01014\ \ \ \ \ \ \ desorpx\ \ =\ micparam\%desorp(np,ns)\ }
+\DoxyCodeLine{01015\ \ \ \ \ \ \ v1x\ \ \ \ \ \ =\ micparam\%V1(np,ns);\ \ \ \ \ \ \ \ v2x\ \ \ \ \ \ =\ micparam\%V2(np,ns);\ \ \ \ \ \ v3x\ \ \ \ =\ micparam\%V3(np,ns)}
+\DoxyCodeLine{01016\ \ \ \ \ \ \ w1x\ \ \ \ \ \ =\ micparam\%W1(np,ns);\ \ \ \ \ \ \ \ w2x\ \ \ \ \ \ =\ micparam\%W2(np,ns);\ \ \ \ \ \ w3x\ \ \ \ =\ micparam\%W3(np,ns)}
+\DoxyCodeLine{01017\ \ \ \ \ \ \ k1x\ \ \ \ \ \ =\ micparam\%K1(np,ns);\ \ \ \ \ \ \ \ k2x\ \ \ \ \ \ =\ micparam\%K2(np,ns);\ \ \ \ \ \ k3x\ \ \ \ =\ micparam\%K3(np,ns)}
+\DoxyCodeLine{01018\ \ \ \ \ \ \ j1x\ \ \ \ \ \ =\ micparam\%J1(np,ns);\ \ \ \ \ \ \ \ j2x\ \ \ \ \ \ =\ micparam\%J2(np,ns);\ \ \ \ \ \ j3x\ \ \ \ =\ micparam\%J3(np,ns)}
+\DoxyCodeLine{01019\ \ \ \ \ \ \ q1x\ \ \ \ \ \ =\ micparam\%Q1(np,ns);\ \ \ \ \ \ \ \ q2x\ \ \ \ \ \ =\ micparam\%Q2(np,ns)\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01020\ \ \ \ \ \ \ betamicr\ =\ micparam\%betamicR(np,ns);\ \ betamick\ =\ micparam\%betamicK(np,ns)}
+\DoxyCodeLine{01021\ }
+\DoxyCodeLine{01022\ }
+\DoxyCodeLine{01023\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p1=',\ \ fmx,\ fsx\ }}
+\DoxyCodeLine{01024\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p2=',\ \ fr2px,fr2cx\ \ \ \ }}
+\DoxyCodeLine{01025\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p3=',\ \ fr2ax,fk2px\ }}
+\DoxyCodeLine{01026\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p4=',\ \ fk2cx,fk2ax}}
+\DoxyCodeLine{01027\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p5=',\ \ mgeRx1,mgeRx2,mgeRx3\ }}
+\DoxyCodeLine{01028\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p6=',\ \ mgeKx1,mgeKx2,mgeKx3\ }}
+\DoxyCodeLine{01029\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p7=',\ \ tvmicRx,tvmicKx}}
+\DoxyCodeLine{01030\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p8=',\ \ desorpx}}
+\DoxyCodeLine{01031\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p9=',\ \ V1x,V2x,V3x}}
+\DoxyCodeLine{01032\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p10=',\ W1x,W2x,W3x}}
+\DoxyCodeLine{01033\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p11=',\ K1x,K2x,K3x}}
+\DoxyCodeLine{01034\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p12=',\ J1x,J2x,J3x}}
+\DoxyCodeLine{01035\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p13=',\ Q1x,Q2x\ \ \ \ \ \ \ }}
+\DoxyCodeLine{01036\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ 'p14=',\ betamicR,betamicK\ \ \ \ }}
+\DoxyCodeLine{01037\ \ \ }
+\DoxyCodeLine{01038\ \ \ \ \ \ \ \textcolor{comment}{!\ additional\ parameters\ and\ input\ for\ kinetics3}}
+\DoxyCodeLine{01039\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(kinetics==3)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01040\ \ \ \ \ \ \ \ \ \ moistx\ \ \ =\ micinput\%wavg(np,ns);\ \ \ \ \ \ \ \ \ \ matpotx\ \ \ \ =\ micinput\%matpot(np,ns)}
+\DoxyCodeLine{01041\ \ \ \ \ \ \ \ \ \ soilphx\ \ =\ micinput\%ph(np,ns);\ \ \ \ \ \ \ \ \ \ \ \ porex\ \ \ \ \ \ =\ micinput\%porosity(np,ns)}
+\DoxyCodeLine{01042\ \ \ \ \ \ \ \ \ \ kadsorpx\ =\ micparam\%kadsorp(np,ns);\ \ \ \ \ \ \ tvcpoolx\ \ \ =\ micparam\%tvcpool(np,ns);\ \ \ tvppoolx\ =micparam\%tvppool(np,ns)\ }
+\DoxyCodeLine{01043\ \ \ \ \ \ \ \ \ \ tvacx\ \ \ \ =\ micparam\%tvac(np,ns);\ \ \ \ \ \ \ \ \ \ fp2ax\ \ \ \ \ \ =\ micparam\%fp2a(np,ns)}
+\DoxyCodeLine{01044\ \ \ \ \ \ \ \ \ \ kdesorpx\ =\ micparam\%kdesorp(np,ns);\ \ \ \ \ \ \ qmaxcoeffx\ =\ micparam\%qmaxcoeff(np,ns)}
+\DoxyCodeLine{01045\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01046\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ we\ applied\ a\ single\ water-\/limiting\ function\ from\ Yan\ et\ al.\ 2018,\ Nature\ Coomunitation.\ eqn1)}}
+\DoxyCodeLine{01047\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(clayx\ <=\ 0.016)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01048\ \ \ \ \ \ \ \ \ \ \ \ \ smexpa=0.0}
+\DoxyCodeLine{01049\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}(clayx\ >0.016\ .and.\ clayx\ <=0.37)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01050\ \ \ \ \ \ \ \ \ \ \ \ \ smexpa=2.8*\ clayx-\/0.046}
+\DoxyCodeLine{01051\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{01052\ \ \ \ \ \ \ \ \ \ \ \ \ smexpa=1.0}
+\DoxyCodeLine{01053\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}}
+\DoxyCodeLine{01054\ }
+\DoxyCodeLine{01055\ \ \ \ \ \ \ \ \ \ smopt\ \ \ \ \ =\ 0.65\ *\ porex}
+\DoxyCodeLine{01056\ }
+\DoxyCodeLine{01057\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(moistx\ <\ smopt)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01058\ \ \ \ \ \ \ \ \ \ \ \ \ xwater\ =\ ((micpdef\%smkdesorp+smopt)/(micpdef\%smkdesorp\ +\ moistx))\ \ \ \ \ \&}
+\DoxyCodeLine{01059\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ (moistx/smopt)**(1.0+smexpa\ *micpdef\%smexpns)}
+\DoxyCodeLine{01060\ \ \ \ \ \ }
+\DoxyCodeLine{01061\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{01062\ \ \ \ \ \ \ \ \ \ \ \ \ xwater\ =\ ((porex\ -\/\ moistx)/(porex-\/smopt))\ **micpdef\%smexpb}
+\DoxyCodeLine{01063\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ endif}\ }
+\DoxyCodeLine{01064\ \ \ \ \ \ }
+\DoxyCodeLine{01065\ }
+\DoxyCodeLine{01066\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ soil\ water\ limitation\ from\ Abramoff\ et\ al.\ (2022)\ eqn\ (4)\ and\ eqn\ (15)}}
+\DoxyCodeLine{01067\ \ \ \ \ \ \ \ \ \ xwater1\ =\ sqrt(min(1.0,moistx/porex))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ eqn\ (4)}}
+\DoxyCodeLine{01068\ \ \ \ \ \ \ \ \ \ xwater2\ =\ exp(lamda\ *\ matpotx)\ *(kamin\ +\ (1.0-\/\ kamin)\ *sqrt(max(0.0,1.0-\/moistx/porex)))*xwater1\ \ \ \ \ \ \textcolor{comment}{!\ eqn\ (15)}}
+\DoxyCodeLine{01069\ }
+\DoxyCodeLine{01070\ \ \ \ \ \ \ \ \ \ phx1\ \ \ \ \ \ =\ exp(-\/micpdef\%phcoeff1*\ soilphx\ -\/\ micpdef\%phcoeff2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ eqn(10)\ Abramoff2022}}
+\DoxyCodeLine{01071\ \ \ \ \ \ \ \ \ \ phx2\ \ \ \ \ =\ 1.0/(1.0+exp(-\/(soilphx-\/4.798)/0.4246))\ \ \ \ \ \ \ \ \textcolor{comment}{!bacteria}}
+\DoxyCodeLine{01072\ \ \ \ \ \ \ \ \ \ phx3\ \ \ \ \ =\ 1.0/(1.0+exp(-\/(soilphx-\/3.022)/0.428))\ \ \ \ \ \ \ \ \ \textcolor{comment}{!fungi}}
+\DoxyCodeLine{01073\ \ \ \ \ \ \ \ \ \ qmax\ \ \ \ \ =\ qmaxcoeffx\ *\ (clayx\ +\ siltx)*100.0\ \ \textcolor{comment}{!\ mg\ C/g\ soil,\ based\ on\ Georgiou\ et\ al.\ (2022),\ media\ value\ (their\ \ Fig\ 1)}}
+\DoxyCodeLine{01074\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ unit\ conversion\ qmax\ to\ mg\ C/cm3}}
+\DoxyCodeLine{01075\ \ \ \ \ \ \ \ \ \ qmax\ \ \ \ \ =\ qmax\ *\ micinput\%bulkd(np,ns)\ *0.001\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ bulkd\ in\ kg/m3\ multiply\ by\ 0.001\ into\ g/cm3}}
+\DoxyCodeLine{01076\ \ \ \ \ \ }
+\DoxyCodeLine{01077\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ xwater\ =\ sqrt(micinput\%moist(np,ns)/micinput\%poros(np,ns))\ \ \ \ \ \ !\ eqn\ (4)\ Abramoff2022\ }}
+\DoxyCodeLine{01078\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ xwmic\ \ \ \ =\ xwdecomp\ *\ exp(lambda\ *\ (-\/micinput\%matpot(np,ns))\ *\ (swmin\ +\ (1.0-\/swmin(np,ns))\ *\ \&\ \ \ }}
+\DoxyCodeLine{01079\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ((micinput\%poros(np)\ -\/\ micinput\%moist(np,ns))/micinput\%poros(np,ns))\ **0.5)\ \ \ \ !eqn(15)\ Abramoff2022}}
+\DoxyCodeLine{01080\ \ \ }
+\DoxyCodeLine{01081\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{01082\ \ \ \ \ \ \ \textcolor{comment}{!\ carbon\ fluxes}}
+\DoxyCodeLine{01083\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(kinetics==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01084\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ forward\ Michaelis-\/Menten}}
+\DoxyCodeLine{01085\ \ \ \ \ \ \ \ \ cfluxm2r\ =\ xpool(3)\ *\ v1x\ *\ xpool(1)/(k1x\ +\ xpool(1))}
+\DoxyCodeLine{01086\ \ \ \ \ \ \ \ \ cfluxs2r\ =\ xpool(3)\ *\ v2x\ *\ xpool(2)/(k2x\ +\ xpool(2))}
+\DoxyCodeLine{01087\ \ \ \ \ \ \ \ \ cfluxa2r\ =\ xpool(3)\ *\ v3x\ *\ xpool(7)/(k3x\ +\ xpool(7))}
+\DoxyCodeLine{01088\ }
+\DoxyCodeLine{01089\ \ \ \ \ \ \ \ \ cfluxm2k\ =\ xpool(4)\ *\ w1x\ *\ xpool(1)/(j1x\ +\ xpool(1))}
+\DoxyCodeLine{01090\ \ \ \ \ \ \ \ \ cfluxs2k\ =\ xpool(4)\ *\ w2x\ *\ xpool(2)/(j2x\ +\ xpool(2))}
+\DoxyCodeLine{01091\ \ \ \ \ \ \ \ \ cfluxa2k\ =\ xpool(4)\ *\ w3x\ *\ xpool(7)/(j3x\ +\ xpool(7))}
+\DoxyCodeLine{01092\ }
+\DoxyCodeLine{01093\ \ \ \ \ \ \ \ \ cfluxr\ \ \ =\ tvmicrx\ *\ xpool(3)\ **\ betamicr}
+\DoxyCodeLine{01094\ \ \ \ \ \ \ \ \ cfluxk\ \ \ =\ tvmickx\ *\ xpool(4)\ **\ betamick}
+\DoxyCodeLine{01095\ }
+\DoxyCodeLine{01096\ \ \ \ \ \ \ \ \ cfluxr2p\ =\ fr2px\ *\ cfluxr}
+\DoxyCodeLine{01097\ \ \ \ \ \ \ \ \ cfluxk2p\ =\ fk2px\ *\ cfluxk}
+\DoxyCodeLine{01098\ }
+\DoxyCodeLine{01099\ \ \ \ \ \ \ \ \ cfluxr2c\ =\ fr2cx\ \ \ *\ cfluxr\ }
+\DoxyCodeLine{01100\ \ \ \ \ \ \ \ \ cfluxk2c\ =\ fk2cx\ \ \ *\ cfluxk}
+\DoxyCodeLine{01101\ }
+\DoxyCodeLine{01102\ \ \ \ \ \ \ \ \ cfluxp2a\ =\ desorpx\ *\ xpool(5)}
+\DoxyCodeLine{01103\ \ \ \ \ \ \ \ \ cfluxr2a\ =\ fr2ax\ \ \ *\ cfluxr}
+\DoxyCodeLine{01104\ \ \ \ \ \ \ \ \ cfluxk2a\ =\ fk2ax\ \ \ *\ cfluxk}
+\DoxyCodeLine{01105\ \ \ \ \ \ \ \ \ cfluxc2a\ =\ xpool(3)*\ v2x\ *\ xpool(6)/(q1x*k2x\ +\ xpool(6))\ \ \ \&}
+\DoxyCodeLine{01106\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ xpool(4)*\ w2x\ *\ xpool(6)/(q2x*j2x\ +\ xpool(6))}
+\DoxyCodeLine{01107\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{01108\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(kinetics\ ==2\ )\textcolor{keywordflow}{then}\ }
+\DoxyCodeLine{01109\ \ \ \ \ \ \ \ \ \textcolor{comment}{!=======================================================}}
+\DoxyCodeLine{01110\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ reverse\ Michaelis-\/Menten}}
+\DoxyCodeLine{01111\ \ \ \ \ \ \ \ \ cfluxm2r\ =\ xpool(1)\ *\ v1x\ *\ xpool(3)/(k1x\ +\ xpool(3))}
+\DoxyCodeLine{01112\ \ \ \ \ \ \ \ \ cfluxs2r\ =\ xpool(2)\ *\ v2x\ *\ xpool(3)/(k2x\ +\ xpool(3))}
+\DoxyCodeLine{01113\ \ \ \ \ \ \ \ \ cfluxa2r\ =\ xpool(7)\ *\ v3x\ *\ xpool(3)/(k3x\ +\ xpool(3))}
+\DoxyCodeLine{01114\ }
+\DoxyCodeLine{01115\ \ \ \ \ \ \ \ \ cfluxm2k\ =\ xpool(1)\ *\ w1x\ *\ xpool(4)/(j1x\ +\ xpool(4))}
+\DoxyCodeLine{01116\ \ \ \ \ \ \ \ \ cfluxs2k\ =\ xpool(2)\ *\ w2x\ *\ xpool(4)/(j2x\ +\ xpool(4))}
+\DoxyCodeLine{01117\ \ \ \ \ \ \ \ \ cfluxa2k\ =\ xpool(7)\ *\ w3x\ *\ xpool(4)/(j3x\ +\ xpool(4))}
+\DoxyCodeLine{01118\ }
+\DoxyCodeLine{01119\ \ \ \ \ \ \ \ \ cfluxr\ \ \ =\ tvmicrx\ *\ xpool(3)\ **\ betamicr}
+\DoxyCodeLine{01120\ \ \ \ \ \ \ \ \ cfluxk\ \ \ =\ tvmickx\ *\ xpool(4)\ **\ betamick}
+\DoxyCodeLine{01121\ }
+\DoxyCodeLine{01122\ }
+\DoxyCodeLine{01123\ \ \ \ \ \ \ \ \ cfluxr2p\ =\ fr2px\ \ \ *\ cfluxr}
+\DoxyCodeLine{01124\ \ \ \ \ \ \ \ \ cfluxk2p\ =\ fk2px\ \ \ *\ cfluxk}
+\DoxyCodeLine{01125\ }
+\DoxyCodeLine{01126\ \ \ \ \ \ \ \ \ cfluxr2c\ =\ fr2cx\ *\ cfluxr\ }
+\DoxyCodeLine{01127\ \ \ \ \ \ \ \ \ cfluxk2c\ =\ fk2cx\ *\ cfluxk}
+\DoxyCodeLine{01128\ }
+\DoxyCodeLine{01129\ \ \ \ \ \ \ \ \ cfluxp2a\ =\ desorpx\ *\ xpool(5)}
+\DoxyCodeLine{01130\ \ \ \ \ \ \ \ \ cfluxr2a\ =\ fr2ax\ *\ cfluxr}
+\DoxyCodeLine{01131\ \ \ \ \ \ \ \ \ cfluxk2a\ =\ fk2ax\ *\ cfluxk}
+\DoxyCodeLine{01132\ \ \ \ \ \ \ \ \ cfluxc2a\ =\ xpool(6)\ *\ v2x\ *\ xpool(3)/(q1x*k2x\ +\ xpool(3))\ \ \ \&}
+\DoxyCodeLine{01133\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ xpool(6)\ *\ w2x\ *\ xpool(4)/(q2x*j2x\ +\ xpool(4))}
+\DoxyCodeLine{01134\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{01135\ }
+\DoxyCodeLine{01136\ \ \ \ \ \ \ \textcolor{comment}{!===================================================}}
+\DoxyCodeLine{01137\ \ \ \ \ \ \ \textcolor{comment}{!}}
+\DoxyCodeLine{01138\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(kinetics\ ==1\ .or.\ kinetics==2)\ \textcolor{keywordflow}{then}\ \ \ \ \ \ }
+\DoxyCodeLine{01139\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ metabolic\ litter\ \ [=Im*(1-\/fm)-\/A1-\/A5]}}
+\DoxyCodeLine{01140\ \ \ \ \ \ \ \ \ \ y(1)\ =\ cinputmx\ *\ (1.0-\/fmx)\ -\/\ cfluxm2r\ -\/\ cfluxm2k}
+\DoxyCodeLine{01141\ }
+\DoxyCodeLine{01142\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ structural\ litter\ [=Is*(1-\/fs)-\/A2-\/A6]}}
+\DoxyCodeLine{01143\ \ \ \ \ \ \ \ \ \ y(2)\ =\ cinputsx\ *\ (1.0-\/fsx)\ -\/\ cfluxs2r\ -\/\ cfluxs2k}
+\DoxyCodeLine{01144\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01145\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ these\ two\ are\ incorrect}}
+\DoxyCodeLine{01146\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ !microbe\ R\ \ \ \ \ \ \ \ \ \ [mge1*A1+mge2*A2+mge3*A3-\/A4]}}
+\DoxyCodeLine{01147\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ y(3)\ =\ mgeRx1\ *\ cfluxm2r\ +\ mgeRx2\ *\ cfluxs2r\ +\ mgeRx3\ *\ cfluxa2r\ -\/\ cfluxr}}
+\DoxyCodeLine{01148\ }
+\DoxyCodeLine{01149\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ !microbe\ K\ \ \ \ \ \ \ \ \ \ [mge3*A5+mge4*A6+mge3*A7-\/A8]}}
+\DoxyCodeLine{01150\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ y(4)\ =\ mgeKx1\ *\ cfluxm2k\ +\ mgeKx2\ *\ cfluxs2k\ +\ mgeKx2\ *\ cfluxa2k\ -\/\ cfluxk}}
+\DoxyCodeLine{01151\ }
+\DoxyCodeLine{01152\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ !microbe\ R\ \ \ \ \ \ \ \ \ \ [mge1*A1+mge2*A2+mge1*A3-\/A4]}}
+\DoxyCodeLine{01153\ \ \ \ \ \ \ \ \ \ y(3)\ =\ mgerx1\ *\ cfluxm2r\ +\ mgerx2\ *\ cfluxs2r\ +\ mgerx1\ *\ cfluxa2r\ -\/\ cfluxr}
+\DoxyCodeLine{01154\ }
+\DoxyCodeLine{01155\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ !microbe\ K\ \ \ \ \ \ \ \ \ \ [mge3*A5+mge4*A6+mge3*A7-\/A8]}}
+\DoxyCodeLine{01156\ \ \ \ \ \ \ \ \ \ y(4)\ =\ mgekx1\ *\ cfluxm2k\ +\ mgekx2\ *\ cfluxs2k\ +\ mgekx1\ *\ cfluxa2k\ -\/\ cfluxk}
+\DoxyCodeLine{01157\ }
+\DoxyCodeLine{01158\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!physically\ protected\ SOM:\ [Lm*fm+fpr*A4+fpk*A8-\/A9]}}
+\DoxyCodeLine{01159\ \ \ \ \ \ \ \ \ \ y(5)\ =\ cinputmx\ *\ fmx\ +\ cfluxr2p\ +\ cfluxk2p\ -\/\ cfluxp2a\ }
+\DoxyCodeLine{01160\ }
+\DoxyCodeLine{01161\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ chemically\ protected\ SOM:\ [Is*fs+fcr*A4+fck*A8-\/A10]}}
+\DoxyCodeLine{01162\ \ \ \ \ \ \ \ \ \ y(6)\ =\ cinputsx\ *\ fsx\ +\ cfluxr2c\ +\ cfluxk2c\ -\/\ cfluxc2a\ }
+\DoxyCodeLine{01163\ }
+\DoxyCodeLine{01164\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!active\ SOM:\ [far*A4+fak*A8+A9+A10-\/A3-\/A7]}}
+\DoxyCodeLine{01165\ \ \ \ \ \ \ \ \ \ y(7)\ =\ cfluxr2a\ +\ cfluxk2a\ +\ cfluxp2a\ +\ cfluxc2a\ -\/\ cfluxa2r\ -\/\ cfluxa2k}
+\DoxyCodeLine{01166\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ additional\ dummy\ pools}}
+\DoxyCodeLine{01167\ \ \ \ \ \ \ \ \ \ y(8)\ =\ 0.0}
+\DoxyCodeLine{01168\ \ \ \ \ \ \ \ \ \ y(9)\ =\ 0.0}
+\DoxyCodeLine{01169\ \ \ \ \ \ \ \ \ \ y(10)=\ 0.0}
+\DoxyCodeLine{01170\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01171\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{01172\ }
+\DoxyCodeLine{01173\ \ \ \ \ \ \ \textcolor{comment}{!\ the\ new\ soil\ carbon\ model\ combining\ MIMICS\ and\ MILLENNIAL2}}
+\DoxyCodeLine{01174\ \ \ \ \ \ \ \textcolor{comment}{!\ we\ use\ two\ litter\ pools\ (m,s)\ and\ two\ microbial\ pool\ (r,k)\ and\ LWC\ (pool\ a),\ aggregate\ C\ (pool\ p)\ amd\ MAOC\ (pool\ C)}}
+\DoxyCodeLine{01175\ \ \ \ \ \ \ \textcolor{comment}{!\ see\ documentation\ on\ the\ combined\ model}}
+\DoxyCodeLine{01176\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(kinetics==3)\ \textcolor{keywordflow}{then}\ \ \ \ \ \ }
+\DoxyCodeLine{01177\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ reverse\ Michaelis-\/Menten\ for\ litter\ and\ forward\ MM\ for\ pool\ 7}}
+\DoxyCodeLine{01178\ \ \ \ \ \ \ \ \ cfluxm2r\ =\ xpool(1)\ *\ v1x\ *\ phx2\ *\ xwater2\ *\ xpool(3)/(k1x\ +\ xpool(3))\ \ \ \ \textcolor{comment}{!\ eqn\ 2\ Abramoff2022}}
+\DoxyCodeLine{01179\ \ \ \ \ \ \ \ \ cfluxs2r\ =\ xpool(2)\ *\ v2x\ *\ phx2\ *\ xwater2\ *\ xpool(3)/(k2x\ +\ xpool(3))\ \ \ \ \textcolor{comment}{!\ eqn\ 2\ Abramoff2022}}
+\DoxyCodeLine{01180\ \ \ \ \ \ \ \ \ cfluxa2r\ =\ xpool(3)\ *\ v3x\ *\ phx2\ *\ xwater2\ *\ xpool(7)/(k3x\ +\ xpool(7))}
+\DoxyCodeLine{01181\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxa2r\ =\ xpool(7)\ *\ V3x\ *\ xwater2\ *\ xpool(3)/(K3x\ +\ xpool(3))\ \ \ \ !\ eqn\ 2\ Abramoff2022\ }}
+\DoxyCodeLine{01182\ }
+\DoxyCodeLine{01183\ \ \ \ \ \ \ \ \ cfluxm2k\ =\ xpool(1)\ *\ w1x\ *\ phx3\ *\ xwater2\ *\ xpool(4)/(j1x\ +\ xpool(4))\ \ \ \ \textcolor{comment}{!\ eqn\ 2\ Abramoff2022}}
+\DoxyCodeLine{01184\ \ \ \ \ \ \ \ \ cfluxs2k\ =\ xpool(2)\ *\ w2x\ *\ phx3\ *\ xwater2\ *\ xpool(4)/(j2x\ +\ xpool(4))\ \ \ \ \textcolor{comment}{!\ eqn\ 2\ Abramoff2022}}
+\DoxyCodeLine{01185\ \ \ \ \ \ \ \ \ cfluxa2k\ =\ xpool(4)\ *\ w3x\ *\ phx3\ *\ xwater2\ *\ xpool(7)/(j3x\ +\ xpool(7))}
+\DoxyCodeLine{01186\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxa2k\ =\ xpool(7)\ *\ W3x\ *\ xwater\ *\ xpool(4)/(J3x\ +\ xpool(4))\ \ \ \ !\ eqn\ 2\ Abramoff2022}}
+\DoxyCodeLine{01187\ \ \ \ \ \ \ \ \textcolor{comment}{!\ forward\ Michaelis-\/Menten}}
+\DoxyCodeLine{01188\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxm2r\ =\ xpool(3)\ *\ V1x\ *\ xpool(1)/(K1x\ +\ xpool(1))}}
+\DoxyCodeLine{01189\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxs2r\ =\ xpool(3)\ *\ V2x\ *\ xpool(2)/(K2x\ +\ xpool(2))}}
+\DoxyCodeLine{01190\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxa2r\ =\ xpool(3)\ *\ V3x\ *\ xpool(7)/(K3x\ +\ xpool(7))}}
+\DoxyCodeLine{01191\ }
+\DoxyCodeLine{01192\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxm2k\ =\ xpool(4)\ *\ W1x\ *\ xpool(1)/(J1x\ +\ xpool(1))}}
+\DoxyCodeLine{01193\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxs2k\ =\ xpool(4)\ *\ W2x\ *\ xpool(2)/(J2x\ +\ xpool(2))}}
+\DoxyCodeLine{01194\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxa2k\ =\ xpool(4)\ *\ W3x\ *\ xpool(7)/(J3x\ +\ xpool(7))}}
+\DoxyCodeLine{01195\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01196\ \ \ \ \ \ \ \ \ cfluxa\ \ \ =\ tvacx\ \ \ \ *\ xwater1\ *\ xpool(7)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ eqn\ 8\ Abramoff2022\ (leaching)}}
+\DoxyCodeLine{01197\ \ \ \ \ \ \ \ \ cfluxa\ \ \ =\ 0.0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ labile\ C\ leaching\ is\ done\ separately}}
+\DoxyCodeLine{01198\ \ \ \ \ \ \ \ \ cfluxr\ \ \ =\ tvmicrx\ \ *\ xpool(3)\ **\ betamicr\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ eqv.\ eqn(16)\ Abramoff2022\ }}
+\DoxyCodeLine{01199\ \ \ \ \ \ \ \ \ cfluxk\ \ \ =\ tvmickx\ \ *\ xpool(4)\ **\ betamick\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ eqv.\ eqn(16)\ Abramoff2022}}
+\DoxyCodeLine{01200\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxp\ \ \ =\ tvppoolx\ *\ xwater1\ *\ xpool(5)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ eqv.\ eqn\ (6)\ abramoff2022\ (aggregate\ breakdown)}}
+\DoxyCodeLine{01201\ \ \ \ \ \ \ \ \ cfluxc2p\ =\ tvcpoolx\ *\ xwater1\ *\ xpool(6)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ eqn(18)\ Abramoff2022\ \ ,\ all\ flux\ to\ aggregate\ C\ \ \ \ \ \ }}
+\DoxyCodeLine{01202\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01203\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ flux\ to\ MAOC\ (pool\ c)}}
+\DoxyCodeLine{01204\ \ \ \ \ \ \ \ \ cfluxa2c\ =\ kadsorpx\ *\ phx1\ *\ xwater1\ *\ xpool(7)\ *\ (1.0\ -\/\ \ xpool(6)/qmax)\ \ \ \textcolor{comment}{!\ eqn(9)\ \ abramoff2022}}
+\DoxyCodeLine{01205\ \ \ \ \ \ \ \ \ cfluxr2c\ =\ fr2cx\ *\ cfluxr\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ p\_b*F\_bm\ in\ eqn(19)\ Abramoff2022}}
+\DoxyCodeLine{01206\ \ \ \ \ \ \ \ \ cfluxk2c\ =\ fk2cx\ *\ cfluxk\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ p\_b*F\_bm\ in\ eqn(19)\ Abramoff2022}}
+\DoxyCodeLine{01207\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxp2c\ =\ (1.0-\/fp2ax)\ *\ cfluxp\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !(1-\/p\_a)*F\_a\ \ in\ eqn(19)\ of\ Abramoff2022\ }}
+\DoxyCodeLine{01208\ }
+\DoxyCodeLine{01209\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ flux\ to\ low\ weight\ mass\ C\ (pool\ a)}}
+\DoxyCodeLine{01210\ \ \ \ \ \ \ \ \ cfluxr2a\ =\ (1.0-\/fr2cx)\ *\ cfluxr\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!(1-\/p\_b)*F\_bm\ in\ eqn(7)\ Abramoff2022}}
+\DoxyCodeLine{01211\ \ \ \ \ \ \ \ \ cfluxk2a\ =\ (1.0-\/fk2cx)\ *\ cfluxk\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!(1-\/p\_b)*F\_bm\ in\ eqn(7)\ Abramoff2022\ }}
+\DoxyCodeLine{01212\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxp2a\ =\ fp2ax\ *\ cfluxp\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ p\_a*F\_a\ \ different\ from\ Abramoff2022,\ Aggregate\ -\/>\ active,\ not\ litter}}
+\DoxyCodeLine{01213\ \textcolor{comment}{!\ \ \ \ \ \ \ \ !\ this\ equation\ is\ wrong\ \ (see\ Wang\ et\ al.\ 2022,\ their\ GCB\ papes,\ Tables\ S3\ and\ S5)}}
+\DoxyCodeLine{01214\ \textcolor{comment}{!\ \ \ \ \ \ \ \ cfluxc2a\ =\ kadsorpx\ *\ xpool(6)/qmax\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !\ eqn(12)\ Abramoff2022}}
+\DoxyCodeLine{01215\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ based\ on\ Wang\ et\ al.\ (2022)}}
+\DoxyCodeLine{01216\ \ \ \ \ \ \ \ \ cfluxc2a\ =\ kdesorpx\ *\ xpool(6)/qmax\ \ \ }
+\DoxyCodeLine{01217\ }
+\DoxyCodeLine{01218\ \textcolor{comment}{!\ \ \ \ \ \ \ disaggregation\ fluxes}}
+\DoxyCodeLine{01219\ \ \ \ \ \ \ \ \ cfluxp2m\ =\ tvppoolx\ *\ xwater1\ *\ xpool(5)\ \ \ \textcolor{comment}{!metabolic\ pool}}
+\DoxyCodeLine{01220\ \ \ \ \ \ \ \ \ cfluxp2s\ =\ tvppoolx\ *\ xwater1\ *\ xpool(8)\ \ \ \textcolor{comment}{!structural\ litter\ pool}}
+\DoxyCodeLine{01221\ \ \ \ \ \ \ \ \ cfluxp2c\ =\ tvppoolx\ *\ xwater1\ *\ xpool(9)\ \ \ \textcolor{comment}{!MAOC\ \ assuming\ disaggregation\ of\ aggregagated\ MAOC\ is\ slower\ than\ POC}}
+\DoxyCodeLine{01222\ }
+\DoxyCodeLine{01223\ }
+\DoxyCodeLine{01224\ \ \ \ \ \ \ \ \ \ y(1)\ =\ cinputmx\ *\ (1.0-\/fmx)\ +\ cfluxp2m\ -\/\ cfluxm2r\ -\/\ cfluxm2k\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ same\ as\ kinetics=2}}
+\DoxyCodeLine{01225\ }
+\DoxyCodeLine{01226\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ structural\ litter\ [=Is*(1-\/fs)-\/A2-\/A6]}}
+\DoxyCodeLine{01227\ \ \ \ \ \ \ \ \ \ y(2)\ =\ cinputsx\ *\ (1.0-\/fsx)\ +\ cfluxp2s\ -\/\ cfluxs2r\ -\/\ cfluxs2k\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ same\ as\ kinetics=2}}
+\DoxyCodeLine{01228\ }
+\DoxyCodeLine{01229\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!microbe\ R\ \ \ \ \ \ \ \ \ \ [mge1*A1+mge2*A2+mge3*A3-\/A4]}}
+\DoxyCodeLine{01230\ \ \ \ \ \ \ \ \ \ y(3)\ =\ mgerx1\ *\ cfluxm2r\ +\ mgerx2\ *\ cfluxs2r\ +\ mgerx1\ *\ cfluxa2r\ -\/\ cfluxr\ \textcolor{comment}{!\ same\ as\ kinetics=2}}
+\DoxyCodeLine{01231\ }
+\DoxyCodeLine{01232\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!microbe\ K\ \ \ \ \ \ \ \ \ \ [mge3*A5+mge4*A6+mge3*A7-\/A8]}}
+\DoxyCodeLine{01233\ \ \ \ \ \ \ \ \ \ y(4)\ =\ mgekx1\ *\ cfluxm2k\ +\ mgekx2\ *\ cfluxs2k\ +\ mgekx1\ *\ cfluxa2k\ -\/\ cfluxk\ \textcolor{comment}{!\ same\ as\ kinetics\ =2}}
+\DoxyCodeLine{01234\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01235\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!Aggregate\ metabolic\ C\ (pool\ p)}}
+\DoxyCodeLine{01236\ \ \ \ \ \ \ \ \ \ y(5)\ =\ cinputmx\ *\ fmx\ \ \ -\/\ cfluxp2m\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{01237\ }
+\DoxyCodeLine{01238\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!MAOC\ (pool\ c)}}
+\DoxyCodeLine{01239\ \ \ \ \ \ \ \ \ \ y(6)\ =\ cfluxr2c\ +\ cfluxk2c\ +\ cfluxp2c\ +\ cfluxa2c\ \ -\/\ cfluxc2a\ -\/\ cfluxc2p\ \ \ \ \textcolor{comment}{!\ eqn(19)\ of\ abramoff2022}}
+\DoxyCodeLine{01240\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ cfluxa2c<-\/>F\_lm\ (sorption);\ \ \ cfluxc2a<-\/>F\_ld\ (desorption)}}
+\DoxyCodeLine{01241\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ cinputsx\ *\ fsx<-\/>\ no\ match;\ \ \ (cfluxr2c\ +\ cfluxk2c)<-\/>p\_b\ *\ F\_bm}}
+\DoxyCodeLine{01242\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ cfluxp2c<-\/>(1-\/p\_a)*F\_a;\ \ \ \ \ \ \ \ cfluxc2p<-\/>F\_ma}}
+\DoxyCodeLine{01243\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ \ }}
+\DoxyCodeLine{01244\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!LWC}}
+\DoxyCodeLine{01245\ \ \ \ \ \ \ \ \ \ y(7)\ =\ cfluxr2a\ +\ cfluxk2a\ +\ cfluxc2a\ -\/\ cfluxa\ -\/\ cfluxa2r\ -\/\ cfluxa2k\ -\/\ cfluxa2c\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ eqn(7)\ Abramoff2022}}
+\DoxyCodeLine{01246\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ no\ litter\ litter\ input.\ None\ <-\/>\ F\_i}}
+\DoxyCodeLine{01247\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ cfluxa:\ F\_l\ (leaching)}}
+\DoxyCodeLine{01248\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ no\ depolymeration\ <-\/>F\_pl\ ::\ litter\ input\ does\ not\ enter\ this\ pool\ directly}}
+\DoxyCodeLine{01249\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ cfluxa2c<-\/>F\_lm\ (adsorption)}}
+\DoxyCodeLine{01250\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ (cfluxa2r\ +\ cfluxa2k)<-\/>\ F\_lb}}
+\DoxyCodeLine{01251\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ (cfluxr2a\ +\ cfluxk2a)<-\/>(1-\/p\_b)*F\_bm,\ \ necromass\ input\ }}
+\DoxyCodeLine{01252\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ cfluxc2a<-\/>F\_ld,\ (desorption)}}
+\DoxyCodeLine{01253\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ clfuxp2a:\ de-\/aggregation\ \ \ \ \ \ \ !\ different\ from\ Abramoff2022\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{01254\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ aggregated\ structural\ C}}
+\DoxyCodeLine{01255\ \ \ \ \ \ \ \ \ y(8)\ =\ cinputsx\ *\ fsx\ -\/\ cfluxp2s}
+\DoxyCodeLine{01256\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ aggregated\ MAOC}}
+\DoxyCodeLine{01257\ \ \ \ \ \ \ \ \ y(9)\ =\ cfluxc2p\ \ -\/\ cfluxp2c}
+\DoxyCodeLine{01258\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ dummy\ pool}}
+\DoxyCodeLine{01259\ \ \ \ \ \ \ \ \ y(10)\ =\ 0.0}
+\DoxyCodeLine{01260\ \ \ \ \ \ \ \ \ \textcolor{comment}{!\ check\ mass\ balance}}
+\DoxyCodeLine{01261\ \ \ \ \ \ \ \ \ rsoil\ =\ (1.0-\/mgerx1)\ *\ (cfluxm2r+cfluxa2r)\ +\ (1.0-\/mgekx1)*\ (cfluxm2k\ +\ cfluxa2k)\ \ \&}
+\DoxyCodeLine{01262\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ (1.0-\/mgerx2)\ *\ cfluxs2r\ \ \ \ \ \ \ \ \ \ \ \ +\ (1.0-\/mgekx2)*\ cfluxs2k\ \ -\/\ cfluxa}
+\DoxyCodeLine{01263\ }
+\DoxyCodeLine{01264\ \textcolor{comment}{!\ \ \ \ \ \ \ write(*,101)\ np,ns,\ cinputmx+cinputsx,sum(y(1:7)),rsoil,\ cinputmx+cinputsx-\/sum(y(1:7))-\/rsoil}}
+\DoxyCodeLine{01265\ 101\ \textcolor{keyword}{format}(\textcolor{stringliteral}{'vmic\_c:\ input,\ sumdelc\ rsoil'},2(i3,1x),10(f10.6,1x))\ \ \ \ \ \ }
+\DoxyCodeLine{01266\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{01267\ }
+\DoxyCodeLine{01268\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ '\ @\ vmic\_c\ xpool\ =',\ xpool(:)}}
+\DoxyCodeLine{01269\ \textcolor{comment}{!\ \ \ \ \ \ print\ *,\ '\ @\ vmic\_c\ y\ =',\ y(:)}}
+\DoxyCodeLine{01270\ \ \ \ \ \ \ }
+\DoxyCodeLine{01271\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(isoc14==1)\ \textcolor{keywordflow}{then}}
+\DoxyCodeLine{01272\ \ \ }
+\DoxyCodeLine{01273\ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ ip=1,mcpool}
+\DoxyCodeLine{01274\ \ \ \ \ \ \ \ \ \ \ \ \ y(ip)\ =\ y(ip)\ -\/\ tvc14\ *\ max(0.0,xpool(ip))}
+\DoxyCodeLine{01275\ \textcolor{keywordflow}{\ \ \ \ \ \ \ \ \ enddo}}
+\DoxyCodeLine{01276\ \textcolor{keywordflow}{\ \ \ \ \ \ endif}}
+\DoxyCodeLine{01277\ \ \ \ \ \ \ }
+\DoxyCodeLine{01278\ \ \ \ \textcolor{keyword}{end\ subroutine\ }vmic\_c\ \ }
+\DoxyCodeLine{01279\ }
+\DoxyCodeLine{01280\ \textcolor{comment}{!\ \#\#\#\#\#\#\#\#\#\#\#\#\#\#mesc\_model.f90\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\ \ \ }}
+
+\end{DoxyCode}

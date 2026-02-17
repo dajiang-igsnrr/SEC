@@ -1,0 +1,343 @@
+\doxysection{SEC/\+src/\+mesc\+\_\+model.f90 File Reference}
+\label{mesc__model_8f90}\index{SEC/src/mesc\_model.f90@{SEC/src/mesc\_model.f90}}
+\doxysubsubsection*{Functions/\+\+Subroutines}
+\begin{DoxyCompactItemize}
+\item 
+subroutine \textbf{ rk4modelx} (timex, delty, ny, isoc14, np, ns, kinetics, micpdef, micparam, micinput, xpool0, xpool1)
+\begin{DoxyCompactList}\small\item\em The core routines for the mesc\+\_\+model calculate model parameters as function of enrvironmental variablles that vary with time model integration using rk4. \end{DoxyCompactList}\item 
+subroutine \textbf{ kmt} (micpxdef, micpdef, micparam, micinput)
+\item 
+subroutine \textbf{ kmt\+\_\+single} (micpxdef, micpdef, micparam, micinput, np)
+\item 
+subroutine \textbf{ vmaxt} (micpxdef, micpdef, micparam, micinput)
+\item 
+subroutine \textbf{ vmaxt\+\_\+single} (micpxdef, micpdef, micparam, micinput, np)
+\item 
+subroutine \textbf{ desorpt} (micpxdef, micpdef, micparam, micinput)
+\item 
+subroutine \textbf{ desorpt\+\_\+single} (micpxdef, micparam, micinput, np)
+\item 
+subroutine \textbf{ mget} (micpdef, micparam, micinput, micnpool)
+\item 
+subroutine \textbf{ mget\+\_\+single} (micpdef, micparam, micinput, micnpool, np)
+\item 
+subroutine \textbf{ turnovert} (kinetics, micpxdef, micpdef, micparam, micinput)
+\item 
+subroutine \textbf{ turnovert\+\_\+single} (kinetics, micpxdef, micpdef, micparam, micinput, np)
+\item 
+subroutine \textbf{ bgc\+\_\+fractions} (micpxdef, micpdef, micparam, micinput)
+\item 
+subroutine \textbf{ bgc\+\_\+fractions\+\_\+single} (micpxdef, micpdef, micparam, micinput, np)
+\item 
+subroutine \textbf{ bioturb} (ndelt, \textbf{ ms}, zse, \textbf{ delt}, diffsocxx, fluxsoc, xpooli, xpoole)
+\item 
+subroutine \textbf{ tridag} (at, bt, ct, rt, u, \textbf{ ms})
+\item 
+subroutine \textbf{ advecdoc} (deltx, zse, fluxsoilwx, fluxdocsx, vsoilwx, ypool)
+\item 
+subroutine \textbf{ vmic\+\_\+c} (ny, isoc14, np, ns, kinetics, micpdef, micparam, micinput, xpool, y)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\doxysubsection{Function/\+\+Subroutine Documentation}
+\index{mesc\_model.f90@{mesc\_model.f90}!advecdoc@{advecdoc}}
+\index{advecdoc@{advecdoc}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{advecdoc()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_aa7822c9b2d4438d952a0ae6bd07079a0} 
+subroutine advecdoc (\begin{DoxyParamCaption}\item[{real(\textbf{ r\+\_\+2})}]{deltx}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{zse}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{fluxsoilwx}{, }\item[{real(\textbf{ r\+\_\+2})}]{fluxdocsx}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{vsoilwx}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{ypool}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 895} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+\index{mesc\_model.f90@{mesc\_model.f90}!bgc\_fractions@{bgc\_fractions}}
+\index{bgc\_fractions@{bgc\_fractions}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{bgc\_fractions()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a5e96d09ae5439ecb5a4145f828bdbf55} 
+subroutine bgc\+\_\+fractions (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(inout)}]{micinput}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 500} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a5e96d09ae5439ecb5a4145f828bdbf55_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!bgc\_fractions\_single@{bgc\_fractions\_single}}
+\index{bgc\_fractions\_single@{bgc\_fractions\_single}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{bgc\_fractions\_single()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a72ec6af4b28b317cd1d1958628c26eab} 
+subroutine bgc\+\_\+fractions\+\_\+single (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(inout)}]{micinput}{, }\item[{integer, intent(in)}]{np}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 634} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a72ec6af4b28b317cd1d1958628c26eab_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!bioturb@{bioturb}}
+\index{bioturb@{bioturb}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{bioturb()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_aaa20ab20dc402c3aa4e1ddc16662228e} 
+subroutine bioturb (\begin{DoxyParamCaption}\item[{integer}]{ndelt}{, }\item[{integer}]{ms}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{zse}{, }\item[{real(\textbf{ r\+\_\+2})}]{delt}{, }\item[{real(\textbf{ r\+\_\+2})}]{diffsocxx}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{fluxsoc}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{xpooli}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{xpoole}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 770} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the call graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=201pt]{mesc__model_8f90_aaa20ab20dc402c3aa4e1ddc16662228e_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_aaa20ab20dc402c3aa4e1ddc16662228e_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!desorpt@{desorpt}}
+\index{desorpt@{desorpt}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{desorpt()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a98bd25de12f5a6fd01e3bd01737d8caa} 
+subroutine desorpt (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 253} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a98bd25de12f5a6fd01e3bd01737d8caa_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!desorpt\_single@{desorpt\_single}}
+\index{desorpt\_single@{desorpt\_single}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{desorpt\_single()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a0c2bf5bfee319779fb75129021ac47ab} 
+subroutine desorpt\+\_\+single (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{integer, intent(in)}]{np}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 279} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a0c2bf5bfee319779fb75129021ac47ab_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!kmt@{kmt}}
+\index{kmt@{kmt}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{kmt()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a36664daecaa89d31e32bc18a9b4764f2} 
+subroutine kmt (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 41} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a36664daecaa89d31e32bc18a9b4764f2_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!kmt\_single@{kmt\_single}}
+\index{kmt\_single@{kmt\_single}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{kmt\_single()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a1c8e4287983a8c3666b4317012129efc} 
+subroutine kmt\+\_\+single (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{integer, intent(in)}]{np}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 87} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a1c8e4287983a8c3666b4317012129efc_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!mget@{mget}}
+\index{mget@{mget}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{mget()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a933b2e886fe808d66b892c513ce7be74} 
+subroutine mget (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{type(\textbf{ mic\+\_\+npool}), intent(in)}]{micnpool}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 307} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a933b2e886fe808d66b892c513ce7be74_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!mget\_single@{mget\_single}}
+\index{mget\_single@{mget\_single}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{mget\_single()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a929977ed30255273ccf40cb51d839f58} 
+subroutine mget\+\_\+single (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{type(\textbf{ mic\+\_\+npool}), intent(in)}]{micnpool}{, }\item[{integer, intent(in)}]{np}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 358} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a929977ed30255273ccf40cb51d839f58_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!rk4modelx@{rk4modelx}}
+\index{rk4modelx@{rk4modelx}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{rk4modelx()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_afaef1dc6e7f18e6681f1e3b0bf0eddc5} 
+subroutine rk4modelx (\begin{DoxyParamCaption}\item[{real(\textbf{ r\+\_\+2})}]{timex}{, }\item[{real(\textbf{ r\+\_\+2})}]{delty}{, }\item[{integer}]{ny}{, }\item[{integer}]{isoc14}{, }\item[{integer}]{np}{, }\item[{integer}]{ns}{, }\item[{integer}]{kinetics}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(in)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ mcpool}), intent(inout)}]{xpool0}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ mcpool}), intent(inout)}]{xpool1}{}\end{DoxyParamCaption})}
+
+
+
+The core routines for the mesc\+\_\+model calculate model parameters as function of enrvironmental variablles that vary with time model integration using rk4. 
+
+
+
+Definition at line \textbf{ 6} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the call graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=225pt]{mesc__model_8f90_afaef1dc6e7f18e6681f1e3b0bf0eddc5_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_afaef1dc6e7f18e6681f1e3b0bf0eddc5_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!tridag@{tridag}}
+\index{tridag@{tridag}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{tridag()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a3f5c68a94f1ac7a8e46538b95bacb8a8} 
+subroutine tridag (\begin{DoxyParamCaption}\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{at}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{bt}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{ct}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{rt}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ ms})}]{u}{, }\item[{integer}]{ms}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 864} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a3f5c68a94f1ac7a8e46538b95bacb8a8_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!turnovert@{turnovert}}
+\index{turnovert@{turnovert}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{turnovert()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a6b3e5bc2c6a9bcfd01b11dac33f9c366} 
+subroutine turnovert (\begin{DoxyParamCaption}\item[{integer}]{kinetics}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 409} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a6b3e5bc2c6a9bcfd01b11dac33f9c366_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!turnovert\_single@{turnovert\_single}}
+\index{turnovert\_single@{turnovert\_single}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{turnovert\_single()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a065ed008fcd47a1628f1e698163bcf28} 
+subroutine turnovert\+\_\+single (\begin{DoxyParamCaption}\item[{integer}]{kinetics}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{integer, intent(in)}]{np}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 453} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a065ed008fcd47a1628f1e698163bcf28_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!vmaxt@{vmaxt}}
+\index{vmaxt@{vmaxt}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{vmaxt()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a013d7bbb4190957aded0d0194d2eb86f} 
+subroutine vmaxt (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 131} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a013d7bbb4190957aded0d0194d2eb86f_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!vmaxt\_single@{vmaxt\_single}}
+\index{vmaxt\_single@{vmaxt\_single}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{vmaxt\_single()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a8cc731cd561f418266de7efad264ac34} 
+subroutine vmaxt\+\_\+single (\begin{DoxyParamCaption}\item[{type(\textbf{ mic\+\_\+param\+\_\+xscale}), intent(in)}]{micpxdef}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(inout)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{integer, intent(in)}]{np}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 192} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a8cc731cd561f418266de7efad264ac34_icgraph}
+\end{center}
+\end{figure}
+\index{mesc\_model.f90@{mesc\_model.f90}!vmic\_c@{vmic\_c}}
+\index{vmic\_c@{vmic\_c}!mesc\_model.f90@{mesc\_model.f90}}
+\doxysubsubsection{vmic\_c()}
+{\footnotesize\ttfamily \label{mesc__model_8f90_a8ef976ada724d810c373e3efc2341d13} 
+subroutine vmic\+\_\+c (\begin{DoxyParamCaption}\item[{integer}]{ny}{, }\item[{integer}]{isoc14}{, }\item[{integer}]{np}{, }\item[{integer}]{ns}{, }\item[{integer}]{kinetics}{, }\item[{type(\textbf{ mic\+\_\+param\+\_\+default}), intent(in)}]{micpdef}{, }\item[{type(\textbf{ mic\+\_\+parameter}), intent(in)}]{micparam}{, }\item[{type(\textbf{ mic\+\_\+input}), intent(in)}]{micinput}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ mcpool}), intent(in)}]{xpool}{, }\item[{real(\textbf{ r\+\_\+2}), dimension(\textbf{ mcpool}), intent(inout)}]{y}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \textbf{ 935} of file \textbf{ mesc\+\_\+model.\+f90}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mesc__model_8f90_a8ef976ada724d810c373e3efc2341d13_icgraph}
+\end{center}
+\end{figure}
