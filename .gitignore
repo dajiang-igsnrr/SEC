@@ -1,0 +1,16 @@
+# CMake build directory
+build/
+
+# CMake generated files (in case of in-source build)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Fortran module files (just in case)
+*.mod
+
+# test directory
+test/output
+test/main
+test/*.txt

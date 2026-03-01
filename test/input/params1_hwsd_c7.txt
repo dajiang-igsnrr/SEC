@@ -1,0 +1,7 @@
+jglobal  ifsoc14  kinetics pftopt jopt jrestart jmodel
+   1        0        3       7     0     0        1
+./input/data_extraction_cable_model_calibration_cluster_test.nc
+./input/global_10_clusters_0-20cm.nc
+./input/MODIS_npp_2001-2009_cable.nc
+  1.0000  1.0000  1.0000  1.000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000  1.0000
+14      7      6    1     3       10
