@@ -11,6 +11,6 @@ Makefile
 *.mod
 
 # test directory
-test/output
+test/output/*.txt
 test/main
 test/*.txt
