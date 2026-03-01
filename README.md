@@ -8,7 +8,7 @@
 The **SEC model** is a process-oriented soil carbon model that explicitly represents microbial decomposition processes (using Michaelis-Menten kinetics) implemented in **Fortran**, designed to simulate soil and ecosystem carbon dynamics and their controlling mechanisms.
 
 The model adopts a **modular architecture**, clearly separating core process representation, input/output handling, and model control logic.  
-It is compiled using **Inetl Compiler(`ifort`)** and linked against **netCDF (C + Fortran)**, enabling efficient handling of structured scientific data and deployment on **high-performance computing (HPC) systems**.
+It is compiled using **inetl compiler(`ifort`)** and linked against **netCDF (C + Fortran)**, enabling efficient handling of structured scientific data and deployment on **high-performance computing (HPC) systems**.
 
 ---
 
@@ -25,21 +25,17 @@ SEC/
 │   ├── mod_model_core.f90 # the core routines for the mesc model
 │   └── mod_variables.f90  # all variables
 │
-├── cmake/                # CMake helper modules
+├── cmake/                 # CMake helper modules
 │   └── FindNetCDFFortran.cmake
 │
-├── doc/                  # Documentation
-│   ├── html              # html
-│   └── readme            
-│
-├── test/                 # Test and example runs
-│   ├── input             # input data
-│   ├── output            # ouput
-│   ├── run_main.sh       # One-command run test script
+├── test/                  # Test and example runs
+│   ├── input              # input data
+│   ├── output             # ouput
+│   ├── run_main.sh        # One-command run test script
 │   └── readme      
 │
-├── CMakeLists.txt        # Build configuration
-├── build.sh              # One-command build script
+├── CMakeLists.txt         # Build configuration
+├── build.sh               # One-command build script
 ├── README.md
 └── LICENSE
 ```
