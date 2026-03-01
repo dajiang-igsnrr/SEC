@@ -21,6 +21,10 @@ cp ./input/case_${case}.txt case.txt
 cp ./input/params1_hwsd_${case}.txt params1.txt
 cp ./input/params_val_${case}.txt params_val.txt
 
+if [ ! -d output ]; then
+  mkdir output
+fi
+
 # --------------------------------------------------
 # run 
 # --------------------------------------------------
