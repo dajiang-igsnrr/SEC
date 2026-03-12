@@ -17,7 +17,7 @@ contains
 !! (3c) compute time-varying parameter values
 !! (3d) read in restart file (if) jrestart==1
 !! (3d) call model for each of mp and integration over time 
-!!
+!! This comment is for check only 12/3/2026
 !
 SUBROUTINE vmic_param_constant(kinetics,micpxdef,micpdef,micparam,zse) 
     use mic_constant
