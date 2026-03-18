@@ -1,9 +1,11 @@
 module function_module
  use mic_constant
  use mic_variable
- use mesc_inout_module, only: getdata_c14, getdata_frc_dim, getdata_frc, getdata_hwsd_dim, getdata_hwsd, screenout
+ use mesc_inout_module, only: getdata_c14, getdata_frc_dim, getdata_frc, &
+                              getdata_hwsd_dim, getdata_hwsd, screenout, &
+                              getdata_aust_dim,getdata_aust
  use mesc_interface_module, only: vmic_param_xscale, vmic_param_time, vmic_param_time_single, vmicsoil_c14, vmicsoil_frc1_cpu, vmicsoil_hwsd_cpu, vmicsoil_hwsd_gpu
- use calcost_module, only: calcost_c14, calcost_frc1, calcost_hwsd2
+ use calcost_module, only: calcost_c14, calcost_frc1, calcost_hwsd2,calcost_aust
  implicit none
 
  Contains 
@@ -307,6 +309,92 @@ END function functn_frc1
 END function functn_soc_hwsd
 
 
+  real*8 function functn_soc_aust(nx,xparam16)
+    !local variables
+    integer    nx
+    integer,   dimension(16)           :: nxopt
+    real*8,    dimension(16)           :: xparam16
+    real*8,    dimension(16)           :: xopt   
+    TYPE(mic_param_xscale)    :: micpxdef
+    TYPE(mic_param_default)   :: micpdef
+    TYPE(mic_parameter)       :: micparam
+    TYPE(mic_input)           :: micinput
+    TYPE(mic_global_input)    :: micglobal  
+    TYPE(mic_cpool)           :: miccpool
+    TYPE(mic_npool)           :: micnpool
+    TYPE(mic_output)          :: micoutput
+
+    !local variables
+    integer    ifsoc14,kinetics,bgcopt,jopt,nyeqpool,isoc14,jglobal,jmodel
+    integer    jrestart,nf,ok,nparam,mpx,timex
+    character*140 frestart_in,frestart_out,foutput
+    character*140 faustsoc
+    real(r_2)     totcost1
+    integer       ns
+    real(r_2), dimension(:), allocatable :: zse
+
+    
+      isoc14=0;nyeqpool = 500;ok=0;totcost1=0.0
+
+      jrestart=0;xopt(:)=1.0
+      do nparam=1,16
+         nxopt(nparam) = nparam
+      enddo
+
+      frestart_in='miccpool_in.nc'
+      frestart_out='miccpool_out.nc'
+      foutput='vmic_output.nc'
+
+      open(1,file='params1.txt')      
+      read(1,*) 
+      read(1,*) jglobal,ifsoc14,kinetics,bgcopt,jopt,jrestart,jmodel
+      read(1,101) faustsoc
+      read(1,*)   xopt(1:14)
+      read(1,*) nxopt(1:nx)
+      do nparam=1,nx
+         xopt(nxopt(nparam)) = xparam16(nparam)
+      enddo
+      close(1)      
+
+101   format(a140)      
+
+      ! get dimensions
+      call getdata_aust_dim(faustsoc,mpx,timex)
+      mp=mpx
+      ntime=timex
+      mpft=9;mbgc=9;nlon=1;nlat=1
+      ms=5
+      allocate(zse(ms))
+      zse(1:5)=0.1
+      
+      
+      call mic_allocate_parameter(mpft,mbgc,mp,ms,micpxdef,micparam)
+      call mic_allocate_input(mp,ms,nlon,nlat,ntime,micinput,micglobal)
+      call mic_allocate_output(mp,micoutput)
+      call mic_allocate_cpool(mp,ms,miccpool)
+      call mic_allocate_npool(mp,ms,micnpool)
+
+      call getdata_aust(faustsoc,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
+      
+      !  call profile()
+      call vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef) 
+
+      call vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,bgcopt,nyeqpool, &
+                         zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
+
+      call calcost_aust(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost1)      
+      call mic_deallocate_parameter(mpft,mbgc,mp,ms,micpxdef,micparam)
+      call mic_deallocate_input(mp,ms,nlon,nlat,ntime,micinput,micglobal)
+      call mic_deallocate_output(mp,micoutput)
+      call mic_deallocate_cpool(mp,ms,miccpool)
+      call mic_deallocate_npool(mp,ms,micnpool) 
+
+      functn_soc_aust = totcost1
+
+      deallocate(zse)
+END function functn_soc_aust
+
+
 real*8 function functn(nx,xparam16)
    !local variables
     integer    nx,runcase
@@ -316,6 +404,8 @@ real*8 function functn(nx,xparam16)
     read(1,*) runcase
     close(1)
     SELECT CASE (runcase)
+      CASE(0)
+        functn = functn_soc_aust(nx,xparam16)
       CASE (1)    ! run model for 14C                                
         functn = functn_c14(nx,xparam16)
       CASE (2)    ! run model for POC/MAOC fractions

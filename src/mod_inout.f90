@@ -1413,4 +1413,249 @@ subroutine screenout(runmodel,jmodel,bgcopt,xopt,cost)
 
 end subroutine screenout
 
+
+  
+   subroutine getdata_aust_dim(faustsoc,mpx,timex)
+    use netcdf
+    use mic_constant
+    use mic_variable
+    implicit none
+    character*140 faustsoc    
+    integer mpx,timex
+    integer:: ncid,varid,status
+   ! open .nc file
+    status = nf90_open(faustsoc,nf90_nowrite,ncid)
+    if(status /= nf90_noerr) print*, 'Error opening faustsoc.nc'
+
+    ! get dimensions
+    status = nf90_inq_dimid(ncid,'msite',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring dimensions/nsite'
+    status = nf90_inquire_dimension(ncid,varid,len=mpx)
+    if(status /= nf90_noerr) print*,'Error dimensions/nsite'
+    !
+    status = nf90_inq_dimid(ncid,'mday',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring dimensions/ntime'
+    status = nf90_inquire_dimension(ncid,varid,len=timex)
+    if(status /= nf90_noerr) print*,'Error reading profile_id'   
+ 
+    ! Close netcdf file
+    status = NF90_CLOSE(ncid)   
+   end subroutine  getdata_aust_dim   
+
+   subroutine getdata_aust(faustsoc,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
+    !use micglobal%area (area fraction) as a switch to run for selected sites during parameter optimization (jopt==0)  
+    !model only runs for those sites with micglobal%area(np) > 0.0    
+    use netcdf
+    use mic_constant
+    use mic_variable
+    implicit none
+    real, dimension(9)  :: cnleaf,cnwood,cnroot,fracleaf,fracwood,fracroot,ligcleaf,ligcwood,ligcroot
+    data cnleaf/41.653,73.565,81.04,66.675,35.33,62.898,64.967,64.0,20.0/
+    data cnwood/71.272,106.111,124.84,128.762,59.924,83.557,105.973,105.97,100.0/
+    data cnroot/36.0,36.0,36.0,36.0,36.0,36.0,36.0,36.0,36.0/
+    data fracleaf/0.03,0.053,0.029,0.025,0.096,0.055,0.086,0.101,0.53/
+    data fracwood/0.693,0.816,0.709,0.738,0.633,0.634,0.586,0.628,0.0/
+    data fracroot/0.277,0.131,0.262,0.237,0.271,0.311,0.328,0.271,0.47/
+    data ligcleaf/0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28/
+    data ligcwood/0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4/
+    data ligcroot/0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28/
+    character*140 faustsoc
+    integer jglobal,bgcopt,jopt,jmodel
+    TYPE(mic_parameter),          INTENT(INout) :: micparam    
+    TYPE(mic_global_input),       INTENT(INout) :: micglobal
+    real(r_2) zse(ms)
+    ! local variables
+    integer:: ncid,varid,status
+    integer:: np,k,ipft,ns
+    integer,  dimension(:),     allocatable     :: ivarx1
+    real,     dimension(:),     allocatable     :: varx1float,avgts,avgms,poc,hoc,roc
+    real,     dimension(:,:),   allocatable     :: soc3,varx2float
+    real,     dimension(:,:),   allocatable     :: npp10y,tsoil10y,moist10y10,moist10y100
+    real,     dimension(:,:,:), allocatable     :: varx3float
+
+    allocate(ivarx1(mp))
+    allocate(varx1float(mp),avgts(mp),avgms(mp),soc3(mp,3),poc(mp),hoc(mp),roc(mp))
+    allocate(varx2float(mp,3),npp10y(mp,ntime),tsoil10y(mp,ntime),moist10y10(mp,ntime),moist10y100(mp,ntime))
+    allocate(varx3float(mp,10,ntime))
+
+   
+   ! open .nc file
+    print *, ' calling getdata_aust'
+    print *,'input file', faustsoc
+    print *,'mp ms bgcopt=',    mp,ms,bgcopt
+    
+    status = nf90_open(faustsoc,nf90_nowrite,ncid)
+    if(status /= nf90_noerr) print*, 'Error opening faustsoc.nc'
+    
+    ! get variables
+    status = nf90_inq_varid(ncid,'lat',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring data lat'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading data lat'
+    micglobal%lat = real(varx1float,kind=r_2)
+    
+    status = nf90_inq_varid(ncid,'lon',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring data lon'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading data lon'
+    micglobal%lon=real(varx1float,kind=r_2)
+    
+    status = nf90_inq_varid(ncid,'vtype',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring data PFT'
+    status = nf90_get_var(ncid,varid,ivarx1)
+    if(status /= nf90_noerr) print*,'Error reading data PFT'
+    micglobal%pft = ivarx1
+    
+    status = nf90_inq_varid(ncid,'nsite',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring nsite'
+    status = nf90_get_var(ncid,varid,ivarx1)
+    if(status /= nf90_noerr) print*,'Error reading nsite'
+    micglobal%siteid = ivarx1
+    
+    status = nf90_inq_varid(ncid,'ph',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring ph'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading ph'
+    micglobal%ph = real(varx1float,kind=r_2)    
+
+    status = nf90_inq_varid(ncid,'clay',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring clay'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading clay'
+    micglobal%clay = real(varx1float,kind=r_2)
+
+    status = nf90_inq_varid(ncid,'silt',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring silt'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading silt'
+    micglobal%silt = real(varx1float,kind=r_2)
+
+    status = nf90_inq_varid(ncid,'bulkd',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring bulkd'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading bulkd'
+    micglobal%bulkd = real(varx1float,kind=r_2)
+
+    status = nf90_inq_varid(ncid,'soc',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring soc'
+    status = nf90_get_var(ncid,varid,varx2float)
+    if(status /= nf90_noerr) print*,'Error reading soc'
+    soc3 = real(varx2float,kind=r_2)
+
+    status = nf90_inq_varid(ncid,'poc',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring poc'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading poc'
+    poc = real(varx1float,kind=r_2)
+
+    status = nf90_inq_varid(ncid,'hoc',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring hoc'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading hoc'
+    hoc = real(varx1float,kind=r_2)
+
+    status = nf90_inq_varid(ncid,'roc',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring roc'
+    status = nf90_get_var(ncid,varid,varx1float)
+    if(status /= nf90_noerr) print*,'Error reading roc'
+    roc = real(varx1float,kind=r_2)
+    
+    status = nf90_inq_varid(ncid,'npp',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring npp'
+    status = nf90_get_var(ncid,varid,varx3float)
+    if(status /= nf90_noerr) print*,'Error reading npp'
+    npp10y = sum(real(varx3float,kind=r_2),dim=2)/10.0  !(mp,ntime)     
+    
+    status = nf90_inq_varid(ncid,'tsoil',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring tsoil'
+    status = nf90_get_var(ncid,varid,varx3float)
+    if(status /= nf90_noerr) print*,'Error reading tsoil'
+    tsoil10y = sum(real(varx3float,kind=r_2),dim=2)/10.0   !(mp,ntime)
+    
+    status = nf90_inq_varid(ncid,'moist10',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring moist10'
+    status = nf90_get_var(ncid,varid,varx3float)
+    if(status /= nf90_noerr) print*,'Error reading moist10'
+    moist10y10 = sum(real(varx3float,kind=r_2),dim=2)/10.0  !(mp,ntime)
+    
+    status = nf90_inq_varid(ncid,'moist100',varid)
+    if(status /= nf90_noerr) print*, 'Error inquiring moist100'
+    status = nf90_get_var(ncid,varid,varx3float)
+    if(status /= nf90_noerr) print*,'Error reading moist100'
+    moist10y100= sum(real(varx3float,kind=r_2),dim=2)/10.0 !(mp,ntime)    
+    
+    ! Close netcdf file
+    status = NF90_CLOSE(ncid)    
+
+    ! calculate or assign other inputs/parameters
+    do np=1,mp
+       ipft = micglobal%pft(np)
+       micglobal%poros(np)      = 1.0 - micglobal%bulkd(np)/2650.0
+       micparam%siteid(np)      = micglobal%siteid(np)       
+       micparam%pft(np)         = micglobal%pft(np) 
+       micparam%bgctype(np)     = micglobal%pft(np)
+       micparam%isoil(np)       = -1
+       micparam%sorder(np)      = -1
+       micglobal%area(np)       = 1.0       
+   
+       micglobal%matpot(np,:,:)  = -100.0    !kPa
+      
+       micparam%xcnleaf(np)  = cnleaf(ipft)
+       micparam%xcnroot(np)  = cnroot(ipft)
+       micparam%xcnwood(np)  = cnwood(ipft)
+       micparam%fligleaf(np) = ligcleaf(ipft)
+       micparam%fligroot(np) = ligcroot(ipft)
+       micparam%fligwood(np) = ligcwood(ipft)
+
+       micglobal%dleaf(np,:) = fracleaf(ipft) * npp10y(np,:)
+       micglobal%dwood(np,:) = fracwood(ipft) * npp10y(np,:)
+       micglobal%droot(np,:) = fracroot(ipft) * npp10y(np,:)
+
+       do ns=1,ms
+          if(ns<=3) then
+             micparam%csoilobs(np,ns) = soc3(np,ns)
+          else
+             micparam%csoilobs(np,ns) = soc3(np,3)
+          endif
+          if(ns==1) then
+             micglobal%moist(np,ns,:)    = moist10y10(np,:)
+          else
+             micglobal%moist(np,ns,:) = moist10y100(np,:)
+          endif          
+          micglobal%tsoil(np,ns,:)  = tsoil10y(np,:)         
+          micparam%csoilobsp(np,ns) = poc(np)   ! assign layer POC conc to all layers
+          micparam%csoilobsm(np,ns) = hoc(np)   ! assign layer POC conc to all layers
+       enddo
+       micglobal%avgts(np)   = sum(micglobal%tsoil(np,1,:))/real(ntime)
+       micglobal%avgms(np)   = sum(micglobal%moist(np,2,:))/real(ntime)
+       micglobal%npp(np)     = sum(npp10y(np,:))
+    enddo
+
+    do k=1,ntime
+       micglobal%time(k)= real(k*1.0,kind=r_2)
+    enddo
+
+    if(jglobal==1) then
+       open(100,file='inputdata.txt')
+       do np=1,mp
+          write(100,101) micparam%siteid(np),micglobal%area(np),micparam%pft(np), &
+          micparam%isoil(np),micparam%sorder(np),micparam%bgctype(np),   &
+          micglobal%npp(np),sum(micglobal%dleaf(np,:))+sum(micglobal%dwood(np,:))+sum(micglobal%droot(np,:)), &
+          micglobal%ph(np),micglobal%clay(np)+micglobal%silt(np),micglobal%bulkd(np), &
+          micglobal%avgts(np),micglobal%avgms(np),sum(micparam%csoilobs(np,:)*zse(:))/sum(zse(:))        
+       enddo
+       close(100) 
+    endif    
+101 format(i5,1x,f8.4,1x,4(i3,1x),20(f10.4,1x))
+103 format(' run site', 3(i6,1x),10(f10.3,1x))
+
+    deallocate(ivarx1)
+    deallocate(varx1float,avgts,avgms,soc3,poc,hoc,roc)
+    deallocate(varx2float)
+    deallocate(varx3float,npp10y,tsoil10y,moist10y10,moist10y100)
+!    print *, 'exit getdata_hwsd'
+
+end subroutine getdata_aust
+
 end module mesc_inout_module
+

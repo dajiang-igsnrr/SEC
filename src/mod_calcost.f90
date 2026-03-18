@@ -335,4 +335,91 @@ module calcost_module
 921   format(i6,1x,4(i3,1x),f8.3,1x,i2,1x,20(f12.4,1x))
     end subroutine calcost_hwsd2        
 
+!  cost function for Australian soil C
+    subroutine calcost_aust(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost)
+    ! calculate the SOC cost function for Australian sites with 
+    ! observed total SOC in g/kg for the top 3 layers (0-0.1,0.1-0.2 and 0.2-0.3m)
+    ! use the first layer POC and HOC in g/kg as the average POC and MAOC for the top 0-0.3m
+    ! POC: pool 3,4,5,7,8; MAOC: 6,9
+   ! use mic_constant
+   ! use mic_variable
+   ! implicit none
+    TYPE(mic_param_xscale), INTENT(IN)    :: micpxdef
+    TYPE(mic_parameter),    INTENT(IN)    :: micparam
+    TYPE(mic_cpool),        INTENT(INOUT) :: miccpool
+    TYPE(mic_input),        INTENT(IN)    :: micinput
+    TYPE(mic_global_input), INTENT(IN)    :: micglobal    
+    real(r_2) zse(ms)    
+    integer nx,bgcopt,msobs
+    real*8  totcost
+    real*8, dimension(16)              :: xopt
+    ! cost function
+    real(r_2), dimension(:),   allocatable        :: xcost
+    real(r_2), dimension(:,:), allocatable        :: xmod,xobs
+    real(r_2), dimension(:,:), allocatable        :: xmodpoc,xmodmaoc
+    integer   np,ns,ip
+    real(r_2)  totpoc,totmaoc,xmodpocavg,xmodmaocavg,fracpocm,fracmaocm,fracmicm,fraclabm
+
+    msobs=3
+    allocate(xcost(mp))
+    allocate(xmod(mp,msobs),xobs(mp,msobs))
+    allocate(xmodpoc(mp,msobs),xmodmaoc(mp,msobs))
+    
+    ! specific to AUST_SOC, total 3 layers with thickness of 0.1m 
+    xmod(:,:)=0.0;xobs(:,:)=0.0;xmodpoc(:,:)=0.0;xmodmaoc(:,:)=0.0
+    xcost(:)=0.0
+    do np=1,mp
+       if(micparam%bgctype(np)==bgcopt .and. micglobal%area(np) > 0.0) then      
+         do ns = 1,msobs
+            totmaoc = miccpool%cpooleq(np,ns,6)+miccpool%cpooleq(np,ns,9)
+            totpoc = sum(miccpool%cpooleq(np,ns,3:mcpool)) - totmaoc
+            xmodpoc(np,ns)  = 1000.0 * totpoc/micinput%bulkd(np,ns)    ! gC/kg soil
+            xmodmaoc(np,ns) = 1000.0 * totmaoc/micinput%bulkd(np,ns)   ! gC/kg soil
+            xmod(np,ns)     = xmodpoc(np,ns) + xmodmaoc(np,ns)
+            xobs(np,ns)     = micparam%csoilobs(np,ns)
+         enddo   
+
+         do ns = 1,msobs
+            
+            if(xmod(np,ns) <0.0 .or. xmod(np,ns) >1.0e3) then
+               print *, 'abnormal value of model simulation site=', micparam%siteid(np)
+               print *, 'parameter values = ',  xopt(1:nx)
+               print *,  xobs(np,ns),xmod(np,ns),xobs(np,ns)-xmod(np,ns)
+               print *, ' modelled pool size= ', ns,1000.0*miccpool%cpooleq(np,ns,:)/micinput%bulkd(np,ns)
+               !stop
+            endif   
+
+            if(xobs(np,ns) > 0.0 .and. xobs(np,ns) <1.0e3) then
+               xcost(np) = xcost(np) + (log(xobs(np,ns))-log(xmod(np,ns)))**2 
+            !   xcost(np) = xcost(np) + (xobs7(np,ns)-xmod7(np,ns))**2 
+
+               write(91,901) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np), &
+                             micparam%bgctype(np),micglobal%area(np),ns,&
+                             xobs(np,ns),xmod(np,ns)
+
+            endif
+         enddo !"ns"
+         xmodpocavg  = sum(xmodpoc(np,1:msobs))/real(msobs)
+         xmodmaocavg = sum(xmodmaoc(np,1:msobs))/real(msobs)
+         if(micparam%csoilobsp(np,1) >0.0 .and. micparam%csoilobsm(np,1) > 0.0) then
+            xcost(np) = xcost(np) + (log(xmodpocavg)-log(micparam%csoilobsp(np,1)))** 2 &
+                                  + (log(xmodmaocavg)-log(micparam%csoilobsm(np,1)))** 2 
+         endif
+         write(92,921) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np), &
+                       micparam%bgctype(np),micglobal%area(np),xmodpocavg,micparam%csoilobsp(np,1), &
+                       xmodmaocavg,micparam%csoilobsm(np,1)
+ 
+      endif !"pft"
+   enddo  !"np"
+   totcost = sum(xcost(1:mp))
+
+    deallocate(xcost)
+    deallocate(xmod,xobs)
+    deallocate(xmodpoc,xmodmaoc)
+
+901   format(i6,1x,4(i3,1x),f8.3,1x,i2,1x,10(f12.4,1x))
+921   format(i6,1x,4(i3,1x),f8.3,1x,20(f12.4,1x))
+    end subroutine calcost_aust  
+
+
 end module calcost_module
