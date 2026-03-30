@@ -177,7 +177,7 @@ module mic_variable
   ! the following are alrealy available in CABLE
   integer,   dimension(:),      allocatable  :: pft,bgctype,isoil,sorder,region,siteid,dataid
   real(r_2), dimension(:,:),    allocatable  :: sdepth,fracroot
-  real(r_2), dimension(:,:),    allocatable  :: csoilobs,csoilobsp,csoilobsm
+  real(r_2), dimension(:,:),    allocatable  :: csoilobs,csoilobsp,csoilobsm,fracaoc
   real(r_2), dimension(:),      allocatable  :: c14soilobsp,c14soilobsm     !14C obs
   real(r_2), dimension(:,:,:),  allocatable  :: c14atm         !atmospheric 14C
   integer,   dimension(:),      allocatable  :: nyc14obs       !year at which 14C was observed
@@ -302,6 +302,7 @@ module mic_variable
     allocate(micparam%sdepth(mp,ms),   &
              micparam%fracroot(mp,ms), &
              micparam%csoilobs(mp,ms), &
+             micparam%fracaoc(mp,ms), &             
              micparam%csoilobsp(mp,ms), &
              micparam%csoilobsm(mp,ms), &
              micparam%c14soilobsp(mp), &
@@ -489,6 +490,7 @@ module mic_variable
     deallocate(micparam%sdepth,   &
              micparam%fracroot,   &
              micparam%csoilobs,   &
+             micparam%fracaoc,    &
              micparam%csoilobsp,  &
              micparam%csoilobsm,  &
              micparam%c14soilobsp,&

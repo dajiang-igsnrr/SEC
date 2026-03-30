@@ -997,14 +997,14 @@ contains
     status = NF90_CLOSE(ncid)   
    end subroutine  getdata_hwsd_dim   
 
-   subroutine getdata_hwsd(fhwsdsoc,filecluster,fmodis,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
+   subroutine getdata_hwsd(fhwsdsoc,filecluster,fmodis,fanoc,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
     !use micglobal%area (area fraction) as a switch to run for selected sites during parameter optimization (jopt==0)  
     !model only runs for those sites with micglobal%area(np) > 0.0    
     use netcdf
     use mic_constant
     use mic_variable
     implicit none
-    character*140 fhwsdsoc,filecluster,fmodis
+    character*140 fhwsdsoc,filecluster,fmodis,fanoc
     integer jglobal,bgcopt,jopt,jmodel
     TYPE(mic_parameter),          INTENT(INout) :: micparam    
     TYPE(mic_global_input),       INTENT(INout) :: micglobal
@@ -1015,8 +1015,9 @@ contains
     integer:: intval,msite,isite,sitemax
     integer,           dimension(:),     allocatable     :: ivarx1,fcluster
     real,              dimension(:),     allocatable     :: varx1float
+    real,              dimension(:,:),   allocatable     :: fracaoc
     double precision,  dimension(:),     allocatable     :: varx1db,avgts,avgms
-    double precision,  dimension(:,:),   allocatable     :: varx2db,fsoc7
+    double precision,  dimension(:,:),   allocatable     :: varx2db,fsoc7,bulkd
     double precision,  dimension(:,:,:), allocatable     :: tsoil7,moist7,watpot7
     double precision,  dimension(:),     allocatable     :: fald,falo,ffed,ffeo
     double precision,  dimension(:,:),   allocatable     :: modisnpp
@@ -1024,10 +1025,11 @@ contains
 
     allocate(ivarx1(mp),fcluster(mp))
     allocate(varx1float(mp),varx1db(mp),avgts(mp),avgms(mp))
-    allocate(varx2db(mp,ntime),fsoc7(mp,7))
+    allocate(varx2db(mp,ntime),fsoc7(mp,7),bulkd(mp,7))
     allocate(tsoil7(mp,7,ntime),moist7(mp,7,ntime),watpot7(mp,7,ntime))
     allocate(fald(mp),falo(mp),ffed(mp),ffeo(mp))
     allocate(modisnpp(720,360),modisnpp_mp(mp))
+    allocate(fracaoc(mp,7))
    
    ! open .nc file
     print *, ' calling getdata_hwsd'
@@ -1107,12 +1109,17 @@ contains
     if(status /= nf90_noerr) print*,'Error reading silt'
     micglobal%silt = real(varx1float,kind=r_2)
     
-    status = nf90_inq_varid(ncid,'bulk_density',varid)
-    if(status /= nf90_noerr) print*, 'Error inquiring soil bulk density'
-    status = nf90_get_var(ncid,varid,varx1float)
-    if(status /= nf90_noerr) print*,'Error reading bulk density'
-    micglobal%bulkd= real(varx1float,kind=r_2)
-
+ !   status = nf90_inq_varid(ncid,'bulk_density',varid)
+ !   if(status /= nf90_noerr) print*, 'Error inquiring soil bulk density'
+ !   status = nf90_get_var(ncid,varid,varx1float)
+ !   if(status /= nf90_noerr) print*,'Error reading bulk density'
+ !   micglobal%bulkd= real(varx1float,kind=r_2)
+ !   use HWSD bulk density (vary with soil layer)
+     status = nf90_inq_varid(ncid,'HWSD_bulk_density',varid)
+     if(status /= nf90_noerr) print*, 'Error inquiring soil bulk density'
+     status = nf90_get_var(ncid,varid,bulkd)
+     if(status /= nf90_noerr) print*,'Error reading bulk density'
+ 
     status = nf90_inq_varid(ncid,'HWSD_SOC',varid)
     if(status /= nf90_noerr) print*, 'Error inquiring soil carbon'
     status = nf90_get_var(ncid,varid,fsoc7)
@@ -1183,12 +1190,22 @@ contains
     
     ! Close netcdf file
     status = NF90_CLOSE(ncid)    
- 
+
    ! check if calculated bgctype is same as the bgctype in the input data
     call cluster(filecluster,micglobal%lat,micglobal%lon,fcluster)
   !  micparam%bgctype=fcluster  
   !  micglobal%bgctype=fcluster
 
+   ! get the ancient soc fraction for mp
+     status = nf90_open(fanoc,nf90_nowrite,ncid)
+     if(status /= nf90_noerr) print*, 'Error opening fanoc.nc' 
+     status = nf90_inq_varid(ncid,'fanoc_mp',varid)
+     if(status /= nf90_noerr) print*, 'Error inquiring fanoc_mp'
+     status = nf90_get_var(ncid,varid,fracaoc)
+     if(status /= nf90_noerr) print*,'Error reading fanoc_mp'
+     ! Close netcdf file
+     status = NF90_CLOSE(ncid) 
+     
    ! if jmodel=3 use the annual modis NPP to scale the orchidee npp
     if(jmodel==3) then
        status = nf90_open(fmodis,nf90_nowrite,ncid)
@@ -1218,6 +1235,10 @@ contains
     msite = 0
     do np=1, mp
        micglobal%siteid(np)  = np 
+       ! calculate mean bulk density
+       micglobal%bulkd(np) = (bulkd(np,1)*(zse(1)+zse(2)+zse(3)+zse(4))                                   &
+                             +bulkd(np,2)*zse(5)+bulkd(np,3)*zse(6)+bulkd(np,4)*zse(7)+bulkd(np,5)*zse(8) &
+                             +bulkd(np,6)*zse(9)+bulkd(np,7)*zse(10))/sum(zse(1:10))
 !       micglobal%bgctype(np) = micglobal%sorder(np) 
        micglobal%poros(np)   = 1.0 - micglobal%bulkd(np)/2650.0
        micparam%siteid(np)   = micglobal%siteid(np)       
@@ -1245,18 +1266,21 @@ contains
        endif
 
        nsocobs=0
+
        do ns=1,ms
           ! assign the observed layer 1 data to the first 4 modelled layers 
           if(ns<=4) then 
              micparam%csoilobs(np,ns) = real(fsoc7(np,1),kind=r_2)
+             micparam%fracaoc(np,ns)  = real(fracaoc(np,1),kind=r_2)             
              micglobal%tsoil(np,ns,:) = real(tsoil7(np,1,:),kind=r_2)
              micglobal%moist(np,ns,:) = real(moist7(np,1,:),kind=r_2)
-             micglobal%matpot(np,ns,:)= real(watpot7(np,1,:),kind=r_2)  
+             micglobal%matpot(np,ns,:)= real(watpot7(np,1,:),kind=r_2) 
           else
              micparam%csoilobs(np,ns) = real(fsoc7(np,ns-3),kind=r_2)
+             micparam%fracaoc(np,ns)  = real(fracaoc(np,ns-3),kind=r_2)                
              micglobal%tsoil(np,ns,:) = real(tsoil7(np,ns-3,:),kind=r_2)
              micglobal%moist(np,ns,:) = real(moist7(np,ns-3,:),kind=r_2)
-             micglobal%matpot(np,ns,:)= real(watpot7(np,ns-3,:),kind=r_2)  
+             micglobal%matpot(np,ns,:)= real(watpot7(np,ns-3,:),kind=r_2) 
              ! filter out sites with SOC >120 gc/kg (organic soil: Lourenco ett al. 2022)
              if(micparam%csoilobs(np,ns) >=120.0) then 
                 micglobal%area(np) = -1.0
@@ -1329,6 +1353,7 @@ contains
     deallocate(varx2db,fsoc7)
     deallocate(tsoil7,moist7,watpot7)    
     deallocate(fald,falo,ffed,ffeo)
+    deallocate(fracaoc)    
 !    print *, 'exit getdata_hwsd'
 
 end subroutine getdata_hwsd

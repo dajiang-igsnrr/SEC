@@ -231,7 +231,7 @@ END function functn_frc1
     integer    ifsoc14,kinetics,bgcopt,jopt,nyeqpool,isoc14,jglobal,jmodel
     integer jrestart,nf,ok,nparam,mpx,timex
     character*140  frestart_in,frestart_out,fparam_global,foutput
-    character*140 fhwsdsoc,filecluster,fmodis
+    character*140 fhwsdsoc,filecluster,fmodis,fanoc
     real(r_2)     totcost1
     integer       ns
     real(r_2), dimension(:), allocatable :: zse
@@ -254,6 +254,7 @@ END function functn_frc1
       read(1,101) fhwsdsoc
       read(1,101) filecluster      
       read(1,101) fmodis
+      read(1,101) fanoc
       read(1,*)   xopt(1:14)
       read(1,*) nxopt(1:nx)
       do nparam=1,nx
@@ -285,7 +286,7 @@ END function functn_frc1
       call mic_allocate_cpool(mp,ms,miccpool)
       call mic_allocate_npool(mp,ms,micnpool)
 
-      call getdata_hwsd(fhwsdsoc,filecluster,fmodis,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
+      call getdata_hwsd(fhwsdsoc,filecluster,fmodis,fanoc,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
       
       !  call profile()
       call vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef) 

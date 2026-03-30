@@ -284,12 +284,14 @@ module calcost_module
 
          do ns = 1,msobs
             if(ns==1) then
-              xobs7(np,ns) = (micparam%csoilobs(np,2) * zse(2)+ micparam%csoilobs(np,3) * zse(3) + micparam%csoilobs(np,4) * zse(4)) &
+              xobs7(np,ns) = (micparam%csoilobs(np,2) * (1.0- micparam%fracaoc(np,2)) * zse(2) &
+                            + micparam%csoilobs(np,3) * (1.0- micparam%fracaoc(np,2)) * zse(3) &
+                            + micparam%csoilobs(np,4) * (1.0- micparam%fracaoc(np,2)) * zse(4)) &
                             /(zse(2)+zse(3)+zse(4)) 
               xmod7(np,ns) = (xmod(np,2) * zse(2) +xmod(np,3) * zse(3) + xmod(np,4) * zse(4)) &
                              /(zse(2)+zse(3)+zse(4)) 
             else
-              xobs7(np,ns) = micparam%csoilobs(np,ns+3)   
+              xobs7(np,ns) = micparam%csoilobs(np,ns+3) * (1.0- micparam%fracaoc(np,ns+3))  
               xmod7(np,ns) = xmod(np,ns+3)                                     ! gC/kg soil
             endif
             
@@ -307,7 +309,7 @@ module calcost_module
 
                write(91,901) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np), &
                              micparam%bgctype(np),micglobal%area(np),ns,&
-                             xobs7(np,ns),xmod7(np,ns)
+                             micparam%fracaoc(np,ns+3),xobs7(np,ns),xmod7(np,ns)
 
             endif
          enddo !"ns"
@@ -320,7 +322,7 @@ module calcost_module
             write(92,921) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np), &
                           micparam%bgctype(np),micglobal%area(np), ns,  &
                           (1000.0*miccpool%cpooleq(np,ns,ip)/micinput%bulkd(np,ns),ip=1,mcpool), &
-                          fracpocm,fracmaocm,fracmicm,fraclabm
+                          micparam%fracaoc(np,ns),fracpocm,fracmaocm,fracmicm,fraclabm
          enddo
 
       endif !"pft"
