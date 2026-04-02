@@ -1034,6 +1034,7 @@ contains
    ! open .nc file
     print *, ' calling getdata_hwsd'
     print *,'input file', fhwsdsoc
+    print *,'fansoc file', fanoc
     print *,'mp ms bgcopt=',    mp,ms,bgcopt
     
     status = nf90_open(fhwsdsoc,nf90_nowrite,ncid)
@@ -1247,7 +1248,11 @@ contains
        micparam%isoil(np)    = micglobal%isoil(np)
        micparam%sorder(np)   = micglobal%sorder(np)       
        if(jmodel==1) then      !CABLE 
-          ipft =  micglobal%pft(np)      
+          ipft =  micglobal%pft(np) 
+          if(ipft<1 .or. ipft >17) then
+             print *, 'PFT error at  np', jmodel,ipft,np
+             stop
+          endif             
           micparam%xcnleaf(np)  = cnleaf1(ipft)
           micparam%xcnroot(np)  = cnroot1(ipft)
           micparam%xcnwood(np)  = cnwood1(ipft)
@@ -1256,7 +1261,12 @@ contains
           micparam%fligwood(np) = ligwood1(ipft)
        endif
        if(jmodel==2 .or.jmodel==3) then      !ORCHIDEE
-          ipft =  micglobal%pft(np)      
+          ipft =  micglobal%pft(np)
+          if(ipft==19) ipft=18  !temporary fixer
+          if(ipft<1 .or. ipft >18) then
+             print *, 'PFT error at  np', jmodel,ipft,np
+             stop
+          endif           
           micparam%xcnleaf(np)  = cnleaf2(ipft)
           micparam%xcnroot(np)  = cnroot2(ipft)
           micparam%xcnwood(np)  = cnwood2(ipft)
@@ -1366,6 +1376,7 @@ subroutine cluster(filecluster,lat,lon,fcluster)
     use netcdf
     use mic_constant
     use mic_variable
+    use, intrinsic :: ieee_arithmetic
     implicit none
     double precision, dimension(mp)             :: lat,lon
     integer, dimension(mp)                      :: fcluster
@@ -1399,29 +1410,39 @@ subroutine cluster(filecluster,lat,lon,fcluster)
     status = NF90_close(ncid)
     if(status /= nf90_noerr) call nc_abort(status, 'Error in clsoing fcluster')    
 
-    clusterhd = int(varx_flt)
+    clusterhd = -999
+    do i = 1, 720
+      do j = 1, 360
+        if (.not. ieee_is_finite(varx_flt(i,j))) then
+          clusterhd(i,j) = -999
+        else if (varx_flt(i,j) < 0.5 .or. varx_flt(i,j) > 10.5) then
+          clusterhd(i,j) = -999
+        else
+          clusterhd(i,j) = nint(varx_flt(i,j))
+        end if
+      end do
+    end do
+
     fcluster = -1
     do np=1,mp
-       ilon = int((lon(np) + 179.75)/0.5 +1)
-       jlat = int((lat(np) + 89.75)/0.5  +1)
+       ilon = max(1, min(720, int((lon(np) + 179.75)/0.5 +1)))
+       jlat = max(1, min(360, int((lat(np) + 89.75)/0.5  +1)))
+
        if(clusterhd(ilon,jlat) < 0 .or. clusterhd(ilon,jlat) >10) then
           freq(1:10) = 0
           do i=max(1,ilon-5),min(720,ilon+5)
-          do j=max(1,jlat-5),min(360,jlat+5)
-             icluster= clusterhd(i,j)
-             if(icluster>0 .and. icluster<11) then
-                freq(icluster) = freq(icluster) +1
-             endif   
-             if(sum(freq(:)) >0) then
-                fcluster(np) = maxloc(freq,dim=1)
-             endif 
+             do j=max(1,jlat-5),min(360,jlat+5)
+                icluster= clusterhd(i,j)
+                if(icluster>0 .and. icluster<11) then
+                   freq(icluster) = freq(icluster) +1
+                endif
+             enddo
           enddo
-          enddo 
-!         write(*,101) np,fcluster(np),lon(np),lat(np),ilon,jlat,freq(:)          
+          fcluster(np) = maxloc(freq,dim=1)
        else
           fcluster(np) = clusterhd(ilon,jlat)
-       endif   
-    enddo    
+       endif
+    enddo
 101 format('freq ',i6,1x,i2,1x,2(f7.3,1x),15(i3,1x))    
 end subroutine cluster
 
