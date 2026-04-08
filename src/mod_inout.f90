@@ -1058,7 +1058,7 @@ contains
     status = nf90_get_var(ncid,varid,ivarx1)
     if(status /= nf90_noerr) print*,'Error reading data PFT'
     micglobal%pft = ivarx1
-    
+
     status = nf90_inq_varid(ncid,'USDA_SoilSuborder',varid)
     if(status /= nf90_noerr) print*, 'Error inquiring soil order'
     status = nf90_get_var(ncid,varid,ivarx1)
@@ -1262,8 +1262,7 @@ contains
        endif
        if(jmodel==2 .or.jmodel==3) then      !ORCHIDEE
           ipft =  micglobal%pft(np)
-          if(ipft==19) ipft=18  !temporary fixer
-          if(ipft<1 .or. ipft >18) then
+          if(ipft<1 .or. ipft >19) then
              print *, 'PFT error at  np', jmodel,ipft,np
              stop
           endif           
@@ -1350,6 +1349,8 @@ contains
           write(100,101) micparam%siteid(np),micglobal%area(np),micparam%pft(np), &
           micparam%isoil(np),micparam%sorder(np),micparam%bgctype(np),   &
           micglobal%npp(np),sum(micglobal%dleaf(np,:))+sum(micglobal%dwood(np,:))+sum(micglobal%droot(np,:)), &
+          minval(micglobal%dleaf(np,:) + micglobal%dwood(np,:) + micglobal%droot(np,:)), &
+          maxval(micglobal%dleaf(np,:) + micglobal%dwood(np,:) + micglobal%droot(np,:)), &
           micglobal%ph(np),micglobal%clay(np)+micglobal%silt(np),micglobal%bulkd(np), &
           micglobal%avgts(np),micglobal%avgms(np),sum(micparam%csoilobs(np,:)*zse(:))/sum(zse(:))        
        enddo

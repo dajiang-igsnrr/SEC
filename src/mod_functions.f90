@@ -271,8 +271,8 @@ END function functn_frc1
       call getdata_hwsd_dim(fhwsdsoc,mpx,timex)
       mp=mpx
       ntime=timex
-      if(jmodel==1) mpft=17   !CABLE
-      if(jmodel==2) mpft=18   !ORCHIDEE
+      if(jmodel==1)                mpft=17   !CABLE
+      if(jmodel==2 .or. jmodel==3) mpft=19   !ORCHIDEE
       mbgc=12;nlon=1;nlat=1
       ms=10
       allocate(zse(ms))

@@ -248,7 +248,7 @@ subroutine vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
             micpxdef%xrootbeta(i) = xrootcable(i) 
          endif
          if(jmodel==2) then
-            micpxdef%xrootbeta(i) = xrootorchidee(i)
+            micpxdef%xrootbeta(i) = xrootorchidee(i) 
          endif
       enddo         
 

@@ -308,7 +308,7 @@ module calcost_module
             !   xcost(np) = xcost(np) + (xobs7(np,ns)-xmod7(np,ns))**2 
 
                write(91,901) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np), &
-                             micparam%bgctype(np),micglobal%area(np),ns,&
+                             micparam%bgctype(np),micglobal%area(np),micglobal%npp(np),ns,&
                              micparam%fracaoc(np,ns+3),xobs7(np,ns),xmod7(np,ns)
 
             endif
@@ -320,7 +320,7 @@ module calcost_module
             fracmicm  = (miccpool%cpooleq(np,ns,3)+miccpool%cpooleq(np,ns,4))/(sum(miccpool%cpooleq(np,ns,3:mcpool))+1.0e-6)                   
             fraclabm  = miccpool%cpooleq(np,ns,7)/(sum(miccpool%cpooleq(np,ns,3:mcpool))+1.0e-6)  
             write(92,921) micparam%siteid(np),micparam%pft(np),micparam%isoil(np),micparam%sorder(np), &
-                          micparam%bgctype(np),micglobal%area(np), ns,  &
+                          micparam%bgctype(np),micglobal%area(np),micglobal%npp(np), ns,  &
                           (1000.0*miccpool%cpooleq(np,ns,ip)/micinput%bulkd(np,ns),ip=1,mcpool), &
                           micparam%fracaoc(np,ns),fracpocm,fracmaocm,fracmicm,fraclabm
          enddo
@@ -333,8 +333,8 @@ module calcost_module
     deallocate(xmod)
     deallocate(xobs7,xmod7,xtop,xbot)
 
-901   format(i6,1x,4(i3,1x),f8.3,1x,i2,1x,10(f12.4,1x))
-921   format(i6,1x,4(i3,1x),f8.3,1x,i2,1x,20(f12.4,1x))
+901   format(i6,1x,4(i3,1x),2(f8.3,1x),i2,1x,10(f12.4,1x))
+921   format(i6,1x,4(i3,1x),2(f8.3,1x),i2,1x,20(f12.4,1x))
     end subroutine calcost_hwsd2        
 
 !  cost function for Australian soil C
