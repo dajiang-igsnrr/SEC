@@ -5,7 +5,7 @@ module function_module
                               getdata_hwsd_dim, getdata_hwsd, screenout, &
                               getdata_aust_dim,getdata_aust
  use mesc_interface_module, only: vmic_param_xscale, vmic_param_time, vmic_param_time_single, vmicsoil_c14, vmicsoil_frc1_cpu, vmicsoil_hwsd_cpu, vmicsoil_hwsd_gpu
- use calcost_module, only: calcost_c14, calcost_frc1, calcost_hwsd2,calcost_aust
+ use calcost_module, only: calcost_c14, calcost_frc1, calcost_hwsd2, calcost_hwsd3, calcost_aust
  implicit none
 
  Contains 
@@ -274,11 +274,9 @@ END function functn_frc1
       if(jmodel==1)                mpft=17   !CABLE
       if(jmodel==2 .or. jmodel==3) mpft=19   !ORCHIDEE
       mbgc=12;nlon=1;nlat=1
-      ms=10
+      ms=7
       allocate(zse(ms))
-      zse(1)=0.02;zse(2)=0.04;zse(3)=0.06;zse(4)=0.08
-      zse(5:8)=0.2;zse(9:10)=0.5
-      
+      zse(1:5)=0.2;zse(6:7)=0.5
       
       call mic_allocate_parameter(mpft,mbgc,mp,ms,micpxdef,micparam)
       call mic_allocate_input(mp,ms,nlon,nlat,ntime,micinput,micglobal)
@@ -294,7 +292,7 @@ END function functn_frc1
       call vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,bgcopt,nyeqpool, &
                          zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
 
-      call calcost_hwsd2(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost1)      
+      call calcost_hwsd3(nx,bgcopt,xopt,micpxdef,micparam,miccpool,micinput,micglobal,zse,totcost1)      
       call mic_deallocate_parameter(mpft,mbgc,mp,ms,micpxdef,micparam)
       call mic_deallocate_input(mp,ms,nlon,nlat,ntime,micinput,micglobal)
       call mic_deallocate_output(mp,micoutput)

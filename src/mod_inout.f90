@@ -1199,11 +1199,11 @@ contains
 
    ! get the ancient soc fraction for mp
      status = nf90_open(fanoc,nf90_nowrite,ncid)
-     if(status /= nf90_noerr) print*, 'Error opening fanoc.nc' 
+     if(status /= nf90_noerr) print *, 'Error opening fanoc.nc' 
      status = nf90_inq_varid(ncid,'fanoc_mp',varid)
-     if(status /= nf90_noerr) print*, 'Error inquiring fanoc_mp'
+     if(status /= nf90_noerr) print *, 'Error inquiring fanoc_mp'
      status = nf90_get_var(ncid,varid,fracaoc)
-     if(status /= nf90_noerr) print*,'Error reading fanoc_mp'
+     if(status /= nf90_noerr) print *,'Error reading fanoc_mp'
      ! Close netcdf file
      status = NF90_CLOSE(ncid) 
      
@@ -1237,9 +1237,8 @@ contains
     do np=1, mp
        micglobal%siteid(np)  = np 
        ! calculate mean bulk density
-       micglobal%bulkd(np) = (bulkd(np,1)*(zse(1)+zse(2)+zse(3)+zse(4))                                   &
-                             +bulkd(np,2)*zse(5)+bulkd(np,3)*zse(6)+bulkd(np,4)*zse(7)+bulkd(np,5)*zse(8) &
-                             +bulkd(np,6)*zse(9)+bulkd(np,7)*zse(10))/sum(zse(1:10))
+       micglobal%bulkd(np) = (bulkd(np,1)*zse(1)+bulkd(np,2)*zse(2)+bulkd(np,3)*zse(3)+bulkd(np,4)*zse(4)+bulkd(np,5)*zse(5) &
+                             +bulkd(np,6)*zse(6)+bulkd(np,7)*zse(7))/sum(zse(1:7))
 !       micglobal%bgctype(np) = micglobal%sorder(np) 
        micglobal%poros(np)   = 1.0 - micglobal%bulkd(np)/2650.0
        micparam%siteid(np)   = micglobal%siteid(np)       
@@ -1277,24 +1276,16 @@ contains
        nsocobs=0
 
        do ns=1,ms
-          ! assign the observed layer 1 data to the first 4 modelled layers 
-          if(ns<=4) then 
-             micparam%csoilobs(np,ns) = real(fsoc7(np,1),kind=r_2)
-             micparam%fracaoc(np,ns)  = real(fracaoc(np,1),kind=r_2)             
-             micglobal%tsoil(np,ns,:) = real(tsoil7(np,1,:),kind=r_2)
-             micglobal%moist(np,ns,:) = real(moist7(np,1,:),kind=r_2)
-             micglobal%matpot(np,ns,:)= real(watpot7(np,1,:),kind=r_2) 
-          else
-             micparam%csoilobs(np,ns) = real(fsoc7(np,ns-3),kind=r_2)
-             micparam%fracaoc(np,ns)  = real(fracaoc(np,ns-3),kind=r_2)                
-             micglobal%tsoil(np,ns,:) = real(tsoil7(np,ns-3,:),kind=r_2)
-             micglobal%moist(np,ns,:) = real(moist7(np,ns-3,:),kind=r_2)
-             micglobal%matpot(np,ns,:)= real(watpot7(np,ns-3,:),kind=r_2) 
-             ! filter out sites with SOC >120 gc/kg (organic soil: Lourenco ett al. 2022)
-             if(micparam%csoilobs(np,ns) >=120.0) then 
-                micglobal%area(np) = -1.0
-             endif   
-          endif          
+
+          micparam%csoilobs(np,ns) = real(fsoc7(np,ns),kind=r_2)
+          micparam%fracaoc(np,ns)  = real(fracaoc(np,ns),kind=r_2)                
+          micglobal%tsoil(np,ns,:) = real(tsoil7(np,ns,:),kind=r_2)
+          micglobal%moist(np,ns,:) = real(moist7(np,ns,:),kind=r_2)
+          micglobal%matpot(np,ns,:)= real(watpot7(np,ns,:),kind=r_2) 
+          ! filter out sites with SOC >120 gc/kg (organic soil: Lourenco et al. 2022)
+          if(micparam%csoilobs(np,ns) >=120.0) then 
+             micglobal%area(np) = -1.0
+          endif   
       
           if(micparam%csoilobs(np,ns) >0.0 .and. micparam%csoilobs(np,ns) < 1000.0) nsocobs = nsocobs + 1
 
@@ -1348,15 +1339,16 @@ contains
        do np=1,mp
           write(100,101) micparam%siteid(np),micglobal%area(np),micparam%pft(np), &
           micparam%isoil(np),micparam%sorder(np),micparam%bgctype(np),   &
-          micglobal%npp(np),sum(micglobal%dleaf(np,:))+sum(micglobal%dwood(np,:))+sum(micglobal%droot(np,:)), &
+          micglobal%npp(np), &
           minval(micglobal%dleaf(np,:) + micglobal%dwood(np,:) + micglobal%droot(np,:)), &
           maxval(micglobal%dleaf(np,:) + micglobal%dwood(np,:) + micglobal%droot(np,:)), &
           micglobal%ph(np),micglobal%clay(np)+micglobal%silt(np),micglobal%bulkd(np), &
-          micglobal%avgts(np),micglobal%avgms(np),sum(micparam%csoilobs(np,:)*zse(:))/sum(zse(:))        
+          micglobal%avgts(np),micglobal%avgms(np),sum(micparam%csoilobs(np,:)*zse(:))/sum(zse(:)), &
+          micparam%fracaoc(np,1),micparam%fracaoc(np,3), micparam%fracaoc(np,ms)           
        enddo
        close(100) 
     endif    
-101 format(i5,1x,f8.4,1x,4(i3,1x),20(f10.4,1x))
+101 format(i5,1x,f8.4,1x,4(i3,1x),30(f10.4,1x))
 103 format(' run site', 3(i6,1x),10(f10.3,1x))
 
     deallocate(ivarx1,fcluster)
