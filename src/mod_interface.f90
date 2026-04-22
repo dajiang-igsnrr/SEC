@@ -1114,5 +1114,158 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
     
     end subroutine vmicsoil_hwsd_gpu
 
+subroutine vmicsoil_global_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,bgcopt,nyeqpool, &
+                    zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
+    use mic_constant 
+    use mic_variable
+   !  use omp_lib
+    implicit none
+    TYPE(mic_param_xscale),  INTENT(INOUT)   :: micpxdef      
+    TYPE(mic_param_default), INTENT(IN)      :: micpdef  
+    TYPE(mic_parameter),     INTENT(INout)   :: micparam
+    TYPE(mic_input),         INTENT(INout)   :: micinput
+    TYPE(mic_global_input),  INTENT(INout)   :: micglobal
+    TYPE(mic_cpool),         INTENT(INOUT)   :: miccpool
+    TYPE(mic_npool),         INTENT(INOUT)   :: micnpool
+    TYPE(mic_output),        INTENT(INout)   :: micoutput
+    real(r_2) zse(ms)
+    integer isoc14,kinetics,bgcopt,nyeqpool
+
+    ! local variables
+    real(r_2),    dimension(mcpool)    :: xpool0,xpool1
+    real(r_2),    dimension(ms)        :: ypooli,ypoole,fluxsoc
+
+    integer       ndelt,year,ip,np,ns,ny,nyrun,doy
+    real(r_2)     timex,delty,fluxdocsx,diffsocxx
+
+    integer    jrestart
+    character*140 frestart_in,frestart_out,foutput
+    real(r_2), dimension(ms)    :: cfluxa
+    real(r_2)  cpool0, cpool1, totcinput  
+
+      call vmic_param_constant(kinetics,micpxdef,micpdef,micparam,zse) 
+      call vmic_init(miccpool,micnpool)
+      
+      if(jrestart==1) call vmic_restart_read(miccpool,micnpool,frestart_in)      
+  
+      ndelt   = int(24*365/delt) ! number of time step per year in "delt" unit
+
+   do year=1,nyeqpool
+      ny = year
+      micoutput%fluxcinput(:)=0.0; micoutput%fluxrsoil(:) = 0.0; micoutput%fluxcleach(:)= 0.0    ! yearly fluxes
+      do doy=1,ntime  !daily timestep 
+        ! calculate parameter values that depend on soil temperature or moisture (varying with time)
+         call variable_time(year,doy,micglobal,micinput,micnpool)
+         call vmic_param_time(kinetics,micpxdef,micpdef,micparam,micinput,micnpool)   
+!$OMP PARALLEL DEFAULT(NONE) SHARED (micparam,micpxdef,micnpool,micinput,micglobal,miccpool,micoutput,micpdef,&
+!$OMP kinetics,isoc14,nyeqpool,bgcopt,ndelt,zse,mp,ms,ny,doy,year) &
+!$OMP PRIVATE (np,timex,delty,ns,ip,&
+!$OMP xpool0,xpool1,fluxsoc,diffsocxx,ypooli,ypoole,cpool0,cpool1,totcinput,cfluxa)
+!$OMP DO   
+
+        do np=1,mp
+      
+         if(micparam%bgctype(np)==bgcopt.and.micglobal%area(np) > 0.0) then
+               ! for each soil layer
+               ! sum last all C pools of all layers for compute the soil respiration = input - sum(delCpool)
+               ! before leaching is computed
+                cpool0 =0.0; cpool1 =0.0; totcinput = 0.0            
+               do ns=1,ms
+                 ! micinput%cinputm(np,ns)+micinput%cinputs(np,ns) in mg C/cm3/delt
+                  totcinput =totcinput + (micinput%cinputm(np,ns)+micinput%cinputs(np,ns)) *1000.0 * zse(ns)   ! convert to g C/m2/delt/zse
+
+                  do ip=1,mcpool
+                     xpool0(ip) = miccpool%cpool(np,ns,ip)
+                     cpool0     = cpool0  + xpool0(ip) * zse(ns) * 1000.0  ! 1000 for mg C/cm3 to g C/m2/zse                     
+                  enddo
+
+                 ! here the integration step is "delty" in rk4 and "ndelt" is number of "delt (hour) per year 
+                  timex=real(doy*delt)
+                  delty = real(ndelt)/(365.0*delt)  ! time step in rk4 in "24 * delt (or daily)", all C input are in " per delt"
+                  call rk4modelx(timex,delty,ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,xpool0,xpool1)  
+
+                  do ip=1,mcpool
+                     miccpool%cpool(np,ns,ip) = max(xpool1(ip),1.0e-8)
+                     cpool1 = cpool1 + miccpool%cpool(np,ns,ip) * zse(ns) * 1000.0  ! 1000 for mg C/cm3 to g C/m2/zse                        
+                  enddo
+
+                ! for checking mass balance
+                !  write(*,101) np,ns, micinput%cinputm(np,ns)+micinput%cinputs(np,ns),sum(xpool1(1:7)-xpool0(1:7))/real(delty), &
+                !                      micinput%cinputm(np,ns)+micinput%cinputs(np,ns)-sum(xpool1(1:7)-xpool0(1:7))/real(delty)
+101 format('vmicsoil input sumdelC rsoil',2(i6,1x),3(f10.6,1x))  
+           
+               enddo    ! "ns"
+
+               micoutput%fluxcinput(np)= micoutput%fluxcinput(np) + totcinput * real(delty)        
+               micoutput%fluxrsoil(np) = micoutput%fluxrsoil(np)  + totcinput * real(delty) - (cpool1 - cpool0)  
+
+               ! do labile carbon leaching only for kinetics=3
+               ! the following leachate transport calculations caused mass imbalance: disabled temporarily
+            !   if(kinetics==3) then
+            !      cfluxa(:)=0.0      
+            !      do ns=1,ms
+            !         cfluxa(ns) = sqrt(micinput%wavg(np,ns)/micinput%porosity(np,ns)) * micparam%tvac(np,ns) * miccpool%cpool(np,ns,7) * delty
+            !         cfluxa(ns) = 0.0
+            !         miccpool%cpool(np,ns,7) = miccpool%cpool(np,ns,7) - cfluxa(ns)                  
+            !         if(ns==1) then
+            !            miccpool%cpool(np,ns,7:) = miccpool%cpool(np,ns,7) - cfluxa(ns)
+            !         else
+            !            miccpool%cpool(np,ns,7) = miccpool%cpool(np,ns,7) + cfluxa(ns-1) -cfluxa(ns)        
+            !         endif               
+            !      enddo   
+            !     ! converting flux from mg C cm-3 delty-1 to g C m-2 delty-1
+            !      micoutput%fluxcleach(np) = micoutput%fluxcleach(np) + cfluxa(ms) * zse(ms) * 1000.0
+            !   endif
+            ! only do leaching the bottom layer, as other layers are done via bioturb
+               cfluxa(:) = 0.0
+               ! "tvac" in hourly, so times 24 to convert into daily rate
+               cfluxa(ms) = micparam%tvac(np,ms) * sqrt(micinput%wavg(np,ms)/micinput%porosity(np,ms))  &
+                          * max(0.0, miccpool%cpool(np,ms,7)) * delty * 24.0
+            ! converting flux from mg C cm-3 delty-1 to g C m-2 delty-1
+               micoutput%fluxcleach(np) = cfluxa(ms) * zse(ms) * 1000.0
+               miccpool%cpool(np,ms,7)  = miccpool%cpool(np,ms,7)  - cfluxa(ms) 
+
+                if(diag==1) then  
+                   print *, 'year day site np1', year, doy, outp,micparam%diffsocx(outp)
+                    do ns=1,ms
+                       print *, ns, miccpool%cpool(outp,ns,:) 
+                    enddo  
+                endif
+  
+               do ip=1,mcpool
+                  do ns=1,ms
+                     ypooli(ns) = miccpool%cpool(np,ns,ip)      ! in mg c/cm3
+                  enddo  !"ns"
+            
+                  fluxsoc(:) = 0.0  ! This flux is added in "modelx"
+                  diffsocxx= micparam%diffsocx(np)
+            
+                  call bioturb(int(delty/delty),ms,zse,delty,diffsocxx,fluxsoc,ypooli,ypoole)  ! only do every 24*delt
+            
+                  do ns=1,ms
+                     miccpool%cpool(np,ns,ip) = ypoole(ns)
+                  enddo
+               enddo ! "ip=1,mcpool"
+ 
+            ! print out the time series of pool sizes
+            ! if(micparam%pft(np)==bgcopt) then
+            !   write(*,201) year, np, miccpool%cpool(np,1,:),miccpool%cpool(np,ms,:)
+201             format('vmicsoil:cpool',2(i5,1x),30(f7.4,1x))               
+            ! endif   
+            endif   !bgctype(np) = bgcopt
+          enddo !"mp"  
+!$OMP END DO
+!$OMP END PARALLEL	
+         enddo   !"doy: day of ntime"
+           
+      enddo !"year"
+
+    miccpool%cpooleq(:,:,:) = miccpool%cpool(:,:,:)
+     
+    call vmic_output_write(foutput,micinput,micoutput)
+    call vmic_restart_write(frestart_out,miccpool,micnpool)
+
+    end subroutine vmicsoil_global_cpu
+    
 end module mesc_interface_module
 
