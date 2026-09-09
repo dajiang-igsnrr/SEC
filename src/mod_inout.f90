@@ -244,13 +244,13 @@ contains
   end subroutine vmic_output_write
 
   !> Get PFT-dependent model parameter values (up to 20 parameters)
-  subroutine getparam_global(fglobalparam,jmodel,micpxdef)
-    use mic_constant, only : xrootcable, xrootorchidee
+  subroutine getparam_global(fglobalparam,rootdepth,micpxdef)
 
     character(len=140),     intent(in)    :: fglobalparam
       !! Parameter filename (currently hard-coded to "parameters_global.csv")
-    integer,                intent(in)    :: jmodel
-      !! Code for land surface model (1=CABLE, 2=ORCHIDEE, 3=ORCHIDEE + modis_npp)
+    real(dp), dimension(:), intent(in)    :: rootdepth
+      !! Per-PFT rooting depths [m] (size mpft). In standalone mode pass xrootcable or
+      !! xrootorchidee from mod_constants.f90; for online coupling ORCHIDEE supplies this.
     TYPE(mic_param_xscale), intent(inout) :: micpxdef
       !! Object holding parameter values
 
@@ -283,20 +283,9 @@ contains
     end do
     close(100)
 
-    select case (jmodel)
-    case (model_cable)
-      do ipft=1,mpft
-        micpxdef%xrootbeta(ipft) = xrootcable(ipft)
-      end do
-    case (model_orchidee)
-      do ipft=1,mpft
-        micpxdef%xrootbeta(ipft) = xrootorchidee(ipft)
-      end do
-    case default
-      write(6,"(a,i0,a)") "ERROR vmic_param_xscale: Invalid model '", jmodel, "'"
-      stop 999
-    end select
-
+    do ipft=1,mpft
+       micpxdef%xrootbeta(ipft) = rootdepth(ipft)
+    end do
   end subroutine getparam_global
 
   !> get number of patches

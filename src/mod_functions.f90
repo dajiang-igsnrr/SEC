@@ -6,9 +6,10 @@
 !> [[functn]] reads `mesc.nml` and selects the configured run mode.
 module function_module
   use precision_module, only: dp
+  use mic_constant, only: mp, mpft, mbgc, ntime, nlon, nlat, ms, xrootcable, &
+                          xrootorchidee
   use mesc_namelist, only: mesc_config, read_mesc_namelist, model_cable, &
                            model_orchidee
-  use mic_constant, only: mp, mpft, mbgc, ntime, nlon, nlat, ms
   use mic_variable, only: mic_param_xscale, mic_param_default, mic_parameter, &
                           mic_input, mic_global_input, mic_cpool, mic_npool, mic_output, &
                           mic_allocate_parameter, mic_allocate_input, mic_allocate_output, &
@@ -161,7 +162,7 @@ module function_module
           isoc14 = 0
       !    print *, "isoc14 =",isoc14,'--getdata_c14'
           call getdata_c14(frac14c,f14c,filecluster,micinput,micparam,micnpool,zse)
-          call vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
+          call vmic_param_xscale(xopt,bgcopt,xrootcable,micpxdef)
       !    print *, 'vmicsoil_c14'
           call vmicsoil_c14(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,ifsoc14,bgcopt,nyeqpool, &
                         zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
@@ -175,7 +176,7 @@ module function_module
           isoc14 = 1
        !   print *, "isoc14 =",isoc14,'--getdata_c14'
           call getdata_c14(frac14c,f14c,filecluster,micinput,micparam,micnpool,zse)
-          call vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
+          call vmic_param_xscale(xopt,bgcopt,xrootcable,micpxdef)
        !   print *, 'vmicsoil_c14'
           call vmicsoil_c14(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,ifsoc14,bgcopt,nyeqpool+2000, &
                         zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
@@ -282,7 +283,7 @@ real(dp) function functn_frc1(nx,xparam16)
 
     !  print *, "isoc14 =",isoc14,'--getdata_frc'
       call getdata_frc(cfraction,jglobal,bgcopt,micinput,micparam,micnpool,micglobal,zse)
-      call vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
+      call vmic_param_xscale(xopt,bgcopt,xrootcable,micpxdef)
 
     !  print *, 'vmicsoil_frc1_cpu'
     !  call vmicsoil_frc1_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,ifsoc14,bgcopt,nyeqpool, &
@@ -401,7 +402,11 @@ END function functn_frc1
       call getdata_hwsd(fhwsdsoc,fmodis,fanoc,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
 
       !  call profile()
-      call vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
+      if (jmodel==1) then
+        call vmic_param_xscale(xopt,bgcopt,xrootcable,micpxdef)
+      else
+        call vmic_param_xscale(xopt,bgcopt,xrootorchidee,micpxdef)
+      end if
 
       call vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,bgcopt,nyeqpool, &
                          zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
@@ -531,9 +536,9 @@ END function functn_soc_hwsd
       print *, "global input data are read in"
 
       if(.not. jopt) then
-        call getparam_global(fglobal(4),jmodel,micpxdef)     ! reading global parameter lookup table
+        call getparam_global(fglobal(4),xrootorchidee,micpxdef)     ! reading global parameter lookup table
       else
-        call vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)  ! parameter optimization
+        call vmic_param_xscale(xopt,bgcopt,xrootorchidee,micpxdef)  ! parameter optimization
       end if
 
       print *, "vmicsoil_global"
@@ -636,7 +641,11 @@ END function functn_global4
       call getdata_aust(faustsoc,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
 
       !  call profile()
-      call vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
+      if (jmodel==1) then
+        call vmic_param_xscale(xopt,bgcopt,xrootcable,micpxdef)
+      else
+        call vmic_param_xscale(xopt,bgcopt,xrootorchidee,micpxdef)
+      end if
 
       call vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,bgcopt,nyeqpool, &
                          zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
