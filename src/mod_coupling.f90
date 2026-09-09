@@ -104,14 +104,18 @@ contains
   !! data loader: `ph` to [3.5, 9.5] and `bulkd` to [500, 1800] kg m-3;
   !! porosity is derived as `1 - bulkd/2650`.
   !!
-  !! NOTE: litter quality (C:N ratios, lignin fractions) and rooting depths are
-  !!       passed per PFT and applied via the dominant PFT of each cell, as in
-  !!       standalone mode. If ORCHIDEE prefers to pass per-cell values directly
-  !!       (e.g. for crops or sub-grid PFT mixtures), the signature can be
-  !!       changed.
+  !! NOTE: litter quality (C:N ratios, lignin fractions) is applied per cell
+  !!       via the dominant PFT index, as in standalone mode. If ORCHIDEE
+  !!       prefers to pass per-cell values directly (e.g. for crops or sub-grid
+  !!       PFT mixtures), the signature can be changed.
   !!
-  !! NOTE: `npp` is used by the microbial growth efficiency calculation
-  !!       ([[mget]]) and is currently fixed at init time (e.g. to a
+  !! NOTE: rooting depths are passed as a full per-PFT array (`npft` values)
+  !!       directly to the parameter lookup; MESC does not index them by
+  !!       dominant PFT. This lets ORCHIDEE supply its own values instead of
+  !!       relying on internal PFT lookup tables.
+  !!
+  !! NOTE: `npp` is used by the microbial turnover rate calculation
+  !!       ([[turnovert]]) and is currently fixed at init time (e.g. to a
   !!       climatology). A yearly update hook can be added if we want NPP to
   !!       evolve.
   subroutine mesc_coupling_init(state, ncell, nlev, npft, nbgc, zse, fparam, &
