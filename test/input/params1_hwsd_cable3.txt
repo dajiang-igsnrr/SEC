@@ -1,5 +1,5 @@
-jglobal  ifsoc14  kinetics pftopt jopt jrestart jmodel
-   1        0        3       3     0     0        1
+jglobal  ifsoc14  pftopt jopt jrestart jmodel
+   1        0       3     0     0        1
 ./input/data_extraction_cable_model_calibration_cluster_test.nc
 ./input/MODIS_npp_2001-2009_cable.nc
 ./input/fanoc_mp_100_matched_sites.nc

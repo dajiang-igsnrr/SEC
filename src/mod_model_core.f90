@@ -1,5 +1,5 @@
 !> Core model physics: RK4 integrator, Michaelis-Menten kinetics, bioturbation, and C-flux RHS.
-!! Supports three kinetics variants (MIMICS, MILLENNIAL2, combined)
+!! A combined kinetics approach of MIMICS and MILLENNIAL2 is taken, with support for adsorption and desorption.
 module mesc_model_module
   use precision_module, only : dp
   use mic_constant, only : diag, outp, mcpool, delt, mp, ms, tvc14
@@ -12,12 +12,11 @@ module mesc_model_module
 contains
 
  !> Fourth-order Runge-Kutta integrator for the soil C ODE system.
- subroutine rk4modelx(timex,delty,ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,xpool0,xpool1)
+ subroutine rk4modelx(timex,delty,ny,isoc14,np,ns,micpdef,micparam,micinput,xpool0,xpool1)
      TYPE(mic_param_default), INTENT(IN)    :: micpdef           !! fixed model parameters
      TYPE(mic_parameter),     INTENT(IN)    :: micparam          !! computed model parameters
      TYPE(mic_input),         INTENT(IN)    :: micinput          !! environmental model inputs
      integer,                 INTENT(IN)    :: np,ns             !! grid point and layer indices
-     integer,                 INTENT(IN)    :: kinetics          !! kinetics model selector (1/2/3)
      integer,                 INTENT(IN)    :: ny,isoc14         !! model year and 14C flag
      real(dp),               INTENT(IN)    :: timex             !! current simulation time
      real(dp),               INTENT(IN)    :: delty             !! integration time step (hours)
@@ -27,16 +26,16 @@ contains
 
      h=delty
      y1(:) = xpool0(:)
-     call vmic_c(ny, isoc14, np, ns, kinetics, micpdef, micparam, micinput, y1, dy1dt)
+     call vmic_c(ny, isoc14, np, ns, micpdef, micparam, micinput, y1, dy1dt)
 
      y2(:) = y1(:) + 0.5 * h * dy1dt(:)
-     call vmic_c(ny, isoc14, np, ns, kinetics, micpdef, micparam, micinput, y2, dy2dt)
+     call vmic_c(ny, isoc14, np, ns, micpdef, micparam, micinput, y2, dy2dt)
 
      y3(:) = y1(:) + 0.5 * h * dy2dt(:)
-     call vmic_c(ny, isoc14, np, ns, kinetics, micpdef, micparam, micinput, y3, dy3dt)
+     call vmic_c(ny, isoc14, np, ns, micpdef, micparam, micinput, y3, dy3dt)
 
      y4(:) = y1(:) +       h * dy3dt(:)
-     call vmic_c(ny, isoc14, np, ns, kinetics, micpdef, micparam, micinput, y4, dy4dt)
+     call vmic_c(ny, isoc14, np, ns, micpdef, micparam, micinput, y4, dy4dt)
 
     ! RK4
      xpool1(:) = xpool0(:) + (dy1dt(:)/6.0 + dy2dt(:)/3.0 + dy3dt(:)/3.0 + dy4dt(:)/6.0) * h
@@ -215,9 +214,8 @@ contains
 
  !> Computes microbial turnover rate coefficients (tvmicR/K, betamicR/K) for one grid point np.
  !! Turnover is PFT-, NPP-, and metabolic-fraction-dependent.
- subroutine turnovert(kinetics,micpxdef,micpdef,micparam,micinput,np)
+ subroutine turnovert(micpxdef,micpdef,micparam,micinput,np)
     integer,                 INTENT(IN)      :: np            !! grid point index
-    integer,                 INTENT(IN)      :: kinetics      !! kinetics model selector (1/2/3)
     TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef      !! PFT-specific scaling factors
     TYPE(mic_param_default), INTENT(IN)      :: micpdef       !! fixed default parameters
     TYPE(mic_parameter),     INTENT(INOUT)   :: micparam      !! computed model parameters. tvmicR/K, betamicR/K updated at (np,ns)
@@ -229,11 +227,6 @@ contains
       nopt=micparam%bgctype(np)
     tvref = sqrt(micinput%fcnpp(np)/micpdef%xtv)
     tvref = max(0.6,min(1.3,tvref))          ! 0.8-1.2 based on Wieder et al., 2015
-
-!         if(kinetics==3) then
-!            tvref(np) = 1.0
-!            tvref(np) = 1.0
-!         endif
 
       do ns=1,ms
          micparam%tvmicR(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicR * tvref * exp(0.3 * micparam%fmetave(np,ns)) * delt
@@ -540,17 +533,15 @@ end subroutine bioturb
 
 
  !> ODE right-hand side: computes carbon fluxes (dxpool/dt) for all pools in a single grid layer.
- !! Implements three kinetics variants (1=MIMICS forward MM, 2=reverse MM, 3=combined with adsorption/desorption).
  !! Pools: metabolic litter (1), structural litter (2), microbe-R (3), microbe-K (4),
- !! physically protected (5), chemically protected (6), active/LWC (7), and additional pools (8-10) for kinetics 3.
+ !! physically protected (5), chemically protected (6), active/LWC (7), and additional pools (8-10).
  !! Pools in mg C/cm3, time step in hours. Adapted from Zhang et al. (2019, GCB) and Abramoff et al. (2022).
- subroutine vmic_c(ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,xpool,y)
+ subroutine vmic_c(ny,isoc14,np,ns,micpdef,micparam,micinput,xpool,y)
 
      TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters
      TYPE(mic_parameter),     INTENT(IN)     :: micparam      !! computed model parameters.
      TYPE(mic_input),         INTENT(IN)     :: micinput      !! environmental model inputs
      integer,                 INTENT(IN)     :: np,ns         !! grid point and layer indices
-     integer,                 INTENT(IN)     :: kinetics      !! kinetics model selector (1/2/3)
      integer,                 INTENT(IN)     :: ny            !! model year index (for 14C)
      integer,                 INTENT(IN)     :: isoc14        !! 14C mode flag (1=14C, 0=standard)
      real(dp),  dimension(mcpool),  INTENT(IN)     :: xpool  !! current pool state (mg C/cm3)
@@ -579,7 +570,6 @@ end subroutine bioturb
      real(dp) :: cfluxr2p, cfluxk2p, cfluxp2a, cfluxr2c, cfluxk2c
      real(dp) :: cfluxc2a, cfluxr2a, cfluxk2a, cfluxa2r, cfluxa2k
 
-     ! additional variables for kinetics3
      real(dp)  :: cfluxa,cfluxp,cfluxc2p,cfluxa2c,cfluxp2c
      real(dp)  :: kadsorpx,kdesorpx,fp2ax,moistx,soilphx,porex,xwater,phx1,phx2,phx3,siltx,tvcpoolx,tvppoolx,tvacx
      real(dp)  :: smexpa,smopt,qmaxcoeffx,qmax
@@ -636,156 +626,64 @@ end subroutine bioturb
 !      print *, 'p13=', Q1x,Q2x
 !      print *, 'p14=', betamicR,betamicK
 
-      ! additional parameters and input for kinetics3
-      if(kinetics==3) then
-         moistx   = micinput%wavg(np,ns);          matpotx    = micinput%matpot(np,ns)
-         soilphx  = micinput%ph(np,ns);            porex      = micinput%porosity(np,ns)
-         kadsorpx = micparam%kadsorp(np,ns);       tvcpoolx   = micparam%tvcpool(np,ns);   tvppoolx =micparam%tvppool(np,ns)
-         tvacx    = micparam%tvac(np,ns);          fp2ax      = micparam%fp2a(np,ns)
-         kdesorpx = micparam%kdesorp(np,ns);       qmaxcoeffx = micparam%qmaxcoeff(np,ns)
+      moistx   = micinput%wavg(np,ns);          matpotx    = micinput%matpot(np,ns)
+      soilphx  = micinput%ph(np,ns);            porex      = micinput%porosity(np,ns)
+      kadsorpx = micparam%kadsorp(np,ns);       tvcpoolx   = micparam%tvcpool(np,ns);   tvppoolx =micparam%tvppool(np,ns)
+      tvacx    = micparam%tvac(np,ns);          fp2ax      = micparam%fp2a(np,ns)
+      kdesorpx = micparam%kdesorp(np,ns);       qmaxcoeffx = micparam%qmaxcoeff(np,ns)
 
-         ! we applied a single water-limiting function from Yan et al. 2018, Nature Coomunitation. eqn1)
-         if(clayx <= 0.016) then
-            smexpa=0.0
-         else if(clayx >0.016 .and. clayx <=0.37) then
-            smexpa=2.8* clayx-0.046
-         else
-            smexpa=1.0
-         end if
-
-         smopt     = 0.65 * porex
-
-         if(moistx < smopt) then
-            xwater = ((micpdef%smkdesorp+smopt)/(micpdef%smkdesorp + moistx))     &
-                   * (moistx/smopt)**(1.0+smexpa *micpdef%smexpns)
-
-         else
-            xwater = ((porex - moistx)/(porex-smopt)) **micpdef%smexpb
-         end if
-
-
-         ! soil water limitation from Abramoff et al. (2022) eqn (4) and eqn (15)
-         xwater1 = sqrt(min(1.0,moistx/porex))                                                                ! eqn (4)
-         xwater2 = exp(lamda * matpotx) *(kamin + (1.0- kamin) *sqrt(max(0.0,1.0-moistx/porex)))*xwater1      ! eqn (15)
-
-         phx1      = exp(-micpdef%phcoeff1* soilphx - micpdef%phcoeff2)                          ! eqn(10) Abramoff2022
-         phx2     = 1.0/(1.0+exp(-(soilphx-4.798)/0.4246))        !bacteria
-         phx3     = 1.0/(1.0+exp(-(soilphx-3.022)/0.428))         !fungi
-         qmax     = qmaxcoeffx * (clayx + siltx)*100.0  ! mg C/g soil, based on Georgiou et al. (2022), media value (their  Fig 1)
-         ! unit conversion qmax to mg C/cm3
-         qmax     = qmax * micinput%bulkd(np,ns) *0.001                        ! bulkd in kg/m3 multiply by 0.001 into g/cm3
-
-         !    xwater = sqrt(micinput%moist(np,ns)/micinput%poros(np,ns))      ! eqn (4) Abramoff2022
-         !    xwmic    = xwdecomp * exp(lambda * (-micinput%matpot(np,ns)) * (swmin + (1.0-swmin(np,ns)) * &
-         !               ((micinput%poros(np) - micinput%moist(np,ns))/micinput%poros(np,ns)) **0.5)    !eqn(15) Abramoff2022
-
+      ! we applied a single water-limiting function from Yan et al. 2018, Nature Coomunitation. eqn1)
+      if(clayx <= 0.016) then
+        smexpa=0.0
+      else if(clayx >0.016 .and. clayx <=0.37) then
+        smexpa=2.8* clayx-0.046
+      else
+        smexpa=1.0
       end if
-      ! carbon fluxes
-      if(kinetics==1) then
-        ! forward Michaelis-Menten
-        cfluxm2r = xpool(3) * V1x * xpool(1)/(K1x + xpool(1))
-        cfluxs2r = xpool(3) * V2x * xpool(2)/(K2x + xpool(2))
-        cfluxa2r = xpool(3) * V3x * xpool(7)/(K3x + xpool(7))
 
-        cfluxm2k = xpool(4) * W1x * xpool(1)/(J1x + xpool(1))
-        cfluxs2k = xpool(4) * W2x * xpool(2)/(J2x + xpool(2))
-        cfluxa2k = xpool(4) * W3x * xpool(7)/(J3x + xpool(7))
+      smopt     = 0.65 * porex
 
-        cfluxr   = tvmicRx * xpool(3) ** betamicR
-        cfluxk   = tvmicKx * xpool(4) ** betamicK
+      if(moistx < smopt) then
+        xwater = ((micpdef%smkdesorp+smopt)/(micpdef%smkdesorp + moistx))     &
+                * (moistx/smopt)**(1.0+smexpa *micpdef%smexpns)
 
-        cfluxr2p = fr2px * cfluxr
-        cfluxk2p = fk2px * cfluxk
-
-        cfluxr2c = fr2cx   * cfluxr
-        cfluxk2c = fk2cx   * cfluxk
-
-        cfluxp2a = desorpx * xpool(5)
-        cfluxr2a = fr2ax   * cfluxr
-        cfluxk2a = fk2ax   * cfluxk
-        cfluxc2a = xpool(3)* V2x * xpool(6)/(Q1x*K2x + xpool(6))   &
-                 + xpool(4)* W2x * xpool(6)/(Q2x*J2x + xpool(6))
+      else
+        xwater = ((porex - moistx)/(porex-smopt)) **micpdef%smexpb
       end if
-      if(kinetics ==2 )then
-        !=======================================================
-        ! reverse Michaelis-Menten
-        cfluxm2r = xpool(1) * V1x * xpool(3)/(K1x + xpool(3))
-        cfluxs2r = xpool(2) * V2x * xpool(3)/(K2x + xpool(3))
-        cfluxa2r = xpool(7) * V3x * xpool(3)/(K3x + xpool(3))
-
-        cfluxm2k = xpool(1) * W1x * xpool(4)/(J1x + xpool(4))
-        cfluxs2k = xpool(2) * W2x * xpool(4)/(J2x + xpool(4))
-        cfluxa2k = xpool(7) * W3x * xpool(4)/(J3x + xpool(4))
-
-        cfluxr   = tvmicRx * xpool(3) ** betamicR
-        cfluxk   = tvmicKx * xpool(4) ** betamicK
 
 
-        cfluxr2p = fr2px   * cfluxr
-        cfluxk2p = fk2px   * cfluxk
+      ! soil water limitation from Abramoff et al. (2022) eqn (4) and eqn (15)
+      xwater1 = sqrt(min(1.0,moistx/porex))                                                                ! eqn (4)
+      xwater2 = exp(lamda * matpotx) *(kamin + (1.0- kamin) *sqrt(max(0.0,1.0-moistx/porex)))*xwater1      ! eqn (15)
 
-        cfluxr2c = fr2cx * cfluxr
-        cfluxk2c = fk2cx * cfluxk
+      phx1      = exp(-micpdef%phcoeff1* soilphx - micpdef%phcoeff2)                          ! eqn(10) Abramoff2022
+      phx2     = 1.0/(1.0+exp(-(soilphx-4.798)/0.4246))        !bacteria
+      phx3     = 1.0/(1.0+exp(-(soilphx-3.022)/0.428))         !fungi
+      qmax     = qmaxcoeffx * (clayx + siltx)*100.0  ! mg C/g soil, based on Georgiou et al. (2022), media value (their  Fig 1)
+      ! unit conversion qmax to mg C/cm3
+      qmax     = qmax * micinput%bulkd(np,ns) *0.001                        ! bulkd in kg/m3 multiply by 0.001 into g/cm3
 
-        cfluxp2a = desorpx * xpool(5)
-        cfluxr2a = fr2ax * cfluxr
-        cfluxk2a = fk2ax * cfluxk
-        cfluxc2a = xpool(6) * V2x * xpool(3)/(Q1x*K2x + xpool(3))   &
-                 + xpool(6) * W2x * xpool(4)/(Q2x*J2x + xpool(4))
-      end if
+      !    xwater = sqrt(micinput%moist(np,ns)/micinput%poros(np,ns))      ! eqn (4) Abramoff2022
+      !    xwmic    = xwdecomp * exp(lambda * (-micinput%matpot(np,ns)) * (swmin + (1.0-swmin(np,ns)) * &
+      !               ((micinput%poros(np) - micinput%moist(np,ns))/micinput%poros(np,ns)) **0.5)    !eqn(15) Abramoff2022
 
       !===================================================
-      !
-      if(kinetics ==1 .or. kinetics==2) then
-         ! metabolic litter  [=Im*(1-fm)-A1-A5]
-         y(1) = cinputmx * (1.0-fmx) - cfluxm2r - cfluxm2k
-
-         ! structural litter [=Is*(1-fs)-A2-A6]
-         y(2) = cinputsx * (1.0-fsx) - cfluxs2r - cfluxs2k
-
-        ! these two are incorrect
-        ! !microbe R          [mge1*A1+mge2*A2+mge3*A3-A4]
-        ! y(3) = mgeRx1 * cfluxm2r + mgeRx2 * cfluxs2r + mgeRx3 * cfluxa2r - cfluxr
-
-        ! !microbe K          [mge3*A5+mge4*A6+mge3*A7-A8]
-        ! y(4) = mgeKx1 * cfluxm2k + mgeKx2 * cfluxs2k + mgeKx2 * cfluxa2k - cfluxk
-
-        ! !microbe R          [mge1*A1+mge2*A2+mge1*A3-A4]
-         y(3) = mgeRx1 * cfluxm2r + mgeRx2 * cfluxs2r + mgeRx1 * cfluxa2r - cfluxr
-
-        ! !microbe K          [mge3*A5+mge4*A6+mge3*A7-A8]
-         y(4) = mgeKx1 * cfluxm2k + mgeKx2 * cfluxs2k + mgeKx1 * cfluxa2k - cfluxk
-
-         !physically protected SOM: [Lm*fm+fpr*A4+fpk*A8-A9]
-         y(5) = cinputmx * fmx + cfluxr2p + cfluxk2p - cfluxp2a
-
-         ! chemically protected SOM: [Is*fs+fcr*A4+fck*A8-A10]
-         y(6) = cinputsx * fsx + cfluxr2c + cfluxk2c - cfluxc2a
-
-         !active SOM: [far*A4+fak*A8+A9+A10-A3-A7]
-         y(7) = cfluxr2a + cfluxk2a + cfluxp2a + cfluxc2a - cfluxa2r - cfluxa2k
-         ! additional dummy pools
-         y(8) = 0.0
-         y(9) = 0.0
-         y(10)= 0.0
-
-      end if
 
       ! the new soil carbon model combining MIMICS and MILLENNIAL2
       ! we use two litter pools (m,s) and two microbial pool (r,k) and LWC (pool a), aggregate C (pool p) amd MAOC (pool C)
       ! see documentation on the combined model
-      if(kinetics==3) then
-        ! reverse Michaelis-Menten for litter and forward MM for pool 7
-        cfluxm2r = xpool(1) * V1x * phx2 * xwater2 * xpool(3)/(K1x + xpool(3))    ! eqn 2 Abramoff2022
-        cfluxs2r = xpool(2) * V2x * phx2 * xwater2 * xpool(3)/(K2x + xpool(3))    ! eqn 2 Abramoff2022
-        cfluxa2r = xpool(3) * V3x * phx2 * xwater2 * xpool(7)/(K3x + xpool(7))
+
+      ! reverse Michaelis-Menten for litter and forward MM for pool 7
+      cfluxm2r = xpool(1) * V1x * phx2 * xwater2 * xpool(3)/(K1x + xpool(3))    ! eqn 2 Abramoff2022
+      cfluxs2r = xpool(2) * V2x * phx2 * xwater2 * xpool(3)/(K2x + xpool(3))    ! eqn 2 Abramoff2022
+      cfluxa2r = xpool(3) * V3x * phx2 * xwater2 * xpool(7)/(K3x + xpool(7))
 !        cfluxa2r = xpool(7) * V3x * xwater2 * xpool(3)/(K3x + xpool(3))    ! eqn 2 Abramoff2022
 
-        cfluxm2k = xpool(1) * W1x * phx3 * xwater2 * xpool(4)/(J1x + xpool(4))    ! eqn 2 Abramoff2022
-        cfluxs2k = xpool(2) * W2x * phx3 * xwater2 * xpool(4)/(J2x + xpool(4))    ! eqn 2 Abramoff2022
-        cfluxa2k = xpool(4) * W3x * phx3 * xwater2 * xpool(7)/(J3x + xpool(7))
+      cfluxm2k = xpool(1) * W1x * phx3 * xwater2 * xpool(4)/(J1x + xpool(4))    ! eqn 2 Abramoff2022
+      cfluxs2k = xpool(2) * W2x * phx3 * xwater2 * xpool(4)/(J2x + xpool(4))    ! eqn 2 Abramoff2022
+      cfluxa2k = xpool(4) * W3x * phx3 * xwater2 * xpool(7)/(J3x + xpool(7))
 !        cfluxa2k = xpool(7) * W3x * xwater * xpool(4)/(J3x + xpool(4))    ! eqn 2 Abramoff2022
-       ! forward Michaelis-Menten
+      ! forward Michaelis-Menten
 !        cfluxm2r = xpool(3) * V1x * xpool(1)/(K1x + xpool(1))
 !        cfluxs2r = xpool(3) * V2x * xpool(2)/(K2x + xpool(2))
 !        cfluxa2r = xpool(3) * V3x * xpool(7)/(K3x + xpool(7))
@@ -794,77 +692,76 @@ end subroutine bioturb
 !        cfluxs2k = xpool(4) * W2x * xpool(2)/(J2x + xpool(2))
 !        cfluxa2k = xpool(4) * W3x * xpool(7)/(J3x + xpool(7))
 
-        cfluxa   = tvacx    * xwater1 * xpool(7)                           ! eqn 8 Abramoff2022 (leaching)
-        cfluxa   = 0.0                                                    ! labile C leaching is done separately
-        cfluxr   = tvmicRx  * xpool(3) ** betamicR                        ! eqv. eqn(16) Abramoff2022
-        cfluxk   = tvmicKx  * xpool(4) ** betamicK                        ! eqv. eqn(16) Abramoff2022
+      cfluxa   = tvacx    * xwater1 * xpool(7)                           ! eqn 8 Abramoff2022 (leaching)
+      cfluxa   = 0.0                                                    ! labile C leaching is done separately
+      cfluxr   = tvmicRx  * xpool(3) ** betamicR                        ! eqv. eqn(16) Abramoff2022
+      cfluxk   = tvmicKx  * xpool(4) ** betamicK                        ! eqv. eqn(16) Abramoff2022
 !        cfluxp   = tvppoolx * xwater1 * xpool(5)                          ! eqv. eqn (6) abramoff2022 (aggregate breakdown)
-        cfluxc2p = tvcpoolx * xwater1 * xpool(6)                          ! eqn(18) Abramoff2022  , all flux to aggregate C
+      cfluxc2p = tvcpoolx * xwater1 * xpool(6)                          ! eqn(18) Abramoff2022  , all flux to aggregate C
 
-        ! flux to MAOC (pool c)
-        cfluxa2c = kadsorpx * phx1 * xwater1 * xpool(7) * (1.0 -  xpool(6)/qmax)   ! eqn(9)  abramoff2022
-        cfluxr2c = fr2cx * cfluxr                                                ! p_b*F_bm in eqn(19) Abramoff2022
-        cfluxk2c = fk2cx * cfluxk                                                ! p_b*F_bm in eqn(19) Abramoff2022
+      ! flux to MAOC (pool c)
+      cfluxa2c = kadsorpx * phx1 * xwater1 * xpool(7) * (1.0 -  xpool(6)/qmax)   ! eqn(9)  abramoff2022
+      cfluxr2c = fr2cx * cfluxr                                                ! p_b*F_bm in eqn(19) Abramoff2022
+      cfluxk2c = fk2cx * cfluxk                                                ! p_b*F_bm in eqn(19) Abramoff2022
 !        cfluxp2c = (1.0-fp2ax) * cfluxp                                          !(1-p_a)*F_a  in eqn(19) of Abramoff2022
 
-        ! flux to low weight mass C (pool a)
-        cfluxr2a = (1.0-fr2cx) * cfluxr                                          !(1-p_b)*F_bm in eqn(7) Abramoff2022
-        cfluxk2a = (1.0-fk2cx) * cfluxk                                          !(1-p_b)*F_bm in eqn(7) Abramoff2022
+      ! flux to low weight mass C (pool a)
+      cfluxr2a = (1.0-fr2cx) * cfluxr                                          !(1-p_b)*F_bm in eqn(7) Abramoff2022
+      cfluxk2a = (1.0-fk2cx) * cfluxk                                          !(1-p_b)*F_bm in eqn(7) Abramoff2022
 !        cfluxp2a = fp2ax * cfluxp                                                ! p_a*F_a  different from Abramoff2022, Aggregate -> active, not litter
 !        ! this equation is wrong  (see Wang et al. 2022, their GCB papes, Tables S3 and S5)
 !        cfluxc2a = kadsorpx * xpool(6)/qmax                                      ! eqn(12) Abramoff2022
-        ! based on Wang et al. (2022)
-        cfluxc2a = kdesorpx * xpool(6)/qmax
+      ! based on Wang et al. (2022)
+      cfluxc2a = kdesorpx * xpool(6)/qmax
 
 !       disaggregation fluxes
-        cfluxp2m = tvppoolx * xwater1 * xpool(5)   !metabolic pool
-        cfluxp2s = tvppoolx * xwater1 * xpool(8)   !structural litter pool
-        cfluxp2c = tvppoolx * xwater1 * xpool(9)   !MAOC  assuming disaggregation of aggregagated MAOC is slower than POC
+      cfluxp2m = tvppoolx * xwater1 * xpool(5)   !metabolic pool
+      cfluxp2s = tvppoolx * xwater1 * xpool(8)   !structural litter pool
+      cfluxp2c = tvppoolx * xwater1 * xpool(9)   !MAOC  assuming disaggregation of aggregagated MAOC is slower than POC
 
 
-         y(1) = cinputmx * (1.0-fmx) + cfluxp2m - cfluxm2r - cfluxm2k                       ! same as kinetics=2
+        y(1) = cinputmx * (1.0-fmx) + cfluxp2m - cfluxm2r - cfluxm2k
 
-         ! structural litter [=Is*(1-fs)-A2-A6]
-         y(2) = cinputsx * (1.0-fsx) + cfluxp2s - cfluxs2r - cfluxs2k                       ! same as kinetics=2
+        ! structural litter [=Is*(1-fs)-A2-A6]
+        y(2) = cinputsx * (1.0-fsx) + cfluxp2s - cfluxs2r - cfluxs2k
 
-         !microbe R          [mge1*A1+mge2*A2+mge3*A3-A4]
-         y(3) = mgeRx1 * cfluxm2r + mgeRx2 * cfluxs2r + mgeRx1 * cfluxa2r - cfluxr ! same as kinetics=2
+        !microbe R          [mge1*A1+mge2*A2+mge3*A3-A4]
+        y(3) = mgeRx1 * cfluxm2r + mgeRx2 * cfluxs2r + mgeRx1 * cfluxa2r - cfluxr
 
-         !microbe K          [mge3*A5+mge4*A6+mge3*A7-A8]
-         y(4) = mgeKx1 * cfluxm2k + mgeKx2 * cfluxs2k + mgeKx1 * cfluxa2k - cfluxk ! same as kinetics =2
+        !microbe K          [mge3*A5+mge4*A6+mge3*A7-A8]
+        y(4) = mgeKx1 * cfluxm2k + mgeKx2 * cfluxs2k + mgeKx1 * cfluxa2k - cfluxk
 
-         !Aggregate metabolic C (pool p)
-         y(5) = cinputmx * fmx   - cfluxp2m
+        !Aggregate metabolic C (pool p)
+        y(5) = cinputmx * fmx   - cfluxp2m
 
-         !MAOC (pool c)
-         y(6) = cfluxr2c + cfluxk2c + cfluxp2c + cfluxa2c  - cfluxc2a - cfluxc2p    ! eqn(19) of abramoff2022
-                                                                                    ! cfluxa2c<->F_lm (sorption);   cfluxc2a<->F_ld (desorption)
-                                                                                    ! cinputsx * fsx<-> no match;   (cfluxr2c + cfluxk2c)<->p_b * F_bm
-                                                                                    ! cfluxp2c<->(1-p_a)*F_a;        cfluxc2p<->F_ma
-                                                                                    !
-         !LWC
-         y(7) = cfluxr2a + cfluxk2a + cfluxc2a - cfluxa - cfluxa2r - cfluxa2k - cfluxa2c              ! eqn(7) Abramoff2022
-                                                                                    ! no litter litter input. None <-> F_i
-                                                                                    ! cfluxa: F_l (leaching)
-                                                                                    ! no depolymeration <->F_pl :: litter input does not enter this pool directly
-                                                                                    ! cfluxa2c<->F_lm (adsorption)
-                                                                                    ! (cfluxa2r + cfluxa2k)<-> F_lb
-                                                                                    ! (cfluxr2a + cfluxk2a)<->(1-p_b)*F_bm,  necromass input
-                                                                                    ! cfluxc2a<->F_ld, (desorption)
-                                                                                    ! clfuxp2a: de-aggregation       ! different from Abramoff2022
-        ! aggregated structural C
-        y(8) = cinputsx * fsx - cfluxp2s
-        ! aggregated MAOC
-        y(9) = cfluxc2p  - cfluxp2c
-        ! dummy pool
-        y(10) = 0.0
-        ! check mass balance
-        rsoil = (1.0-mgeRx1) * (cfluxm2r+cfluxa2r) + (1.0-mgeKx1)* (cfluxm2k + cfluxa2k)  &
-              + (1.0-mgeRx2) * cfluxs2r            + (1.0-mgeKx2)* cfluxs2k  - cfluxa
+        !MAOC (pool c)
+        y(6) = cfluxr2c + cfluxk2c + cfluxp2c + cfluxa2c  - cfluxc2a - cfluxc2p    ! eqn(19) of abramoff2022
+                                                                                  ! cfluxa2c<->F_lm (sorption);   cfluxc2a<->F_ld (desorption)
+                                                                                  ! cinputsx * fsx<-> no match;   (cfluxr2c + cfluxk2c)<->p_b * F_bm
+                                                                                  ! cfluxp2c<->(1-p_a)*F_a;        cfluxc2p<->F_ma
+                                                                                  !
+        !LWC
+        y(7) = cfluxr2a + cfluxk2a + cfluxc2a - cfluxa - cfluxa2r - cfluxa2k - cfluxa2c              ! eqn(7) Abramoff2022
+                                                                                  ! no litter litter input. None <-> F_i
+                                                                                  ! cfluxa: F_l (leaching)
+                                                                                  ! no depolymeration <->F_pl :: litter input does not enter this pool directly
+                                                                                  ! cfluxa2c<->F_lm (adsorption)
+                                                                                  ! (cfluxa2r + cfluxa2k)<-> F_lb
+                                                                                  ! (cfluxr2a + cfluxk2a)<->(1-p_b)*F_bm,  necromass input
+                                                                                  ! cfluxc2a<->F_ld, (desorption)
+                                                                                  ! clfuxp2a: de-aggregation       ! different from Abramoff2022
+      ! aggregated structural C
+      y(8) = cinputsx * fsx - cfluxp2s
+      ! aggregated MAOC
+      y(9) = cfluxc2p  - cfluxp2c
+      ! dummy pool
+      y(10) = 0.0
+      ! check mass balance
+      rsoil = (1.0-mgeRx1) * (cfluxm2r+cfluxa2r) + (1.0-mgeKx1)* (cfluxm2k + cfluxa2k)  &
+            + (1.0-mgeRx2) * cfluxs2r            + (1.0-mgeKx2)* cfluxs2k  - cfluxa
 
 !       write(*,101) np,ns, cinputmx+cinputsx,sum(y(1:7)),rsoil, cinputmx+cinputsx-sum(y(1:7))-rsoil
 101 format("vmic_c: input, sumdelc rsoil",2(i3,1x),10(f10.6,1x))
-      end if
 
 !      print *, ' @ vmic_c xpool =', xpool(:)
 !      print *, ' @ vmic_c y =', y(:)

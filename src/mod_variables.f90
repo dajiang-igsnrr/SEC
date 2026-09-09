@@ -103,8 +103,8 @@ module mic_variable
 
   !> Computed model parameters per plot and soil layer.
   !>
-  !> Km, Vmax, Q10, microbial turnover, necromass partitioning, and
-  !> kinetics-3-specific coefficients (adsorption, POC/MAOC turnover, leaching).
+  !> Km, Vmax, Q10, microbial turnover, necromass partitioning, and coefficients
+  !> for adsorption, POC/MAOC turnover, and leaching.
   type mic_parameter
       real(dp), dimension(:,:), allocatable  :: K1,K2,K3 !! Michaelis constants for substrates 1-3
       real(dp), dimension(:,:), allocatable  :: J1,J2,J3  !! Michaelis constants for substrates 1-3
@@ -289,7 +289,6 @@ module mic_variable
                micparam%top(mp),        &
                micparam%bot(mp))
 
-      ! additional variables for kinetics3
       allocate(micparam%kdesorp(mp,ms), &
                micparam%kadsorp(mp,ms), &
                micparam%fp2a(mp,ms),    &
@@ -488,7 +487,6 @@ module mic_variable
                micparam%top,        &
                micparam%bot)
 
-      ! additional variables for kinetics3
       deallocate(micparam%kdesorp,  &
                micparam%kadsorp,  &
                micparam%fp2a,     &

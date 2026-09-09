@@ -1694,8 +1694,6 @@ end subroutine lonlat2mpx4b
     ! Close netcdf file
     status = NF90_CLOSE(ncid)
 
-    ! we need to include additional data for kinetics3
-
       micparam%csoilobs(:,:) = -999.0
       do np=1, mp
 
