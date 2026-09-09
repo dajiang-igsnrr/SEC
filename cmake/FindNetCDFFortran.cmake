@@ -9,7 +9,12 @@
 #   1) Use nf-config (best on HPC modules)
 #   2) Fallback to prefix hints (NetCDFFortran_ROOT / NETCDF_FORTRAN / NETCDF)
 
-find_program(NF_CONFIG_EXECUTABLE nf-config)
+find_program(NF_CONFIG_EXECUTABLE nf-config
+  HINTS
+    "${NetCDFFortran_ROOT}/bin"
+    "$ENV{NETCDF_FORTRAN}/bin"
+    "$ENV{NETCDF}/bin"
+)
 
 # Collect prefix hints
 set(_NETCDF_HINTS "")

@@ -1,8 +1,6 @@
 #!/bin/bash
 # Shell script for building MESC.
 
-set -e
-
 # --------------------------------------------------
 # Load environment
 #
@@ -15,6 +13,9 @@ set -e
 # ```
 # --------------------------------------------------
 
+# Ensure the build fails on hitting an error
+set -e
+
 # --------------------------------------------------
 # Setup build directory
 # --------------------------------------------------
@@ -26,11 +27,17 @@ fi
 cd "${BUILD_DIR}"
 
 # --------------------------------------------------
+# Fortran compiler
+# --------------------------------------------------
+if [ -z "${FC}" ]; then
+  FC=ifort
+fi
+
+# --------------------------------------------------
 # Configure & build
 # --------------------------------------------------
-
-cmake .. -DCMAKE_Fortran_COMPILER=ifort
+cmake .. -DCMAKE_Fortran_COMPILER=${FC}
 cmake --build . -j
 
 echo "Build successful."
-echo "The $(main) executable is available in both test/ and build/"
+echo "The \$(main) executable is available in both test/ and build/"
