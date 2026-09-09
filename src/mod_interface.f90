@@ -34,12 +34,13 @@
 !!     * (3e) call model for each of mp and integration over time
 
 module mesc_interface_module
-  use precision_module, only : dp
-  use mic_constant, only : diag, delt, mp, ms, mpft, mcpool, outp, tvc14, &
-                           xrootcable, xrootorchidee
-  use mic_variable, only : mic_param_xscale, mic_param_default, mic_parameter, &
-                           mic_input, mic_npool, mic_cpool, mic_output, mic_global_input
-  use mesc_inout_module, only: vmic_restart_read ! , vmic_restart_write, vmic_output_write
+  use mesc_precision_module, only: dp
+  use mesc_constant_module, only: diag, delt, mp, ms, mpft, mcpool, outp, &
+                                  tvc14, xrootcable, xrootorchidee
+  use mesc_variable_module, only: mic_param_xscale, mic_param_default, &
+                                  mic_parameter, mic_input, mic_npool, &
+                                  mic_cpool, mic_output, mic_global_input
+  use mesc_inout_module, only: vmic_restart_read
   use mesc_model_module, only: rk4modelx, tridag, bioturb, bgc_fractions, &
                                mget, turnovert, desorpt, vmaxt, kmt
   implicit none
@@ -110,7 +111,7 @@ contains
             micparam%sdepth(np,ns)   = zse(ns)
             micparam%fracroot(np,ns) = froot(npft,ns)
          end do !"ns"
-          micparam%diffsocx(np) = micpxdef%xdiffsoc(nopt) * micpdef%diffsoc  !"diffsoc" from mic_constant
+          micparam%diffsocx(np) = micpxdef%xdiffsoc(nopt) * micpdef%diffsoc  !"diffsoc" from mesc_constant_module
       end do    ! "np=1,mp"
 
       if(diag==1) then

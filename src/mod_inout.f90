@@ -1,15 +1,16 @@
 module mesc_inout_module
-  use precision_module, only : dp, sp
-  use netcdf, only : nf90_clobber, nf90_close, nf90_create, nf90_def_dim, &
-                     nf90_def_var, nf90_enddef, nf90_float, nf90_get_var, &
-                     nf90_global, nf90_inq_dimid, nf90_inq_varid, &
-                     nf90_inquire_dimension, nf90_max_name, nf90_noerr, &
-                     nf90_nowrite, nf90_open, nf90_put_att, nf90_put_var, &
-                     nf90_redef, nf90_strerror
-  use mic_constant, only : mp, ms, mcpool, nlat, nlon, ntime, mpft, mbgc
-  use mesc_namelist, only : model_cable, model_orchidee, use_modis_npp
-  use mic_variable, only : mic_input, mic_parameter, mic_cpool, mic_npool, &
-                           mic_global_input, mic_output, mic_param_xscale
+  use mesc_precision_module, only: dp, sp
+  use netcdf, only: nf90_clobber, nf90_close, nf90_create, nf90_def_dim, &
+                    nf90_def_var, nf90_enddef, nf90_float, nf90_get_var, &
+                    nf90_global, nf90_inq_dimid, nf90_inq_varid, &
+                    nf90_inquire_dimension, nf90_max_name, nf90_noerr, &
+                    nf90_nowrite, nf90_open, nf90_put_att, nf90_put_var, &
+                    nf90_redef, nf90_strerror
+  use mesc_constant_module, only: mp, ms, mcpool, nlat, nlon, ntime, mpft, mbgc
+  use mesc_namelist_module, only: model_cable, model_orchidee, use_modis_npp
+  use mesc_variable_module, only: mic_input, mic_parameter, mic_cpool, &
+                                  mic_npool, mic_global_input, mic_output, &
+                                  mic_param_xscale
   implicit none
 
   ! All module members are public by default
@@ -360,7 +361,8 @@ contains
 
   !> Get global forcing from CABLE, averaging for each land cell using PFTfrac
   subroutine getdata_global4_cable(fglobal,jglobal,bgcopt,jopt,jmodel,micglobal,micparam,zse)
-  use mic_constant, only : cnleaf1, cnroot1, cnwood1, ligleaf1, ligroot1, ligwood1
+  use mesc_constant_module, only: cnleaf1, cnroot1, cnwood1, ligleaf1, &
+                                  ligroot1, ligwood1
 
     character(len=140),     INTENT(IN)    :: fglobal(10)
       !! Parameter filename (currently hard-coded to "fglobal_cable")
@@ -784,7 +786,8 @@ contains
 
   !> Get global forcing from ORCHIDEE, averaging for each land cell using PFTfrac
   subroutine getdata_global4_orchidee(fglobal,jglobal,bgcopt,jopt,jmodel,micglobal,micparam,zse)
-  use mic_constant, only : cnleaf2, cnroot2, cnwood2, ligleaf2, ligroot2, ligwood2
+  use mesc_constant_module, only: cnleaf2, cnroot2, cnwood2, ligleaf2, &
+                                  ligroot2, ligwood2
 
     character(len=140),     INTENT(IN)    :: fglobal(10)
       !! Parameter filename (currently hard-coded to "fglobal_cable")
@@ -1497,7 +1500,7 @@ end subroutine lonlat2mpx4b
   !! "fcluster" is not read in yet
   !!
   subroutine getdata_c14(frac14c,f14c,filecluster,micinput,micparam,micnpool,zse)
-    use mic_constant, only : delt
+    use mesc_constant_module, only: delt
 
     character(len=140),  INTENT(IN)    :: frac14c,f14c(5)
     character(len=140),  INTENT(IN)    :: filecluster ! cluster filename (not used)
@@ -1808,7 +1811,7 @@ end subroutine lonlat2mpx4b
   !> read in data for model run to calculate POC and MAOC fractions
   !!
   subroutine getdata_frc(cfraction,jglobal,bgcopt,micinput,micparam,micnpool,micglobal,zse)
-    use mic_constant, only : delt
+    use mesc_constant_module, only: delt
     character(len=140),     INTENT(IN)    :: Cfraction
     logical,                INTENT(IN)    :: jglobal
     integer,                INTENT(IN)    :: bgcopt
@@ -2222,8 +2225,9 @@ end subroutine lonlat2mpx4b
    end subroutine  getdata_hwsd_dim
 
   subroutine getdata_hwsd(fhwsdsoc,fmodis,fanoc,jglobal,bgcopt,jopt,jmodel,micparam,micglobal,zse)
-    use mic_constant, only : cnleaf1, cnroot1, cnwood1, ligleaf1, ligroot1, ligwood1, &
-                             cnleaf2, cnroot2, cnwood2, ligleaf2, ligroot2, ligwood2
+    use mesc_constant_module, only: cnleaf1, cnroot1, cnwood1, ligleaf1, &
+                                    ligroot1, ligwood1, cnleaf2, cnroot2, &
+                                    cnwood2, ligleaf2, ligroot2, ligwood2
 
     !use micglobal%area (area fraction) as a switch to run for selected sites during parameter optimization (jopt==0)
     !model only runs for those sites with micglobal%area(np) > 0.0

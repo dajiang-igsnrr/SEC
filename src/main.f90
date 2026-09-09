@@ -4,9 +4,8 @@
 !> model function via the functor interface, and returns the cost function value.
 !
 program testvmic
-
-    use precision_module, only: dp
-    use function_module, only: functn
+    use mesc_precision_module, only: dp
+    use mesc_function_module, only: functn
 
     implicit none
 

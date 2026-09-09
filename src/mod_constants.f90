@@ -1,6 +1,6 @@
 !> Model constants, PFT-specific parameter tables, and runtime-configurable dimensions
-module mic_constant
-  use precision_module, only : dp
+module mesc_constant_module
+  use mesc_precision_module, only: dp
   IMPLICIT NONE
 
   ! All module members are public by default
@@ -66,4 +66,4 @@ module mic_constant
  !! data ligroot2/0.15,0.20,0.20,0.25,0.20,0.20,0.25,0.20,0.25,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10,0.10/
  !! ~~~~
 
-end module mic_constant
+end module mesc_constant_module

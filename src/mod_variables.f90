@@ -3,9 +3,9 @@
 !> Defines derived types for model parameters, inputs, outputs, C/N pools,
 !> and default parameter values. Provides paired allocation and deallocation
 !> subroutines for each type to manage dynamic array storage.
-module mic_variable
-  use precision_module, only : dp
-  use mic_constant, only : mcpool
+module mesc_variable_module
+  use mesc_precision_module, only: dp
+  use mesc_constant_module, only: mcpool
   implicit none
 
   ! All module members are public by default
@@ -301,7 +301,7 @@ module mic_variable
 
   !> Allocates arrays in `mic_input` and `mic_global_input` derived types.
   subroutine mic_allocate_input(mp,ms,nlon,nlat,ntime,micinput,micglobal)
-      use mic_constant, only : mpft
+      use mesc_constant_module, only: mpft
 
       integer, intent(in) :: mp      !! number of plots
       integer, intent(in) :: ms      !! number of soil layers
@@ -601,5 +601,5 @@ module mic_variable
 
   end subroutine mic_deallocate_npool
 
-end module mic_variable
+end module mesc_variable_module
 

@@ -1,9 +1,10 @@
 !> Core model physics: RK4 integrator, Michaelis-Menten kinetics, bioturbation, and C-flux RHS.
 !! Supports three kinetics variants (MIMICS, MILLENNIAL2, combined)
 module mesc_model_module
-  use precision_module, only : dp
-  use mic_constant, only : diag, outp, mcpool, delt, mp, ms, tvc14
-  use mic_variable, only : mic_param_xscale, mic_param_default, mic_parameter, mic_input, mic_npool
+  use mesc_precision_module, only: dp
+  use mesc_constant_module, only: diag, outp, mcpool, delt, mp, ms, tvc14
+  use mesc_variable_module, only: mic_param_xscale, mic_param_default, &
+                                  mic_parameter, mic_input, mic_npool
   implicit none
 
   ! All module members are public by default

@@ -4,10 +4,12 @@
 !> parameters against different observation types: 14C dating, POC/MAOC
 !> fractions, HWSD soil carbon profiles, global HWSD data, and Australian
 !> soil carbon measurements.
-module calcost_module
-  use precision_module, only : dp
-  use mic_constant, only : mcpool, mp, ms
-  use mic_variable, only : mic_param_xscale, mic_param_default, mic_parameter, mic_cpool, mic_input, mic_global_input
+module mesc_calcost_module
+  use mesc_precision_module, only: dp
+  use mesc_constant_module, only: mcpool, mp, ms
+  use mesc_variable_module, only: mic_param_xscale, mic_param_default, &
+                                  mic_parameter, mic_cpool, mic_input, &
+                                  mic_global_input
   implicit none
 
   ! All module members are public by default
@@ -572,4 +574,4 @@ module calcost_module
     end subroutine calcost_aust
 
 
-end module calcost_module
+end module mesc_calcost_module
