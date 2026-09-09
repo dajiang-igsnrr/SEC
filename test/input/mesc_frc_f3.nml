@@ -15,7 +15,6 @@
     frestart_in  = 'miccpool_in.nc'
     frestart_out = 'miccpool_out.nc'
     foutput      = 'vmic_output.nc'
-    fparameter   = 'parameters.txt'
 
     ! SOC-fraction simulation (runcase=2).
     ifsoc14  = 0      ! 0: exclude C-14; 1: include C-14
@@ -40,4 +39,9 @@
     fglobal(5) = ''
     fglobal(6) = ''
     fglobal(7) = ''
+
+    ! Optimization parameters
+    xopt = 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000
+    nxopt = 5, 10, 2, 6, 12, 14, 0, 0, 0, 0, 0, 0, 0, 0
+    xparam = 6.941, 2.051, 8.234, 0.555, 1.694, 1.595
 /

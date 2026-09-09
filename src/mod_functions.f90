@@ -44,18 +44,19 @@ module function_module
  !! * 2 -> [[functn_frc1]]
  !! * 3 -> [[functn_soc_hwsd]]
  !! * 4 -> [[functn_global4]]
- real(dp) function functn(nx,xparam16)
+ real(dp) function functn(nx)
 
      integer, intent(in) :: nx
          !! Number of optimized parameters.
-     real(dp), dimension(16), intent(in) :: xparam16
+     real(dp), dimension(16) :: xparam16
          !! Values of the `nx` optimized parameters.
+
+     call read_mesc_namelist("mesc.nml", config)
+     xparam16(:) = config%xparam
 
      if (nx < 1 .or. nx > size(xparam16)) then
        error stop "ERROR functn: nx must be between 1 and 16"
      end if
-
-     call read_mesc_namelist("mesc.nml", config)
 
      SELECT CASE (config%runcase)
      !  CASE (0)
@@ -106,7 +107,7 @@ module function_module
     integer :: ifsoc14,kinetics,bgcopt,nyeqpool,isoc14,jmodel
     integer :: jrestart,nparam
     character(len=140) :: frestart_in,frestart_out,foutput
-    character(len=140) :: frac14c,f14c(5),filecluster,fparameter
+    character(len=140) :: frac14c,f14c(5),filecluster
     real(dp), dimension(:), allocatable :: zse
 
       jglobal = config%jglobal
@@ -123,11 +124,6 @@ module function_module
       filecluster = config%filecluster
       xopt = config%xopt
       nxopt = config%nxopt
- 
-      open(1,file=config%fparameter)
-      read(1,*) xopt(1:14)
-      read(1,*) nxopt(1:nx)
-      close(1)
 
       if(jopt) then
          do nparam=1,nx
@@ -243,11 +239,6 @@ real(dp) function functn_frc1(nx,xparam16)
       xopt = config%xopt
       nxopt = config%nxopt
 
-      open(1,file=config%fparameter)
-      read(1,*) xopt(1:14)
-      read(1,*) nxopt(1:nx)
-      close(1)
-
       if(.not. jopt) then
          do nparam=1,nx
             if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &
@@ -356,11 +347,6 @@ END function functn_frc1
       fanoc = config%fanoc
       xopt = config%xopt
       nxopt = config%nxopt
-      
-      open(1,file=config%fparameter)
-      read(1,*) xopt(1:14)
-      read(1,*) nxopt(1:nx)
-      close(1)      
       
       do nparam=1,nx
          if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &
@@ -484,11 +470,6 @@ END function functn_soc_hwsd
       xopt = config%xopt
       nxopt = config%nxopt
 
-      open(1,file=config%fparameter)
-      read(1,*) xopt(1:14)
-      read(1,*) nxopt(1:nx)
-      close(1) 
-
       do nparam=1,nx
          if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &
            error stop "ERROR functn_global4: nxopt is outside 1:16"
@@ -610,11 +591,6 @@ END function functn_global4
       faustsoc = config%faustsoc
       xopt = config%xopt
       nxopt = config%nxopt
-
-      open(1,file=config%fparameter)
-      read(1,*) xopt(1:14)
-      read(1,*) nxopt(1:nx)
-      close(1) 
       
       do nparam=1,nx
          if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &

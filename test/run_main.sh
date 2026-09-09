@@ -22,10 +22,6 @@ export OMP_NUM_THREADS=8
 # Remove old files
 # --------------------------------------------------
 rm -f fort.*
-rm -f val*.txt
-rm -f params1.txt
-rm -f params_val.txt
-rm -f case.txt
 
 # --------------------------------------------------
 # Configure test cases to be run
@@ -44,11 +40,9 @@ for i in 0 1; do
   echo "Running test case '${case}', run '${run}'"
 
   # --------------------------------------------------
-  # Copy parameter files
+  # Copy namelist into run directory
   # --------------------------------------------------
   cp ./input/mesc_${run}_${case}.nml mesc.nml
-  cp ./input/parameters_${run}_${case}.txt parameters.txt
-  cp ./input/params_val_${run}_${case}.txt params_val.txt
 
   # --------------------------------------------------
   # Run the test case
@@ -97,4 +91,5 @@ for i in {0..1}; do
   fi
 done
 rm -f output/diff_*.txt
+rm -f mesc.nml
 echo "===== Job finished: $(date) ====="
