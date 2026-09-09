@@ -39,6 +39,7 @@ module mesc_namelist
     character(len=path_len) :: fanoc = ''
     character(len=path_len) :: fglobal(7) = ''
     real(dp) :: xopt(16) = 1.0_dp
+    real(dp) :: xparam(16) = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     integer :: nxopt(16) = [1, 2, 3, 4, 5, 6, 7, 8, &
                             9, 10, 11, 12, 13, 14, 15, 16]
   end type mesc_config
@@ -65,13 +66,14 @@ contains
     character(len=path_len) :: fparameter, cfraction, frac14c, f14c(5), filecluster
     character(len=path_len) :: fhwsdsoc, faustsoc
     character(len=path_len) :: fmodis, fanoc, fglobal(7)
-    real(dp) :: xopt(16)
+    real(dp) :: xopt(16), xparam(16)
     integer :: nxopt(16)
 
     namelist /mesc/ runcase, jglobal, kinetics, bgcopt, jopt, &
       jrestart, jmodel, ifsoc14, frestart_in, frestart_out, &
       foutput, fparameter, cfraction, frac14c, f14c, filecluster, &
-      fhwsdsoc, faustsoc, fmodis, fanoc, fglobal, xopt, nxopt, use_modis_npp
+      fhwsdsoc, faustsoc, fmodis, fanoc, fglobal, xopt, xparam, nxopt, &
+      use_modis_npp
 
     ! Copy defaults into the local variables read by the namelist.
     runcase = config%runcase
@@ -96,6 +98,7 @@ contains
     fanoc = config%fanoc
     fglobal = config%fglobal
     xopt = config%xopt
+    xparam = config%xparam
     nxopt = config%nxopt
 
     open(newunit=nml_unit, file=trim(filename), status='old', &
@@ -129,6 +132,7 @@ contains
     config%fanoc = fanoc
     config%fglobal = fglobal
     config%xopt = xopt
+    config%xparam = xparam
     config%nxopt = nxopt
   end subroutine read_mesc_namelist
 
