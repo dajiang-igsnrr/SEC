@@ -7,6 +7,7 @@ module mesc_inout_module
                      nf90_nowrite, nf90_open, nf90_put_att, nf90_put_var, &
                      nf90_redef, nf90_strerror
   use mic_constant, only : mp, ms, mcpool, nlat, nlon, ntime, mpft, mbgc
+  use mesc_namelist, only : model_cable, model_orchidee, use_modis_npp
   use mic_variable, only : mic_input, mic_parameter, mic_cpool, mic_npool, &
                            mic_global_input, mic_output, mic_param_xscale
   implicit none
@@ -22,17 +23,17 @@ contains
   !! output: miccpool and micnppol
   !!
   subroutine vmic_restart_read(miccpool,micnpool,frestart_in)
-  ! read soil carbon pool sizes "miccpool%cpool(mp,ms,mcpool)"
-    TYPE(mic_cpool),              INTENT(INOUT)   :: miccpool
-    TYPE(mic_npool),              INTENT(INOUT)   :: micnpool
-    character(len=140), intent(in) :: frestart_in    !! restart filename
-    ! local variables
-    integer :: mpx,msx,mcpoolx                       !! array dimensions
-    integer :: status,ncid,varid                     !! local variables
-    real(dp), dimension(mp,ms,mcpool)  :: fcpool    !! carbon pools
-    real(dp), dimension(mp,ms)         :: fnpool    !! nitrogen pools
+    type(mic_cpool), intent(inout) :: miccpool    !! carbon pool state (cpool[mp,ms,mcpool] [mg C cm-3])
+    type(mic_npool), intent(inout) :: micnpool    !! nitrogen pool state (mineralN[mp,ms] [mg N cm-3])
+    character(len=140), intent(in) :: frestart_in !! restart filename
 
-   ! open restart file
+    ! local variables
+    integer :: mpx,msx,mcpoolx                  !! array dimensions
+    integer :: status,ncid,varid                !! variables for NetCDF reading
+    real(dp), dimension(mp,ms,mcpool) :: fcpool !! carbon pools
+    real(dp), dimension(mp,ms)        :: fnpool !! nitrogen pools
+
+    ! open restart file
     status = nf90_open(frestart_in,nf90_nowrite,ncid)
     if(status /= nf90_noerr) CALL nc_abort(STATUS, "Error opening "//frestart_in)
 
@@ -82,10 +83,10 @@ contains
   !! output: miccpool%cpool, micnpool%npool
   !!
   subroutine vmic_restart_write(frestart_out,miccpool,micnpool)
-  ! write out soil carbon pool sizes "miccpool%cpool(mp,ms,mcpool)"
-    CHARACTER,       INTENT(IN)    :: frestart_out*99
-    TYPE(mic_cpool), INTENT(INOUT) :: miccpool
-    TYPE(mic_npool), INTENT(INOUT) :: micnpool
+    character(len=99), intent(in)  :: frestart_out !! restart filename
+    type(mic_cpool), intent(inout) :: miccpool     !! carbon pool state (cpool[mp,ms,mcpool] [mg C cm-3])
+    type(mic_npool), intent(inout) :: micnpool     !! nitrogen pool state (mineralN[mp,ms] [mg N cm-3])
+
     ! local variables for writing netcdf file
     integer   :: STATUS
     integer   :: FILE_ID, mp_ID, miccarb_ID, soil_ID
@@ -151,14 +152,13 @@ contains
   !! output: character string "message"
   !!
   subroutine nc_abort( ok, message )
-    ! Input arguments
-    CHARACTER(LEN=*), INTENT(IN) :: message
-    INTEGER, INTENT(IN) :: ok
+    CHARACTER(LEN=*), INTENT(IN) :: message !! Error message
+    INTEGER, INTENT(IN) :: ok               !! Error status
 
     WRITE(*,*) message ! error from subroutine
     WRITE(*,*) NF90_STRERROR(ok) ! netcdf error details
 
-    STOP
+    ERROR STOP
 
   end subroutine nc_abort
 
@@ -167,11 +167,12 @@ contains
   !! output: netcdf foutput
   !! "micinput" not used yet
   !!
+  !! NOTE: fluxcinput written to file (=cinputm) may not represent total NPP.
+  !!       Total NPP should be the sum of cinputm + cinputs.
   subroutine vmic_output_write(foutput,micinput,micoutput)
-    ! fNPP is not quite right yet. It shoudl be the sump of "cinputm+cinputs"
-    CHARACTER,        INTENT(IN)    :: foutput*99
-    TYPE(mic_input),  INTENT(INout) :: micinput
-    TYPE(mic_output), INTENT(INout) :: micoutput
+    character(len=99), intent(in)    :: foutput    !! Filename to write to
+    type(mic_input),   intent(inout) :: micinput   !! environmental and plant inputs per plot (litter, soil state, C input)
+    type(mic_output),  intent(inout) :: micoutput  !! output fluxes per plot (cinput, respiration, leaching)
     real(dp)  :: missreal
     integer   :: STATUS
     integer   :: FILE_ID, mp_ID
@@ -242,24 +243,26 @@ contains
 
   end subroutine vmic_output_write
 
-  !> get PFT-dependent model paramater values (up to 20 parameters)
-  !! input: hartd-wired parameter filename "parameters_global.csv"
-  !! output: write the parameter values to "micpxdef"
-  !!
-  subroutine getparam_global(fglobalparam,jmodel,micpxdef)
-    use mic_constant, only : xrootcable, xrootorchidee
+  !> Get PFT-dependent model parameter values (up to 20 parameters)
+  subroutine getparam_global(fglobalparam,rootdepth,micpxdef)
 
     character(len=140),     intent(in)    :: fglobalparam
-    integer,                intent(in)    :: jmodel
+      !! Parameter filename (currently hard-coded to "parameters_global.csv")
+    real(dp), dimension(:), intent(in)    :: rootdepth
+      !! Per-PFT rooting depths [m] (size mpft). In standalone mode pass xrootcable or
+      !! xrootorchidee from mod_constants.f90; for online coupling ORCHIDEE supplies this.
     TYPE(mic_param_xscale), intent(inout) :: micpxdef
-    integer :: ibgc,ipft,n
-    real(dp), dimension(14)    :: x
+      !! Object holding parameter values
+
+    ! Local variables
+    integer                 :: ibgc,ipft,n
+    real(dp), dimension(14) :: x
 
     open(100,file=fglobalparam)
     read(100,*)
     do ibgc=1,mbgc
        read(100,*) ipft, (x(n),n=1,14)
-       ! ensire x(1:16) are consistent with "vmic_param_xscale"
+       ! ensure x(1:16) are consistent with "vmic_param_xscale"
        micpxdef%xav(ibgc)        = x(1)
        micpxdef%xak(ibgc)        = x(2)
        micpxdef%xfm(ibgc)        = x(3)
@@ -281,120 +284,119 @@ contains
     close(100)
 
     do ipft=1,mpft
-       if(jmodel==1) then
-          micpxdef%xrootbeta(ipft) = xrootcable(ipft)
-       end if
-       if(jmodel==2 .or. jmodel==3) then
-          micpxdef%xrootbeta(ipft) = xrootorchidee(ipft)
-       end if
+       micpxdef%xrootbeta(ipft) = rootdepth(ipft)
     end do
-
   end subroutine getparam_global
 
   !> get number of patches
   !! input: hartd-wired parameter filename "fpatch"
   !! output: write the parameter values to "mpx"
   !!
+  !! reads in global patch area fraction and calculates the number of land cells using sum(PFTfrac(lon,lat,pft))
   subroutine getpatch_global(fpatch,jmodel,mpx)
-  ! read in global patch area fraction and calculate the number of land cell using sum(PFTfrac(lon,lat,pft))
-  character(len=140), intent(in)    :: fpatch
-  integer,            intent(in)    :: jmodel
-  integer,            intent(inout) :: mpx
-  real(dp), dimension(:,:,:),   allocatable :: xfield3
-  real(sp), dimension(:,:,:,:), allocatable :: xfield4
-  integer :: i,j,np,ncid1,ok,varid,maxpft
+    character(len=140), intent(in)    :: fpatch
+      !! Patch area fraction filename (PFTfrac for CABLE, maxvegetfrac for ORCHIDEE)
+    integer,            intent(in)    :: jmodel
+      !! Land-surface model code (1=CABLE, 2=ORCHIDEE, 3=ORCHIDEE+modis_npp)
+    integer,            intent(inout) :: mpx
+      !! number of land cells (patches) with non-zero vegetation fraction
+
+    ! Local variables
+    real(dp), dimension(:,:,:),   allocatable :: xfield3 !! 3D field to read into
+    real(sp), dimension(:,:,:,:), allocatable :: xfield4 !! 4D field to read into
+    integer :: i,j,np,maxpft
+    integer :: ncid1,ok,varid !! Variables for handling NetCDF files
 
     print *, "patch filename", fpatch
+
+    mpx = 0
+    ok = NF90_OPEN(fpatch,0,ncid1)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,"Error opening file"//fpatch)
+
     select case (jmodel)
 
-    case (1)
+    case (model_cable)
       allocate(xfield3(nlon,nlat,17))
 
-      ok = NF90_OPEN(fpatch,0,ncid1)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,"Error opening file"//fpatch)
       ok = NF90_INQ_VARID(ncid1,"PFTfrac",varid)
       ok = NF90_GET_VAR(ncid1,varid,xfield3)
-      ok = NF90_close(ncid1)
 
       xfield3 = max(0.0,xfield3)
-      np=0
       do i=1,nlon
-      do j=1,nlat
-         if(sum(xfield3(i,j,:))>0.9) then
-            maxpft= maxloc(xfield3(i,j,:),dim=1)
-            if(maxpft >0 .and. maxpft <14) np=np+1
-         end if
+        do j=1,nlat
+          if(sum(xfield3(i,j,:))>0.9) then
+              maxpft= maxloc(xfield3(i,j,:),dim=1)
+              if(maxpft >0 .and. maxpft <14) mpx=mpx+1
+          end if
+        end do
       end do
-      end do
-
       deallocate(xfield3)
 
-    case (2)
-       allocate(xfield4(nlon,nlat,19,1))
-       ok = NF90_OPEN(fpatch,0,ncid1)
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok,"Error opening file"//fpatch)
-       ok = NF90_INQ_VARID(ncid1,"maxvegetfrac",varid)
-       ok = NF90_GET_VAR(ncid1,varid,xfield4)
-       ok = NF90_close(ncid1)
+    case (model_orchidee)
+      allocate(xfield4(nlon,nlat,19,1))
 
-       xfield4 = max(0.0,xfield4)
-       np=0
-       do i=1,nlon
-       do j=1,nlat
+      ok = NF90_INQ_VARID(ncid1,"maxvegetfrac",varid)
+      ok = NF90_GET_VAR(ncid1,varid,xfield4)
+
+      xfield4 = max(0.0,xfield4)
+      do i=1,nlon
+        do j=1,nlat
           if(sum(xfield4(i,j,:,1))>0.9) then
-             maxpft= maxloc(xfield4(i,j,:,1),dim=1)
-             if(maxpft >0 .and. maxpft <=mpft) np=np+1
+              maxpft= maxloc(xfield4(i,j,:,1),dim=1)
+              if(maxpft >0 .and. maxpft <=mpft) mpx=mpx+1
           end if
-       end do
-       end do
-     deallocate(xfield4)
+        end do
+      end do
+      deallocate(xfield4)
 
-     case default
-     write(6,"(a,i0,a)") "ERROR getpatch_global: Invalid model '", jmodel, "'"
-     stop 999
+    case default
+      write(6,"(a,i0,a)") "ERROR getpatch_global: Invalid model '", jmodel, "'"
+      ok = NF90_close(ncid1)
+      stop 999
 
     end select
-
-    mpx = np
+    ok = NF90_close(ncid1)
   end subroutine getpatch_global
 
-  !> get global CABLE forcing for running mes-c
-  !! input: hard-wired parameter filename "fglobal_cable"
-  !! input: hwsd 0-60cm soil properties and new soil cluster
-  !! output: write the parameter values to "micglobal% and micparam%"
-  !!
+  !> Get global forcing from CABLE, averaging for each land cell using PFTfrac
   subroutine getdata_global4_cable(fglobal,jglobal,bgcopt,jopt,jmodel,micglobal,micparam,zse)
-  ! read in global forcing from CABLE/ORCHIDEE from time-invarying and time-varying data files
-  ! averaging the input files for each land cell using PFTfrac
-  ! read in the following data
-  ! real(sp), dim(lon,lat) :: Ald,Alo,Fed,Feo
-  ! real(dp), dimension(lon,lat): cell_area
   use mic_constant, only : cnleaf1, cnroot1, cnwood1, ligleaf1, ligroot1, ligwood1
 
-  character(len=140),     INTENT(IN)    :: fglobal(10)
-  TYPE(mic_global_input), INTENT(INOUT) :: micglobal
-  TYPE(mic_parameter),    INTENT(INOUT) :: micparam
-  integer,                INTENT(IN)    :: jglobal,bgcopt,jopt,jmodel
-  real(dp),               INTENT(IN)    :: zse(ms)
-  ! local variables
-  real(dp), dimension(nlon)            :: lon
-  real(dp), dimension(nlat)            :: lat
-  real(dp), dimension(ntime)           :: time
-  real(dp), dimension(nlon,nlat,mpft)  :: patchfrac
-  integer :: ncid1,ncid3,ok,lonid,latid,timeid,varid,n,np,ns
-  !
-  integer :: i,j,k,npx,isoilx,sorderx
-  integer, dimension(:),        allocatable  :: ilon,jlat, fcluster
-  integer, dimension(:,:),      allocatable  :: varx2_int
-  real(dp), dimension(:),         allocatable  :: varmp1_db
-  real(sp), dimension(:,:),       allocatable  :: varx2_flt
-  real(dp), dimension(:,:),       allocatable  :: varx2_db,varmp2_db
-  real(dp), dimension(:,:,:),     allocatable  :: varx3time_db,varx3ms_db,varx3ms5_db
-  real(dp), dimension(:,:,:),     allocatable  :: varx3_db,varmp3_db,varsoc3_db,varbulk_db,varaoc_db
-  real(dp), dimension(:,:,:,:),   allocatable  :: varx4_db
-  real(dp), dimension(:),      allocatable  :: falo,fald,ffeo,ffed
-  integer   :: maxpft,pft, msite,sitemax,intval,isite
-  real(dp)    :: bulkd2
+    character(len=140),     INTENT(IN)    :: fglobal(10)
+      !! Parameter filename (currently hard-coded to "fglobal_cable")
+    TYPE(mic_global_input), INTENT(INOUT) :: micglobal
+      !! Object holding global-scale parameters
+    TYPE(mic_parameter),    INTENT(INOUT) :: micparam
+      !! Object holding model parameters per plot and soil layer
+    logical,                INTENT(IN)    :: jglobal
+      !! Flag indicating whether this is a global simulation
+    integer,                INTENT(IN)    :: bgcopt
+      !! Biogeochemical type to simulate
+    logical,                INTENT(IN)    :: jopt
+      !! Flag indicating whether to optimize parameters or use a lookup table
+    integer,                INTENT(IN)    :: jmodel
+      !! Land-surface model code (1=CABLE, 2=ORCHIDEE, 3=ORCHIDEE+modis_npp)
+    real(dp),               INTENT(IN)    :: zse(ms)
+      !! Soil layer thickness (m)
+
+    ! local variables
+    real(dp), dimension(nlon)           :: lon
+    real(dp), dimension(nlat)           :: lat
+    real(dp), dimension(ntime)          :: time
+    real(dp), dimension(nlon,nlat,mpft) :: patchfrac
+    integer :: ncid1,ncid3,ok,lonid,latid,timeid,varid,n,np,ns
+    integer :: i,j,k,npx,isoilx,sorderx
+    integer, dimension(:),        allocatable :: ilon,jlat, fcluster
+    integer, dimension(:,:),      allocatable :: varx2_int
+    real(dp), dimension(:),       allocatable :: varmp1_db
+    real(sp), dimension(:,:),     allocatable :: varx2_flt
+    real(dp), dimension(:,:),     allocatable :: varx2_db,varmp2_db
+    real(dp), dimension(:,:,:),   allocatable :: varx3time_db,varx3ms_db,varx3ms5_db
+    real(dp), dimension(:,:,:),   allocatable :: varx3_db,varmp3_db,varsoc3_db,varbulk_db,varaoc_db
+    real(dp), dimension(:,:,:,:), allocatable :: varx4_db
+    real(dp), dimension(:),       allocatable :: falo,fald,ffeo,ffed
+    integer  :: maxpft,pft, msite,sitemax,intval,isite
+    real(dp) :: bulkd2
 
 
     allocate(ilon(mp),jlat(mp),fcluster(mp))
@@ -748,7 +750,7 @@ contains
     micglobal%avgms(:) = sum(sum(micglobal%moist(:,:,:),dim=3),dim=2)/real(ms*ntime)
 
 ! write out time-invariant input data
-    if(jglobal==1) then
+    if(jglobal) then
        open(31,file=fglobal(5))
        do np=1,mp
           write(31,101) micglobal%lon(np),micglobal%lat(np),ilon(np),jlat(np),                 &
@@ -780,59 +782,60 @@ contains
 
   end subroutine getdata_global4_cable
 
-  !> get global ORCHIDEE forcing for running mes-c
-  !! input: hard-wired parameter filename "fglobal_cable"
-  !! input: harmonsied HWSD soil properties (0-60cm)
-  !! output: write the parameter values to "micglobal% and micparam%"
-  !!
+  !> Get global forcing from ORCHIDEE, averaging for each land cell using PFTfrac
   subroutine getdata_global4_orchidee(fglobal,jglobal,bgcopt,jopt,jmodel,micglobal,micparam,zse)
-   ! read in global forcing from ORCHIDEE from time-invarying and time-varying data files
-   ! averaging the input files for each land cell using PFTfrac
-   ! read in the following data
-   ! real(sp), dim(lon,lat) :: Ald,Alo,Fed,Feo
-   ! real(dp), dimension(lon,lat): cell_area
-   ! use soil-grid or deafult values of soil silt, sand and clay fraction, soil pH and bulk density
-
   use mic_constant, only : cnleaf2, cnroot2, cnwood2, ligleaf2, ligroot2, ligwood2
 
-  character(len=140),     INTENT(IN)    :: fglobal(10)
-  TYPE(mic_global_input), INTENT(INOUT) :: micglobal
-  TYPE(mic_parameter),    INTENT(INOUT) :: micparam
-  integer,                INTENT(IN)    :: jglobal,bgcopt,jopt,jmodel
-  real(dp),               INTENT(IN)    :: zse(ms)
-  ! local variables
-  real(dp), dimension(nlon)            :: lon
-  real(dp), dimension(nlat)            :: lat
-  real(sp),    dimension(nlon)            :: lon_flt
-  real(sp),    dimension(nlat)            :: lat_flt
-  real(dp), dimension(ntime)           :: time
-  real(dp), dimension(nlon,nlat,mpft)  :: patchfrac
-  integer :: ncid1,ncid3,ok,lonid,latid,timeid,varid,n,np,ns
-  !
-  integer :: i,j,k,npx,isoilx,sorderx,ilonx,jlatx
-  integer, dimension(:),        allocatable  :: ilon,jlat, fcluster
-  integer, dimension(:,:),      allocatable  :: varx2_int
-  real(sp), dimension(:,:),       allocatable  :: varx2_flt
-  real(sp), dimension(:,:,:,:),   allocatable  :: varx4_flt
-  real(dp), dimension(:),         allocatable  :: varmp1_db
-  real(dp), dimension(:,:),       allocatable  :: varx2_db,varmp2_db
-  real(dp), dimension(:,:,:),     allocatable  :: varx3time_db,varx3ms_db,varx3ms5_db
-  real(dp), dimension(:,:,:),     allocatable  :: varx3_db,varmp3_db,varsoc3_db,varbulk_db,varaoc_db
-  real(dp), dimension(:,:,:,:),   allocatable  :: varx4_db
-  real(dp), dimension(:),      allocatable  :: falo,fald,ffeo,ffed
-  real(dp), dimension(:,:),       allocatable  :: modisnpp
-  real(dp), dimension(:),         allocatable  :: modisnpp_mp
-  integer   :: maxpft,pft, msite,sitemax,intval,isite
-  real(dp)    :: bulkd2
-  ! data
-  real(sp), dimension(12)    :: sandx,clayx,siltx,porex,bulkdx,fcpx,wiltx
-  data sandx/0.93,0.81,0.63,0.17,0.06,0.40,0.54,0.08,0.30,0.48,0.06,0.15/
-  data clayx/0.03,0.06,0.11,0.19,0.10,0.20,0.27,0.33,0.33,0.41,0.46,0.55/
-  data siltx/0.04,0.13,0.26,0.64,0.84,0.40,0.19,0.59,0.37,0.11,0.48,0.30/
-  data porex/0.43,0.41,0.41,0.45,0.46,0.43,0.39,0.43,0.41,0.38,0.36,0.38/
-  data bulkdx/1510.5,1563.5,1563.5,1457.5,1431.0,1510.5,1616.5,1510.5,1563.5,1643.0,1696.0,1643.0/
-  data fcpx/0.0493,0.0710,0.1218,0.2402,0.2582,0.1654,0.1695,0.3383,0.2697,0.2672,0.337,0.3469/
-  data wiltx/0.0450,0.0570,0.0657,0.1039,0.0901,0.0884,0.1112,0.1967,0.1496,0.1704,0.2665,0.2707/
+    character(len=140),     INTENT(IN)    :: fglobal(10)
+      !! Parameter filename (currently hard-coded to "fglobal_cable")
+    TYPE(mic_global_input), INTENT(INOUT) :: micglobal
+      !! Object holding global-scale parameters
+    TYPE(mic_parameter),    INTENT(INOUT) :: micparam
+      !! Object holding model parameters per plot and soil layer
+    logical,                INTENT(IN)    :: jglobal
+      !! Flag indicating whether this is a global simulation
+    integer,                INTENT(IN)    :: bgcopt
+      !! Biogeochemical type to simulate
+    logical,                INTENT(IN)    :: jopt
+      !! Flag indicating whether to optimize parameters or use a lookup table
+    integer,                INTENT(IN)    :: jmodel
+      !! Land-surface model code (1=CABLE, 2=ORCHIDEE, 3=ORCHIDEE+modis_npp)
+    real(dp),               INTENT(IN)    :: zse(ms)
+      !! Soil layer thickness (m)
+
+    ! local variables
+    real(dp), dimension(nlon)           :: lon
+    real(dp), dimension(nlat)           :: lat
+    real(sp),    dimension(nlon)        :: lon_flt
+    real(sp),    dimension(nlat)        :: lat_flt
+    real(dp), dimension(ntime)          :: time
+    real(dp), dimension(nlon,nlat,mpft) :: patchfrac
+    integer :: ncid1,ncid3,ok,lonid,latid,timeid,varid,n,np,ns
+    integer :: i,j,k,npx,isoilx,sorderx,ilonx,jlatx
+    integer, dimension(:),        allocatable :: ilon,jlat, fcluster
+    integer, dimension(:,:),      allocatable :: varx2_int
+    real(sp), dimension(:,:),     allocatable :: varx2_flt
+    real(sp), dimension(:,:,:,:), allocatable :: varx4_flt
+    real(dp), dimension(:),       allocatable :: varmp1_db
+    real(dp), dimension(:,:),     allocatable :: varx2_db,varmp2_db
+    real(dp), dimension(:,:,:),   allocatable :: varx3time_db,varx3ms_db,varx3ms5_db
+    real(dp), dimension(:,:,:),   allocatable :: varx3_db,varmp3_db,varsoc3_db,varbulk_db,varaoc_db
+    real(dp), dimension(:,:,:,:), allocatable :: varx4_db
+    real(dp), dimension(:),       allocatable :: falo,fald,ffeo,ffed
+    real(dp), dimension(:,:),     allocatable :: modisnpp
+    real(dp), dimension(:),       allocatable :: modisnpp_mp
+    integer  :: maxpft,pft, msite,sitemax,intval,isite
+    real(dp) :: bulkd2
+
+    ! data
+    real(sp), dimension(12)    :: sandx,clayx,siltx,porex,bulkdx,fcpx,wiltx
+    data sandx/0.93,0.81,0.63,0.17,0.06,0.40,0.54,0.08,0.30,0.48,0.06,0.15/
+    data clayx/0.03,0.06,0.11,0.19,0.10,0.20,0.27,0.33,0.33,0.41,0.46,0.55/
+    data siltx/0.04,0.13,0.26,0.64,0.84,0.40,0.19,0.59,0.37,0.11,0.48,0.30/
+    data porex/0.43,0.41,0.41,0.45,0.46,0.43,0.39,0.43,0.41,0.38,0.36,0.38/
+    data bulkdx/1510.5,1563.5,1563.5,1457.5,1431.0,1510.5,1616.5,1510.5,1563.5,1643.0,1696.0,1643.0/
+    data fcpx/0.0493,0.0710,0.1218,0.2402,0.2582,0.1654,0.1695,0.3383,0.2697,0.2672,0.337,0.3469/
+    data wiltx/0.0450,0.0570,0.0657,0.1039,0.0901,0.0884,0.1112,0.1967,0.1496,0.1704,0.2665,0.2707/
 
     allocate(ilon(mp),jlat(mp),fcluster(mp))
     allocate(varx2_int(nlon,nlat),varx2_flt(nlon,nlat))
@@ -1098,7 +1101,7 @@ contains
 
 
     ! use modis-npp to rescale the orchidee NPP and carbon inputs to soil
-    if(jmodel==3) then
+    if (use_modis_npp) then
        ok = nf90_open(fglobal(6),nf90_nowrite,ncid3)
        if(ok /= nf90_noerr) print*, "Error opening modisnpp"
 
@@ -1186,7 +1189,7 @@ contains
     micglobal%avgms(:) = sum(sum(micglobal%moist(:,:,:),dim=3),dim=2)/real(ms*ntime)
 
 ! write out time-invariant input data
-    if(jglobal==1) then
+    if(jglobal) then
        open(31,file=fglobal(5))
        do np=1,mp
           write(31,101) micglobal%lon(np),micglobal%lat(np),ilon(np),jlat(np),                 &
@@ -1229,16 +1232,23 @@ end subroutine getdata_global4_orchidee
 !!
 subroutine cluster_hwsd(jmodel,bgctype,socobs,fclay,fsilt,fph,fald,falo,ffed,ffeo,fcluster)
   integer,                    intent(in)    :: jmodel
+      !! Land-surface model code (1=CABLE, 2=ORCHIDEE, 3=ORCHIDEE+modis_npp)
   integer,  dimension(mp),    intent(in)    :: bgctype
+      !! Biogeochemical type
   real(dp), dimension(mp,ms), intent(in)    :: socobs
+      !! observed soil organic carbon profile [mg C cm-3] per plot
   real(dp), dimension(mp),    intent(in)    :: fclay,fsilt,fph,fald,falo,ffed,ffeo
+      !! soil properties: clay+silt fractions, pH, aluminum+iron oxides (dissolved+oxidal)
   integer,  dimension(mp),    intent(inout) :: fcluster
+      !! soil cluster assignment (1-10, from HWSD centroid k-means clustering)
+
+  ! Local variables
   real(dp), dimension(10,2)   :: claymid,siltmid,phmid,aldmid,alomid,fedmid,feomid
   real(dp), dimension(2)      :: clayavg,siltavg,phavg,aldavg,aloavg,fedavg,feoavg
   real(dp), dimension(2)      :: claysd,siltsd,phsd,aldsd,alosd,fedsd,feosd
   real(dp), dimension(7)      :: z
   real(dp), dimension(10,7)   :: xdist
-  integer :: np,m,j
+  integer :: np,m
   ! results from K means cluster analysis  done 20260508 by Lingfei Wang
   data claymid/-0.9525_dp,-0.8011_dp,1.1920_dp,-0.5146_dp,0.1999_dp,-0.2399_dp,-0.7019_dp,1.4337_dp,0.8914_dp,-1.0750_dp,  &
                 1.4969_dp,-1.0316_dp,-0.8065_dp,-0.1341_dp,1.1403_dp,1.5560_dp,-1.082_dp,0.6068_dp,-0.3449_dp,0.1033_dp/
@@ -1278,28 +1288,27 @@ subroutine cluster_hwsd(jmodel,bgctype,socobs,fclay,fsilt,fph,fald,falo,ffed,ffe
   data feosd/0.4149_dp,0.4343_dp/
 
     fcluster(:)=bgctype(:)
-    j=jmodel
     do np=1,mp
        if(bgctype(np)>1 .and. bgctype(np) < 10) then
           fcluster(np) = bgctype(np)
        else
          if(min(fclay(np),fsilt(np),fph(np),fald(np),falo(np),ffed(np),ffeo(np)) >0.0 .and. minval(socobs(np,:)) > 0.0) then
             xdist(:,:) = 1.0e6
-            z(1) = (fclay(np)*100.0 - clayavg(j))/claysd(j)
-            z(2) = (fsilt(np)*100.0 - siltavg(j))/siltsd(j)
-            z(3) = (fph(np)   - phavg(j))/phsd(j)
-            z(4) = (fald(np)  - aldavg(j))/aldsd(j)
-            z(5) = (falo(np)  - aloavg(j))/alosd(j)
-            z(6) = (ffed(np)  - fedavg(j))/fedsd(j)
-            z(7) = (ffeo(np)  - feoavg(j))/feosd(j)
+            z(1) = (fclay(np)*100.0 - clayavg(jmodel))/claysd(jmodel)
+            z(2) = (fsilt(np)*100.0 - siltavg(jmodel))/siltsd(jmodel)
+            z(3) = (fph(np)   - phavg(jmodel))/phsd(jmodel)
+            z(4) = (fald(np)  - aldavg(jmodel))/aldsd(jmodel)
+            z(5) = (falo(np)  - aloavg(jmodel))/alosd(jmodel)
+            z(6) = (ffed(np)  - fedavg(jmodel))/fedsd(jmodel)
+            z(7) = (ffeo(np)  - feoavg(jmodel))/feosd(jmodel)
             do m=1,10
-               xdist(m,1) = (z(1) - claymid(m,j))**2
-               xdist(m,2) = (z(2) - siltmid(m,j))**2
-               xdist(m,3) = (z(3) - phmid(m,j))**2
-               xdist(m,4) = (z(4) - aldmid(m,j))**2
-               xdist(m,5) = (z(5) - alomid(m,j))**2
-               xdist(m,6) = (z(6) - fedmid(m,j))**2
-               xdist(m,7) = (z(7) - feomid(m,j))**2
+               xdist(m,1) = (z(1) - claymid(m,jmodel))**2
+               xdist(m,2) = (z(2) - siltmid(m,jmodel))**2
+               xdist(m,3) = (z(3) - phmid(m,jmodel))**2
+               xdist(m,4) = (z(4) - aldmid(m,jmodel))**2
+               xdist(m,5) = (z(5) - alomid(m,jmodel))**2
+               xdist(m,6) = (z(6) - fedmid(m,jmodel))**2
+               xdist(m,7) = (z(7) - feomid(m,jmodel))**2
             end do
             fcluster(np) = MINLOC(sum(xdist,dim=2),dim=1)
          end if
@@ -1799,7 +1808,8 @@ end subroutine lonlat2mpx4b
   subroutine getdata_frc(cfraction,jglobal,bgcopt,micinput,micparam,micnpool,micglobal,zse)
     use mic_constant, only : delt
     character(len=140),     INTENT(IN)    :: Cfraction
-    integer,                INTENT(IN)    :: jglobal,bgcopt
+    logical,                INTENT(IN)    :: jglobal
+    integer,                INTENT(IN)    :: bgcopt
     TYPE(mic_parameter),    INTENT(INout) :: micparam
     TYPE(mic_input),        INTENT(INout) :: micinput
     TYPE(mic_npool),        INTENT(INOUT) :: micnpool
@@ -2015,7 +2025,7 @@ end subroutine lonlat2mpx4b
     ! Close netcdf file
     status = NF90_CLOSE(ncid)
 
-    if(jglobal==1) open(100,file="inputdata_frc.txt")
+    if(jglobal) open(100,file="inputdata_frc.txt")
 
     ! converting metal oxide from cmol/kg to kg/m2
     ! metal-oxide(cmol/kg) = metal-oxide(kg/m2) *100/(h*bd*MW)
@@ -2103,7 +2113,7 @@ end subroutine lonlat2mpx4b
          if(micparam%bgctype(np) ==bgcopt) then
             msite=msite + 1
          end if
-         if(jglobal==1) then
+         if(jglobal) then
             write(100,901) micparam%siteid(np),micparam%dataid(np),micparam%pft(np),micparam%bgctype(np),micparam%top(np),micparam%bot(np) , &
                          fnpp(np),fanpp(np),fbnpp(np),fcna(np),fcnb(np),flignin(np),ftemp(np),fmoist(np),fclay(np),fsilt(np),fph(np), &
                          fporosity(np),fmatpot(np),fbulkd(np),fald(np),falo(np),ffed(np),ffeo(np),fsoc(np),fpoc(np),fmaoc(np)
@@ -2112,7 +2122,7 @@ end subroutine lonlat2mpx4b
       end do    ! "np=1,mp"
 
     print *, "total sites = ", msite, "for bgcopt= ",bgcopt
-    if(jglobal==1) close(100)
+    if(jglobal) close(100)
 901 format(6(i5,1x),25(f8.3,1x))
     deallocate(fsoc)
     deallocate(fbulkd)
@@ -2216,7 +2226,10 @@ end subroutine lonlat2mpx4b
     !use micglobal%area (area fraction) as a switch to run for selected sites during parameter optimization (jopt==0)
     !model only runs for those sites with micglobal%area(np) > 0.0
     character(len=140),           INTENT(IN) :: fhwsdsoc,fmodis,fanoc
-    integer,                      INTENT(IN) :: jglobal,bgcopt,jopt,jmodel
+    logical,                      INTENT(IN) :: jglobal
+    integer,                      INTENT(IN) :: bgcopt
+    logical,                      INTENT(IN) :: jopt
+    integer,                      INTENT(IN) :: jmodel
     TYPE(mic_parameter),          INTENT(INout) :: micparam
     TYPE(mic_global_input),       INTENT(INout) :: micglobal
     real(dp),                     INTENT(IN) :: zse(ms)
@@ -2276,20 +2289,23 @@ end subroutine lonlat2mpx4b
     if(status /= nf90_noerr) print*,"Error reading soil order"
     micglobal%sorder = ivarx1
 
-    if(jmodel==1) then
+    select case (jmodel)
+    case (model_cable)
        status = nf90_inq_varid(ncid,"isoil",varid)
        if(status /= nf90_noerr) print*, "Error inquiring soil texturep"
        status = nf90_get_var(ncid,varid,ivarx1)
        if(status /= nf90_noerr) print*,"Error reading soil texure"
        micglobal%isoil = ivarx1
-    end if
-    if(jmodel==2 .or.jmodel==3) then
+    case (model_orchidee)
        status = nf90_inq_varid(ncid,"USDA_Soil_texture_class",varid)
        if(status /= nf90_noerr) print*, "Error inquiring soil texturep"
        status = nf90_get_var(ncid,varid,ivarx1)
        if(status /= nf90_noerr) print*,"Error reading soil texure"
        micglobal%isoil = ivarx1
-    end if
+    case default
+      write(6,"(a,i0,a)") "ERROR getdata_hwsd: Invalid model '", jmodel, "'"
+      stop 999
+    end select
 
     status = nf90_inq_varid(ncid,"max_PFTfrac",varid)
     if(status /= nf90_noerr) print*, "Error inquiring max_PFTfrac"
@@ -2403,7 +2419,7 @@ end subroutine lonlat2mpx4b
     ! Close netcdf file
     status = NF90_CLOSE(ncid)
 
-   ! now calculate soil cluster using parameters for ORCHIDEE (jmodel=2)
+   ! now calculate soil cluster using parameters for ORCHIDEE
     do np=1,mp
        do ns=1,ms
           micparam%csoilobs(np,ns) = real(fsoc7(np,ns),kind=dp)
@@ -2428,8 +2444,8 @@ end subroutine lonlat2mpx4b
      ! Close netcdf file
      status = NF90_CLOSE(ncid)
 
-   ! if jmodel=3 use the annual modis NPP to scale the orchidee npp
-    if(jmodel==3) then
+    if(use_modis_npp) then
+       ! use the annual modis NPP to scale the orchidee npp
        status = nf90_open(fmodis,nf90_nowrite,ncid)
        if(status /= nf90_noerr) print*, "Error opening modisnpp"
 
@@ -2466,32 +2482,36 @@ end subroutine lonlat2mpx4b
        micparam%pft(np)      = micglobal%pft(np)
        micparam%isoil(np)    = micglobal%isoil(np)
        micparam%sorder(np)   = micglobal%sorder(np)
-       if(jmodel==1) then      !CABLE
-          ipft =  micglobal%pft(np)
-          if(ipft<1 .or. ipft >17) then
-             print *, "PFT error at  np", jmodel,ipft,np
-             stop
-          end if
-          micparam%xcnleaf(np)  = cnleaf1(ipft)
-          micparam%xcnroot(np)  = cnroot1(ipft)
-          micparam%xcnwood(np)  = cnwood1(ipft)
-          micparam%fligleaf(np) = ligleaf1(ipft)
-          micparam%fligroot(np) = ligroot1(ipft)
-          micparam%fligwood(np) = ligwood1(ipft)
-       end if
-       if(jmodel==2 .or.jmodel==3) then      !ORCHIDEE
-          ipft =  micglobal%pft(np)
-          if(ipft<1 .or. ipft >19) then
-             print *, "PFT error at  np", jmodel,ipft,np
-             stop
-          end if
-          micparam%xcnleaf(np)  = cnleaf2(ipft)
-          micparam%xcnroot(np)  = cnroot2(ipft)
-          micparam%xcnwood(np)  = cnwood2(ipft)
-          micparam%fligleaf(np) = ligleaf2(ipft)
-          micparam%fligroot(np) = ligroot2(ipft)
-          micparam%fligwood(np) = ligwood2(ipft)
-       end if
+
+       select case (jmodel)
+       case (model_cable)
+         ipft =  micglobal%pft(np)
+         if(ipft<1 .or. ipft >17) then
+           write(6,"(a,i0,a,i0)") "PFT error for CABLE at ipft=", ipft, ", np=", np
+           stop
+         end if
+         micparam%xcnleaf(np)  = cnleaf1(ipft)
+         micparam%xcnroot(np)  = cnroot1(ipft)
+         micparam%xcnwood(np)  = cnwood1(ipft)
+         micparam%fligleaf(np) = ligleaf1(ipft)
+         micparam%fligroot(np) = ligroot1(ipft)
+         micparam%fligwood(np) = ligwood1(ipft)
+       case (model_orchidee)
+         ipft =  micglobal%pft(np)
+         if(ipft<1 .or. ipft >19) then
+           write(6,"(a,i0,a,i0)") "PFT error for ORCHIDEE at ipft=", ipft, ", np=", np
+           stop
+         end if
+         micparam%xcnleaf(np)  = cnleaf2(ipft)
+         micparam%xcnroot(np)  = cnroot2(ipft)
+         micparam%xcnwood(np)  = cnwood2(ipft)
+         micparam%fligleaf(np) = ligleaf2(ipft)
+         micparam%fligroot(np) = ligroot2(ipft)
+         micparam%fligwood(np) = ligwood2(ipft)
+       case default
+         write(6,"(a,i0,a)") "ERROR getdata_hwsd: Invalid model '", jmodel, "'"
+         stop 999
+       end select
 
        nsocobs=0
 
@@ -2513,7 +2533,7 @@ end subroutine lonlat2mpx4b
 
        ! using "micglobal%area" to filter out some sites
        micglobal%npp(np) = sum(micglobal%dleaf(np,:) + micglobal%dwood(np,:) + micglobal%droot(np,:))
-       if(jmodel==3) then ! scale orchidee NPP using midNPP
+       if (use_modis_npp) then
           micglobal%dleaf(np,:) = micglobal%dleaf(np,:) * modisnpp_mp(np)/micglobal%npp(np)
           micglobal%dwood(np,:) = micglobal%dwood(np,:) * modisnpp_mp(np)/micglobal%npp(np)
           micglobal%droot(np,:) = micglobal%droot(np,:) * modisnpp_mp(np)/micglobal%npp(np)
@@ -2554,7 +2574,7 @@ end subroutine lonlat2mpx4b
     micglobal%avgts(:) = sum(sum(micglobal%tsoil(:,:,:),dim=3),dim=2)/real(ms*ntime)
     micglobal%avgms(:) = sum(sum(micglobal%moist(:,:,:),dim=3),dim=2)/real(ms*ntime)
 
-    if(jglobal==1) then
+    if(jglobal) then
        open(100,file="inputdata.txt")
        do np=1,mp
           write(100,101) micparam%siteid(np),micglobal%area(np),micparam%pft(np), &
@@ -2631,7 +2651,10 @@ end subroutine screenout
     data ligcwood/0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4/
     data ligcroot/0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28/
     character(len=140),           INTENT(IN) :: faustsoc
-    integer,                      INTENT(IN) :: jglobal,bgcopt,jopt,jmodel
+    logical,                      INTENT(IN) :: jglobal
+    integer,                      INTENT(IN) :: bgcopt
+    logical,                      INTENT(IN) :: jopt
+    integer,                      INTENT(IN) :: jmodel
     TYPE(mic_parameter),          INTENT(INout) :: micparam
     TYPE(mic_global_input),       INTENT(INout) :: micglobal
     real(dp),                     INTENT(IN) :: zse(ms)
@@ -2806,7 +2829,7 @@ end subroutine screenout
        micglobal%time(k)= real(k*1.0,kind=dp)
     end do
 
-    if(jglobal==1) then
+    if(jglobal) then
        open(100,file="inputdata.txt")
        do np=1,mp
           write(100,101) micparam%siteid(np),micglobal%area(np),micparam%pft(np), &
