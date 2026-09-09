@@ -1,7 +1,7 @@
 !> Module for MESC namelist configuration.
-module mesc_namelist
-  use, intrinsic :: iso_fortran_env, only : error_unit, output_unit
-  use precision_module, only: dp
+module mesc_namelist_module
+  use, intrinsic :: iso_fortran_env, only: error_unit, output_unit
+  use mesc_precision_module, only: dp
   implicit none
   private
 
@@ -158,4 +158,4 @@ contains
     error stop 1
   end subroutine fatal_error
 
-end module mesc_namelist
+end module mesc_namelist_module
