@@ -18,8 +18,8 @@
 !! vmicsoil_hwsd_cpu. The actual ORCHIDEE run path goes through functn_global4, which loads
 !! forcing via getdata_global4_orchidee (when jmodel==2 or 3) and then calls vmicsoil_hwsd_cpu.
 !! For an online coupling with ORCHIDEE, this entire standalone spinup structure would not be
-!! called directly; the relevant lower-level routines are variable_time_single,
-!! vmic_param_time_single, and rk4modelx.
+!! called directly; the relevant lower-level routines are variable_time,
+!! vmic_param_time, and rk4modelx.
 !!
 !! **General order of operations**
 !!
@@ -572,9 +572,9 @@ end subroutine vmicsoil_c14
 !>
 !> NOTE: This subroutine is currently dead code — the call to it in functn_frc1
 !> (mod_functions.f90) is commented out and replaced with vmicsoil_hwsd_cpu. It also
-!> does not call variable_time_single, meaning it would run with static environmental
+!> does not call variable_time, meaning it would run with static environmental
 !> inputs rather than updating them day by day, unlike vmicsoil_hwsd_cpu which calls
-!> variable_time_single and vmic_param_time_single every day. The actual ORCHIDEE run
+!> variable_time and vmic_param_time every day. The actual ORCHIDEE run
 !> path uses vmicsoil_hwsd_cpu throughout.
 SUBROUTINE vmicsoil_frc1_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,isoc14,ifsoc14,bgcopt,nyeqpool, &
                              zse,micpxdef,micpdef,micparam,micinput,micglobal,miccpool,micnpool,micoutput)
@@ -1062,7 +1062,7 @@ end subroutine vmicsoil_hwsd_gpu
     integer,                     intent(in)    :: doy
       !! day of year (1–365)
     integer,                     intent(in)    :: year
-      !! simulation year (1-based, used by [[variable_time_single]])
+      !! simulation year (1-based, used by [[variable_time]])
     integer,                     intent(in)    :: ny
       !! year offset passed to [[rk4modelx]] (year - nyeqpool)
     integer,                     intent(in)    :: kinetics
@@ -1076,9 +1076,9 @@ end subroutine vmicsoil_hwsd_gpu
     TYPE(mic_param_default),     intent(in)    :: micpdef
       !! default parameter values
     TYPE(mic_parameter),         intent(inout) :: micparam
-      !! working parameter array (updated by [[vmic_param_time_single]])
+      !! working parameter array (updated by [[vmic_param_time]])
     TYPE(mic_input),             intent(inout) :: micinput
-      !! time-varying environmental inputs (updated by [[variable_time_single]])
+      !! time-varying environmental inputs (updated by [[variable_time]])
     TYPE(mic_global_input),      intent(inout) :: micglobal
       !! global forcing data
     TYPE(mic_cpool),             intent(inout) :: miccpool
