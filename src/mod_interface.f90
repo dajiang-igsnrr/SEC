@@ -35,7 +35,7 @@
 
 module mesc_interface_module
   use precision_module, only : dp
-  use mic_constant, only : diag, delt, mp, ms, mpft, mcpool, outp, tvc14, xrootcable, xrootorchidee
+  use mic_constant, only : diag, delt, mp, ms, mpft, mcpool, outp, tvc14
   use mic_variable, only : mic_param_xscale, mic_param_default, mic_parameter, &
                            mic_input, mic_npool, mic_cpool, mic_output, mic_global_input
   use mesc_inout_module, only: vmic_restart_read ! , vmic_restart_write, vmic_output_write
@@ -226,17 +226,19 @@ end subroutine vmic_init
 !> ```
 !>
 !> NOTE: This routine is called before all run modes and is not specific to ORCHIDEE.
-!> The ORCHIDEE-specific behaviour is the jmodel==2 branch, which sets PFT root-beta profiles
-!> using xrootorchidee (as opposed to xrootcable for CABLE). In the global ORCHIDEE run
-!> (functn_global4 in mod_functions.f90), vmic_param_xscale is only called when jopt=.true.
-!> (optimisation mode); otherwise getparam_global reads parameters from a lookup table instead.
-subroutine vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
-    real(dp), dimension(16), intent(in)    :: xopt     !! optimized parameter values (16-element vector)
-    integer,                 intent(in)    :: bgcopt   !! BGC type index to apply `xopt` to
-    integer,                 intent(in)    :: jmodel   !! forcing model selector (1=CABLE, 2=ORCHIDEE)
-    TYPE(mic_param_xscale),  intent(inout) :: micpxdef !! scaling factors (populated here)
-
-    ! Local variables
+!> In the global ORCHIDEE run (functn_global4 in mod_functions.f90), vmic_param_xscale is
+!> only called when jopt=.true. (optimisation mode); otherwise getparam_global reads
+!> parameters from a lookup table instead.
+!>
+!> The rootdepth argument accepts the per-PFT rooting depths for the land-surface model
+!> being used. In standalone mode the caller passes xrootcable (17 PFTs) or xrootorchidee
+!> (19 PFTs) from mod_constants.f90. For online coupling, ORCHIDEE supplies this array
+!> directly.
+subroutine vmic_param_xscale(xopt,bgcopt,rootdepth,micpxdef)
+    real(dp), dimension(16), intent(in)  :: xopt              !! optimized parameter values (16-element vector)
+    integer,                 intent(in)  :: bgcopt            !! BGC type index to apply `xopt` to
+    real(dp), dimension(:),  intent(in)  :: rootdepth         !! per-PFT rooting depths [m] (size mpft)
+    TYPE(mic_param_xscale),  intent(inout) :: micpxdef        !! scaling factors (populated here)
     integer :: i
 
      ! assign the default values
@@ -261,12 +263,7 @@ subroutine vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
       micpxdef%xdesorp   = 1.0
 
       do i=1,mpft
-         if(jmodel==1) then
-            micpxdef%xrootbeta(i) = xrootcable(i)
-         end if
-         if(jmodel==2) then
-            micpxdef%xrootbeta(i) = xrootorchidee(i)
-         end if
+         micpxdef%xrootbeta(i) = rootdepth(i)
       end do
 
       ! assign the values to the optimized parameters
