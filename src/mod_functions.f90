@@ -6,8 +6,10 @@
 !> [[functn]] reads `mesc.nml` and selects the configured run mode.
 module function_module
   use precision_module, only: dp
-  use mesc_namelist, only: mesc_config, read_mesc_namelist
-  use mic_constant, only: mp, mpft, mbgc, ntime, nlon, nlat, ms, xrootcable, xrootorchidee
+  use mic_constant, only: mp, mpft, mbgc, ntime, nlon, nlat, ms, xrootcable, &
+                          xrootorchidee
+  use mesc_namelist, only: mesc_config, read_mesc_namelist, model_cable, &
+                           model_orchidee
   use mic_variable, only: mic_param_xscale, mic_param_default, mic_parameter, &
                           mic_input, mic_global_input, mic_cpool, mic_npool, mic_output, &
                           mic_allocate_parameter, mic_allocate_input, mic_allocate_output, &
@@ -138,8 +140,15 @@ module function_module
 
       mp = 213   ! needs to get the value from input file (to be done)
 
-      totcost1 = 0.0; totcost2=0.0
-      nyeqpool= 500;jmodel=1;mpft=17;mbgc=12;ntime=1;nlon=1;nlat=1
+      totcost1 = 0.0
+      totcost2=0.0
+      nyeqpool= 500
+      jmodel=model_cable
+      mpft=17
+      mbgc=12
+      ntime=1
+      nlon=1
+      nlat=1
       ms=15
       allocate(zse(ms))
       zse(1:ms)=0.1
@@ -254,7 +263,11 @@ real(dp) function functn_frc1(nx,xparam16)
       totcost1 = 0.0
       nyeqpool= 1000
       isoc14 = 0
-      jmodel=1;mpft=17;mbgc=12;nlon=1;nlat=1
+      jmodel=model_cable
+      mpft=17
+      mbgc=12
+      nlon=1
+      nlat=1
       ms = 10
       allocate(zse(ms))
       zse(1) =0.02;zse(2)=0.04;zse(3)=0.06;zse(4)=0.08
@@ -362,9 +375,20 @@ END function functn_frc1
       call getdata_hwsd_dim(fhwsdsoc,mpx,timex)
       mp=mpx
       ntime=timex
-      if(jmodel==1)                mpft=17   !CABLE
-      if(jmodel==2 .or. jmodel==3) mpft=19   !ORCHIDEE
-      mbgc=12;nlon=1;nlat=1
+
+      select case (jmodel)
+      case (model_cable)
+        mpft = 17
+      case (model_orchidee)
+        mpft = 19
+      case default
+        write(6,"(a,i0,a)") "ERROR functn_soc_hwsd: Invalid model '", jmodel, "'"
+        stop 999
+      end select
+
+      mbgc=12
+      nlon=1
+      nlat=1
       ms=7
       allocate(zse(ms))
       zse(1:5)=0.2;zse(6:7)=0.5
@@ -438,7 +462,9 @@ END function functn_soc_hwsd
       nyeqpool = 500
       ok=0
       totcost1=0.0
-      jmodel=1;mpft=17;mbgc=10;ntime=365;nlon=192;nlat=112
+      jmodel=model_cable
+      mbgc=10
+      ntime=365
       ms=7
       allocate(zse(ms))
       zse(1:5)=0.2;zse(6:7)=0.5
@@ -470,9 +496,20 @@ END function functn_soc_hwsd
       end do
       print *, xopt
 
-      if(jmodel==2 .or. jmodel==3) then
-         mpft=19; nlon=720; nlat=360
-      end if
+      ! Set model-specific parameters
+      select case (jmodel)
+      case (model_cable)
+        mpft=17
+        nlon=192
+        nlat=112
+      case (model_orchidee)
+        mpft=19
+        nlon=720
+        nlat=360
+      case default
+        write(6,"(a,i0,a)") "ERROR functn_global4: Invalid model '", jmodel, "'"
+        stop 999
+      end select
 
       ! reading global parameter values here      xopt =xparam16(1:nx)
       call getpatch_global(fglobal(1),jmodel,mp)
@@ -486,8 +523,16 @@ END function functn_soc_hwsd
 
       print *, " all  arrays are allocated!"
 
-      if(jmodel==1)                call getdata_global4_cable(fglobal,jglobal,bgcopt,jopt,jmodel,micglobal,micparam,zse)
-      if(jmodel==2 .or. jmodel==3) call getdata_global4_orchidee(fglobal,jglobal,bgcopt,jopt,jmodel,micglobal,micparam,zse)
+      ! Call getdata_global4 variant appropriate to model
+      select case (jmodel)
+      case (model_cable)
+        call getdata_global4_cable(fglobal,jglobal,bgcopt,jopt,jmodel,micglobal,micparam,zse)
+      case (model_orchidee)
+        call getdata_global4_orchidee(fglobal,jglobal,bgcopt,jopt,jmodel,micglobal,micparam,zse)
+      case default
+        write(6,"(a,i0,a)") "ERROR functn_global4: Invalid model '", jmodel, "'"
+        stop 999
+      end select
       print *, "global input data are read in"
 
       if(.not. jopt) then

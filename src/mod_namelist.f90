@@ -7,6 +7,14 @@ module mesc_namelist
 
   integer, parameter :: path_len = 140
 
+  logical, public :: use_modis_npp = .false.
+
+  ! Enumerator for handling the different models supported by jmodel
+  enum, bind(c)
+    enumerator :: model_cable = 1
+    enumerator :: model_orchidee = 2
+  end enum
+
   !> Derived type for holding parameter values related to MESC.
   type, public :: mesc_config
     integer :: runcase = 0
@@ -35,7 +43,7 @@ module mesc_namelist
                             9, 10, 11, 12, 13, 14, 15, 16]
   end type mesc_config
 
-  public :: read_mesc_namelist, print_mesc_config
+  public :: read_mesc_namelist, print_mesc_config, model_orchidee, model_cable
 
 contains
 
@@ -63,7 +71,7 @@ contains
     namelist /mesc/ runcase, jglobal, kinetics, bgcopt, jopt, &
       jrestart, jmodel, ifsoc14, frestart_in, frestart_out, &
       foutput, fparameter, cfraction, frac14c, f14c, filecluster, &
-      fhwsdsoc, faustsoc, fmodis, fanoc, fglobal, xopt, nxopt
+      fhwsdsoc, faustsoc, fmodis, fanoc, fglobal, xopt, nxopt, use_modis_npp
 
     ! Copy defaults into the local variables read by the namelist.
     runcase = config%runcase
