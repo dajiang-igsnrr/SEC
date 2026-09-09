@@ -50,93 +50,127 @@ contains
 
     end subroutine rk4modelx
 
- !> Computes Michaelis-Menten half-saturation constants (K and J) for one grid point np.
- !! Values are temperature- and clay-dependent. Unit: mg Mic C/cm3.
- subroutine Kmt(micpxdef,micpdef,micparam,micinput,np)
-    TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef      !! PFT-specific scaling factors
-    TYPE(mic_param_default), INTENT(IN)      :: micpdef       !! fixed default parameters
-    TYPE(mic_parameter),     INTENT(INOUT)   :: micparam      !! computed model parameters. K1:K3, J1:J3 updated at (np,ns)
-    TYPE(mic_input),         INTENT(IN)      :: micinput      !! environmental model inputs
-    integer,                 INTENT(IN)      :: np            !! grid point index
-      real(dp), dimension(ms) :: xkclay,km,kmx
-      integer :: nopt,ns
+  !> Computes Michaelis-Menten half-saturation constants (K and J) for one grid cell.
+  !! Values are temperature- and clay-dependent. Unit: mg Mic C/cm3.
+  subroutine kmt( &
+    clay, tavg, &                         ! environmental inputs
+    xak, sk, skx, ak, bk, &               ! scaling/coefficients
+    xk1, xk2, xk3, xj1, xj2, xj3, &       ! default constants
+    K1, K2, K3, J1, J2, J3, &             ! computed outputs
+    print_output)                         ! printing control
+    !
+    ! Environmental inputs
+    real(dp), INTENT(IN)  :: clay                       !! soil clay fraction (0-1)
+    real(dp), INTENT(IN)  :: tavg                       !! average soil temperature (deg C)
+    
+    ! Scaling and coefficient parameters
+    real(dp), INTENT(IN)  :: xak                        !! Km scaling factor [1] (0-30)
+    real(dp), INTENT(IN)  :: sk                         !! soil depth coefficient for km
+    real(dp), INTENT(IN)  :: skx                        !! soil texture coefficient for kmx
+    real(dp), INTENT(IN)  :: ak                         !! baseline Michaelis constant
+    real(dp), INTENT(IN)  :: bk                         !! depth decay coefficient
+    
+    ! Default Michaelis-Menten constants (substrate 1-3)
+    real(dp), INTENT(IN)  :: xk1, xk2, xk3              !! default K constants
+    real(dp), INTENT(IN)  :: xj1, xj2, xj3              !! default J constants
+    
+    ! Output: computed Michaelis-Menten constants for substrates 1-3
+    real(dp), INTENT(OUT) :: K1, K2, K3                 !! K constants (mg Mic C/cm3)
+    real(dp), INTENT(OUT) :: J1, J2, J3                 !! J constants (mg Mic C/cm3)
+    
+    ! Control parameters
+    logical, INTENT(IN)   :: print_output               !! diagnostic output flag
+    
+    ! Local variables
+    real(dp)              :: xkclay                     !! clay-dependent scaling for K3/J3
+    real(dp)              :: km                         !! metabolic pathway K constant base
+    real(dp)              :: kmx                        !! alternate pathway K constant base
 
-      do ns=1,ms
-         nopt=micparam%bgctype(np)
-         xkclay(ns) = 1.0/(2.0*exp(-2.0*sqrt(micinput%clay(np,ns))))
-         km(ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%sk * micinput%tavg(np,ns) + micpdef%bk)
-         micparam%K1(np,ns) =  km(ns)/micpdef%xk1
-         micparam%K3(np,ns) =  km(ns) * xkclay(ns)/micpdef%xk3
-         micparam%J1(np,ns) =  km(ns)/micpdef%xj1
-         micparam%J3(np,ns) =  km(ns) * xkclay(ns)/micpdef%xj3
+    ! Compute clay-dependent scaling factor
+    xkclay = 1.0 / (2.0 * exp(-2.0 * sqrt(clay)))
 
-         kmx(ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%skx * micinput%tavg(np,ns) + micpdef%bk)
-         micparam%K2(np,ns) =  kmx(ns)/micpdef%xk2
-         micparam%J2(np,ns) =  kmx(ns)/micpdef%xj2
-      end do
+    ! Compute K1, K3, J1, J3
+    km = xak * ak * exp(sk * tavg + bk)
+    K1 = km / xk1
+    K3 = km * xkclay / xk3
+    J1 = km / xj1
+    J3 = km * xkclay / xj3
 
-      if(diag==1.and.np==outp) then
-         print *, "Kmt",micinput%clay(outp,1),micinput%tavg(outp,1),km(1),kmx(1)
-         print *, "K1=",micparam%K1(outp,1)
-         print *, "K2=",micparam%K2(outp,1)
-         print *, "K3=",micparam%K3(outp,1)
-         print *, "J1=",micparam%J1(outp,1)
-         print *, "J2=",micparam%J2(outp,1)
-         print *, "J3=",micparam%J3(outp,1)
-      end if
+    ! Compute K2, J2
+    kmx = xak * ak * exp(skx * tavg + bk)
+    K2 = kmx / xk2
+    J2 = kmx / xj2
 
-    end subroutine Kmt
+    ! Diagnostic output
+    if(print_output) then
+      print *, "Kmt", clay, tavg, km, kmx
+      print *, "K1=", K1
+      print *, "K2=", K2
+      print *, "K3=", K3
+      print *, "J1=", J1
+      print *, "J2=", J2
+      print *, "J3=", J3
+    end if
 
-
- !> Computes Vmax-based enzymatic rate constants (V1:V3, W1:W3) for one grid point np.
- !! Values are temperature-, depth-, and PFT-dependent.
- !! Unit: mg C per mg mic C per hour.
- subroutine Vmaxt(micpxdef,micpdef,micparam,micinput,np)
-    TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef      !! PFT-specific scaling factors
-    TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters
-    TYPE(mic_parameter),     INTENT(INOUT)  :: micparam      !! computed model parameters. V1:V3, W1:W3 updated at (np,ns)
-    TYPE(mic_input),         INTENT(IN)     :: micinput      !! environmental model inputs
-    integer,                 INTENT(IN)     :: np            !! grid point index
-    real(dp),dimension(ms) :: vmax
-      integer :: nopt,ns
-    real(dp), dimension(ms) :: sdepthz
-
-      sdepthz=0.0
+  end subroutine kmt
 
 
-      sdepthz=0.0
-      nopt=micparam%bgctype(np)
-      do ns=1,ms
-         if(ns==1) then
-            sdepthz(ns) = 0.5 * micparam%sdepth(np,ns)
-         else
-            sdepthz(ns) = sdepthz(ns-1) + micparam%sdepth(np,ns)
-         end if
-      !   vmax(np,ns) =  micpxdef%xav * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv) * delt
-      !   vmax(np,ns) =  exp(-2.0* sdepthz(ns)) * micpxdef%xav(npft) * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv) * delt
-         vmax(ns) =  exp(-micpdef%vmaxbeta * micpxdef%xvmaxbeta(nopt) * sdepthz(ns))     &
-                              * micpxdef%xav(nopt) * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv)  * delt
+  !> Computes Vmax-based enzymatic rate constants (V1:V3, W1:W3) for one grid cell.
+  !! Values are temperature-, depth-, and PFT-dependent.
+  !! Unit: mg C per mg mic C per hour.
+  subroutine vmaxt( &
+    tavg, sdepthz, &                          !! environmental and grid inputs
+    vmaxbeta, xvmaxbeta, av, xav, sv, bv, &   !! scaling and coefficient parameters
+    xv1, xv2, xv3, xw1, xw2, xw3, &           !! default vmax-based enzymatic rate constants
+    V1, V2, V3, W1, W2, W3, &                 !! computed outputs
+    print_output)                             !! printing control
+    !
+    ! Environmental inputs
+    real(dp), INTENT(IN)  :: tavg                       !! average soil temperature (deg C)
 
-         micparam%V1(np,ns)   =  micpdef%xv1 * vmax(ns)
-         micparam%V2(np,ns)   =  micpdef%xv2 * vmax(ns)
-         micparam%V3(np,ns)   =  micpdef%xv3 * vmax(ns)
+    ! Grid parameters
+    real(dp), INTENT(IN)  :: sdepthz                    !! soil depth [cm]
 
-         micparam%W1(np,ns)   =  micpdef%xw1 * vmax(ns)
-         micparam%W2(np,ns)   =  micpdef%xw2 * vmax(ns)
-         micparam%W3(np,ns)   =  micpdef%xw3 * vmax(ns)
-      end do
+    ! Scaling and coefficient parameters
+    real(dp), INTENT(IN)  :: vmaxbeta, xvmaxbeta        !! depth decay coefficient
+    real(dp), INTENT(IN)  :: av, xav                    !! scaling factor [1] (0-30) 
+    real(dp), INTENT(IN)  :: sv                         !! soil depth coefficient
+    real(dp), INTENT(IN)  :: bv                         !! depth decay
 
-      if(diag==1.and.np==outp) then
-         print *, "Vmaxt",micinput%tavg(outp,1),vmax(1)
-         print *, "V1=",micparam%V1(outp,1)
-         print *, "V2=",micparam%V2(outp,1)
-         print *, "V3=",micparam%V3(outp,1)
-         print *, "W1=",micparam%W1(outp,1)
-         print *, "W2=",micparam%W2(outp,1)
-         print *, "W3=",micparam%W3(outp,1)
-      end if
+    ! Default Michaelis-Menten constants (substrate 1-3)
+    real(dp), INTENT(IN)  :: xv1, xv2, xv3              !! default V constants
+    real(dp), INTENT(IN)  :: xw1, xw2, xw3              !! default W constants
+    
+    ! Output: computed Michaelis-Menten constants for substrates 1-3
+    real(dp), INTENT(OUT) :: V1, V2, V3                 !! V constants (mg C / mg Mic C/ h)
+    real(dp), INTENT(OUT) :: W1, W2, W3                 !! W constants (mg C / mg Mic C/ h)
 
-    end subroutine Vmaxt
+    ! Control parameters
+    logical, INTENT(IN)   :: print_output               !! diagnostic output flag
+
+    ! Local variables
+    real(dp)              :: vmax
+    
+    vmax =  exp(-vmaxbeta * xvmaxbeta * sdepthz)     &
+                          * xav * av * exp(sv * tavg + bv) * delt
+    V1   =  xv1 * vmax
+    V2   =  xv2 * vmax
+    V3   =  xv3 * vmax
+    W1   =  xw1 * vmax
+    W2   =  xw2 * vmax
+    W3   =  xw3 * vmax
+
+    if(print_output) then
+        print *, "Vmaxt", tavg, vmax
+        print *, "V1=", V1
+        print *, "V2=", V2
+        print *, "V3=", V3
+        print *, "W1=", W1
+        print *, "W2=", W2
+        print *, "W3=", W3
+    end if
+
+    end subroutine vmaxt
 
 
  !> Computes clay-dependent desorption rate (desorp) for one grid point np.
