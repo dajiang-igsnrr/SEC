@@ -103,7 +103,7 @@ module function_module
     real(dp)                :: totcost1,totcost2
     logical :: jglobal
     logical :: jopt
-    integer :: ifsoc14,kinetics,bgcopt,nyeqpool,isoc14,jmodel
+    integer :: ifsoc14,bgcopt,nyeqpool,isoc14,jmodel
     integer :: jrestart,nparam
     character(len=140) :: frestart_in,frestart_out,foutput
     character(len=140) :: frac14c,f14c(5),filecluster,fparameter
@@ -222,7 +222,7 @@ real(dp) function functn_frc1(nx,xparam16)
     real(dp)                :: totcost1
     logical :: jglobal
     logical :: jopt
-    integer :: ifsoc14,kinetics,bgcopt,nyeqpool,isoc14,jmodel
+    integer :: ifsoc14,bgcopt,nyeqpool,isoc14,jmodel
     integer :: jrestart,nparam
     character(len=140) :: frestart_in,frestart_out,foutput
     character(len=140) :: cfraction
@@ -328,7 +328,7 @@ END function functn_frc1
     type(mic_output)        :: micoutput
     logical :: jglobal
     logical :: jopt
-    integer :: ifsoc14,kinetics,bgcopt,nyeqpool,isoc14,jmodel
+    integer :: ifsoc14,bgcopt,nyeqpool,isoc14,jmodel
     integer :: jrestart,nf,ok,nparam,mpx,timex
     character(len=140) :: frestart_in,frestart_out,fparam_global,foutput
     character(len=140) :: fhwsdsoc,fmodis,fanoc
@@ -448,7 +448,7 @@ END function functn_soc_hwsd
     type(mic_output)         :: micoutput
     logical :: jglobal
     logical :: jopt
-    integer :: ifsoc14,kinetics,bgcopt,nyeqpool,isoc14,jmodel
+    integer :: ifsoc14,bgcopt,nyeqpool,isoc14,jmodel
     integer :: jrestart,nf,ok,nparam
     character(len=140) :: frestart_in,frestart_out,fparam_global,foutput
     character(len=140) :: fglobal(10)
@@ -582,7 +582,7 @@ END function functn_global4
     type(mic_output)        :: micoutput
     logical :: jglobal
     logical :: jopt
-    integer :: ifsoc14,kinetics,bgcopt,nyeqpool,isoc14,jmodel
+    integer :: ifsoc14,bgcopt,nyeqpool,isoc14,jmodel
     integer :: jrestart,nf,ok,nparam,mpx,timex
     character(len=140) :: frestart_in,frestart_out,foutput
     character(len=140) :: faustsoc

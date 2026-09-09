@@ -19,7 +19,6 @@ module mesc_namelist
   type, public :: mesc_config
     integer :: runcase = 0
     logical :: jglobal = .false.
-    integer :: kinetics = 3
     integer :: bgcopt = 1
     logical :: jopt = .false.
     integer :: jrestart = 0
@@ -58,7 +57,7 @@ contains
     integer :: nml_unit, ios
     character(len=512) :: iomsg
     logical :: jglobal
-    integer :: runcase, kinetics, bgcopt
+    integer :: runcase, bgcopt
     logical :: jopt
     integer :: jrestart, jmodel, ifsoc14
     character(len=path_len) :: frestart_in, frestart_out, foutput
@@ -68,7 +67,7 @@ contains
     real(dp) :: xopt(16)
     integer :: nxopt(16)
 
-    namelist /mesc/ runcase, jglobal, kinetics, bgcopt, jopt, &
+    namelist /mesc/ runcase, jglobal, bgcopt, jopt, &
       jrestart, jmodel, ifsoc14, frestart_in, frestart_out, &
       foutput, fparameter, cfraction, frac14c, f14c, filecluster, &
       fhwsdsoc, faustsoc, fmodis, fanoc, fglobal, xopt, nxopt, use_modis_npp
@@ -76,7 +75,6 @@ contains
     ! Copy defaults into the local variables read by the namelist.
     runcase = config%runcase
     jglobal = config%jglobal
-    kinetics = config%kinetics
     bgcopt = config%bgcopt
     jopt = config%jopt
     jrestart = config%jrestart
@@ -109,7 +107,6 @@ contains
 
     config%runcase = runcase
     config%jglobal = jglobal
-    config%kinetics = kinetics
     config%bgcopt = bgcopt
     config%jopt = jopt
     config%jrestart = jrestart
@@ -139,7 +136,6 @@ contains
       !! Derived type instance holding parameter values
     write(output_unit, '(a,i0)') 'runcase     = ', config%runcase
     write(output_unit, '(a,l1)') 'jglobal     = ', config%jglobal
-    write(output_unit, '(a,i0)') 'kinetics    = ', config%kinetics
     write(output_unit, '(a,i0)') 'bgcopt      = ', config%bgcopt
     write(output_unit, '(a,i0)') 'jopt        = ', config%jopt
     write(output_unit, '(a,i0)') 'jrestart    = ', config%jrestart

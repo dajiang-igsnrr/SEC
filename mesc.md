@@ -26,10 +26,9 @@ Brief description
 The MESC model is a process-oriented soil carbon model that explicitly
 represents microbial decomposition processes using Michaelis-Menten
 kinetics, designed to simulate soil and ecosystem carbon dynamics and
-their controlling mechanisms. It supports multiple kinetic variants
-(MIMICS, MILLENNIAL2, and a combined model), bioturbation via
-Crank-Nicolson discretization, and can be forced by CABLE or ORCHIDEE
-outputs.
+their controlling mechanisms. It supports a combined MIMICS-MILLENNIAL2
+kinetic approach, bioturbation via Crank-Nicolson discretization, and
+can be forced by CABLE or ORCHIDEE outputs.
 
 License
 -------
