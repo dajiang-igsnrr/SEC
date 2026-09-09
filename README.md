@@ -137,22 +137,35 @@ cd test
 
 API documentation is generated with [FORD](https://forddocs.readthedocs.io/), a Fortran documentation generator.
 
-**Install FORD** (using a virtual environment is recommended):
+To install FORD, create and activate a
+[Python virtual environment](https://www.datasciencebase.com/fundamentals/python/environment-setup/)
+and install via
 ```bash
 pip install ford
 ```
 
-**Generate documentation:**
+Optionally, install `graphviz` to generate dependency graphs with FORD. The
+installation method will differ depending on your operating system. On Ubuntu,
+for example, run
+```sh
+sudo apt update
+sudo apt install graphviz
+```
+
+Once you have installed FORD, generate the API documentation with
 ```bash
 ford mesc.md
 ```
 
-This reads `!>` and `!!` comment blocks from `src/*.f90` and produces static HTML output in `doc/`.
+This reads `!>` and `!!` comment blocks from `src/*.f90` and produces static
+HTML output in `doc/`.
 
-**View documentation:**
+The documentation will be generated in the `doc/` subdirectory and can be viewed
+using
 ```bash
 open doc/index.html
 ```
+(or as appropriate for your operating system).
 
 To regenerate after updating doc comments, simply re-run `ford mesc.md`.
 

@@ -1,6 +1,9 @@
 # CMake build directory
 build/
 
+# API docs directory
+doc/
+
 # CMake generated files (in case of in-source build)
 CMakeCache.txt
 CMakeFiles/

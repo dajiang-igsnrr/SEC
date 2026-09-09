@@ -50,74 +50,33 @@ contains
 
     end subroutine rk4modelx
 
- !> Computes Michaelis-Menten half-saturation constants (K and J) for all grid points.
+ !> Computes Michaelis-Menten half-saturation constants (K and J) for one grid point np.
  !! Values are temperature- and clay-dependent. Unit: mg Mic C/cm3.
- subroutine Kmt(micpxdef,micpdef,micparam,micinput)
-      TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef      !! PFT-specific scaling factors
-      TYPE(mic_param_default), INTENT(IN)      :: micpdef       !! fixed default parameters
-      TYPE(mic_parameter),     INTENT(INOUT)   :: micparam      !! computed model parameters. K1:K3, J1:J3 updated per (np,ns) here
-      TYPE(mic_input),         INTENT(IN)      :: micinput      !! environmental model inputs
-      real(dp), dimension(:,:), allocatable   :: xkclay,km,kmx
-      integer :: nopt,np,ns
-
-     allocate(xkclay(mp,ms),km(mp,ms),kmx(mp,ms))
-     do np=1,mp
-      do ns=1,ms
-         nopt=micparam%bgctype(np)
-         xkclay(np,ns) = 1.0/(2.0*exp(-2.0*sqrt(micinput%clay(np,ns))))
-         km(np,ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%sk * micinput%tavg(np,ns) + micpdef%bk)
-         micparam%K1(np,ns) =  km(np,ns)/micpdef%xk1
-         micparam%K3(np,ns) =  km(np,ns) * xkclay(np,ns)/micpdef%xk3
-         micparam%J1(np,ns) =  km(np,ns)/micpdef%xj1
-         micparam%J3(np,ns) =  km(np,ns) * xkclay(np,ns)/micpdef%xj3
-
-         kmx(np,ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%skx * micinput%tavg(np,ns) + micpdef%bk)
-         micparam%K2(np,ns) =  kmx(np,ns)/micpdef%xk2
-         micparam%J2(np,ns) =  kmx(np,ns)/micpdef%xj2
-       end do
-      end do
-
-       if(diag==1.and.np==outp) then
-          print *, "Kmt",micinput%clay(outp,1),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
-          print *, "K1=",micparam%K1(outp,1)
-          print *, "K2=",micparam%K2(outp,1)
-          print *, "K3=",micparam%K3(outp,1)
-          print *, "J1=",micparam%J1(outp,1)
-          print *, "J2=",micparam%J2(outp,1)
-          print *, "J3=",micparam%J3(outp,1)
-       end if
-      deallocate(xkclay,km,kmx)
-
-    end subroutine Kmt
-
-
- !> Single-grid-point variant of @see Kmt.
- subroutine Kmt_single(micpxdef,micpdef,micparam,micinput,np)
-      TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef
-      TYPE(mic_param_default), INTENT(IN)      :: micpdef
-      TYPE(mic_parameter),     INTENT(INOUT)   :: micparam
-      TYPE(mic_input),         INTENT(IN)      :: micinput
-      integer,                 INTENT(IN)      :: np
-      real(dp), dimension(:,:), allocatable   :: xkclay,km,kmx
+ subroutine Kmt(micpxdef,micpdef,micparam,micinput,np)
+    TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef      !! PFT-specific scaling factors
+    TYPE(mic_param_default), INTENT(IN)      :: micpdef       !! fixed default parameters
+    TYPE(mic_parameter),     INTENT(INOUT)   :: micparam      !! computed model parameters. K1:K3, J1:J3 updated at (np,ns)
+    TYPE(mic_input),         INTENT(IN)      :: micinput      !! environmental model inputs
+    integer,                 INTENT(IN)      :: np            !! grid point index
+      real(dp), dimension(ms) :: xkclay,km,kmx
       integer :: nopt,ns
 
-      allocate(xkclay(mp,ms),km(mp,ms),kmx(mp,ms))
       do ns=1,ms
          nopt=micparam%bgctype(np)
-         xkclay(np,ns) = 1.0/(2.0*exp(-2.0*sqrt(micinput%clay(np,ns))))
-         km(np,ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%sk * micinput%tavg(np,ns) + micpdef%bk)
-         micparam%K1(np,ns) =  km(np,ns)/micpdef%xk1
-         micparam%K3(np,ns) =  km(np,ns) * xkclay(np,ns)/micpdef%xk3
-         micparam%J1(np,ns) =  km(np,ns)/micpdef%xj1
-         micparam%J3(np,ns) =  km(np,ns) * xkclay(np,ns)/micpdef%xj3
+         xkclay(ns) = 1.0/(2.0*exp(-2.0*sqrt(micinput%clay(np,ns))))
+         km(ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%sk * micinput%tavg(np,ns) + micpdef%bk)
+         micparam%K1(np,ns) =  km(ns)/micpdef%xk1
+         micparam%K3(np,ns) =  km(ns) * xkclay(ns)/micpdef%xk3
+         micparam%J1(np,ns) =  km(ns)/micpdef%xj1
+         micparam%J3(np,ns) =  km(ns) * xkclay(ns)/micpdef%xj3
 
-         kmx(np,ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%skx * micinput%tavg(np,ns) + micpdef%bk)
-         micparam%K2(np,ns) =  kmx(np,ns)/micpdef%xk2
-         micparam%J2(np,ns) =  kmx(np,ns)/micpdef%xj2
+         kmx(ns) =  micpxdef%xak(nopt) * micpdef%ak * exp(micpdef%skx * micinput%tavg(np,ns) + micpdef%bk)
+         micparam%K2(np,ns) =  kmx(ns)/micpdef%xk2
+         micparam%J2(np,ns) =  kmx(ns)/micpdef%xj2
       end do
 
       if(diag==1.and.np==outp) then
-         print *, "Kmt",micinput%clay(outp,1),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
+         print *, "Kmt",micinput%clay(outp,1),micinput%tavg(outp,1),km(1),kmx(1)
          print *, "K1=",micparam%K1(outp,1)
          print *, "K2=",micparam%K2(outp,1)
          print *, "K3=",micparam%K3(outp,1)
@@ -125,80 +84,22 @@ contains
          print *, "J2=",micparam%J2(outp,1)
          print *, "J3=",micparam%J3(outp,1)
       end if
-      deallocate(xkclay,km,kmx)
 
-    end subroutine Kmt_single
-
-
- !> Computes Vmax-based enzymatic rate constants (V1:V3, W1:W3) for all grid points.
- !! Values are temperature-, depth-, and PFT-dependent. Unit: mg C per mg mic C per hour.
- subroutine Vmaxt(micpxdef,micpdef,micparam,micinput)
-      TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef      !! PFT-specific scaling factors
-      TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters
-      TYPE(mic_parameter),     INTENT(INOUT)  :: micparam      !! computed model parameters. V1:V3, W1:W3 updated per (np,ns) here
-      TYPE(mic_input),         INTENT(IN)     :: micinput      !! environmental model inputs
-      real(dp),dimension(:,:), allocatable :: vmax
-      integer :: nopt,np,ns
-      real(dp), dimension(:), allocatable   :: sdepthz
-
-      allocate(vmax(mp,ms))
-      allocate(sdepthz(ms))
-
-      sdepthz=0.0
-
-      do np=1,mp
-           sdepthz=0.0
-           nopt=micparam%bgctype(np)
-          do ns=1,ms
-            if(ns==1) then
-               sdepthz(ns) = 0.5 * micparam%sdepth(np,ns)
-            else
-                sdepthz(ns) = sdepthz(ns-1) + micparam%sdepth(np,ns)
-            end if
-        !   vmax(np,ns) =  micpxdef%xav * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv) * delt
-        !   vmax(np,ns) =  exp(-2.0* sdepthz(ns)) * micpxdef%xav(npft) * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv) * delt
-           vmax(np,ns) =  exp(-micpdef%vmaxbeta * micpxdef%xvmaxbeta(nopt) * sdepthz(ns))     &
-                                 * micpxdef%xav(nopt) * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv)  * delt
-
-           micparam%V1(np,ns)   =  micpdef%xv1 * vmax(np,ns)
-           micparam%V2(np,ns)   =  micpdef%xv2 * vmax(np,ns)
-           micparam%V3(np,ns)   =  micpdef%xv3 * vmax(np,ns)
-
-           micparam%W1(np,ns)   =  micpdef%xw1 * vmax(np,ns)
-           micparam%W2(np,ns)   =  micpdef%xw2 * vmax(np,ns)
-           micparam%W3(np,ns)   =  micpdef%xw3 * vmax(np,ns)
-          end do
-       end do
-
-        if(diag==1.and.np==outp) then
-           print *, "Vmaxt",micinput%tavg(outp,1),vmax(outp,1)
-           print *, "V1=",micparam%V1(outp,1)
-           print *, "V2=",micparam%V2(outp,1)
-           print *, "V3=",micparam%V3(outp,1)
-           print *, "W1=",micparam%W1(outp,1)
-           print *, "W2=",micparam%W2(outp,1)
-           print *, "W3=",micparam%W3(outp,1)
-        end if
-
-      deallocate(vmax)
-      deallocate(sdepthz)
-
-    end subroutine Vmaxt
+    end subroutine Kmt
 
 
- !> Single-grid-point variant of @see Vmaxt
- subroutine Vmaxt_single(micpxdef,micpdef,micparam,micinput,np)
-      TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef
-      TYPE(mic_param_default), INTENT(IN)     :: micpdef
-      TYPE(mic_parameter),     INTENT(INOUT)  :: micparam
-      TYPE(mic_input),         INTENT(IN)     :: micinput
-      integer,                 INTENT(IN)     :: np
-      real(dp),dimension(:,:), allocatable :: vmax
+ !> Computes Vmax-based enzymatic rate constants (V1:V3, W1:W3) for one grid point np.
+ !! Values are temperature-, depth-, and PFT-dependent.
+ !! Unit: mg C per mg mic C per hour.
+ subroutine Vmaxt(micpxdef,micpdef,micparam,micinput,np)
+    TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef      !! PFT-specific scaling factors
+    TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters
+    TYPE(mic_parameter),     INTENT(INOUT)  :: micparam      !! computed model parameters. V1:V3, W1:W3 updated at (np,ns)
+    TYPE(mic_input),         INTENT(IN)     :: micinput      !! environmental model inputs
+    integer,                 INTENT(IN)     :: np            !! grid point index
+    real(dp),dimension(ms) :: vmax
       integer :: nopt,ns
-      real(dp), dimension(:), allocatable   :: sdepthz
-
-      allocate(vmax(mp,ms))
-      allocate(sdepthz(ms))
+    real(dp), dimension(ms) :: sdepthz
 
       sdepthz=0.0
 
@@ -213,21 +114,20 @@ contains
          end if
       !   vmax(np,ns) =  micpxdef%xav * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv) * delt
       !   vmax(np,ns) =  exp(-2.0* sdepthz(ns)) * micpxdef%xav(npft) * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv) * delt
-         vmax(np,ns) =  exp(-micpdef%vmaxbeta * micpxdef%xvmaxbeta(nopt) * sdepthz(ns))     &
+         vmax(ns) =  exp(-micpdef%vmaxbeta * micpxdef%xvmaxbeta(nopt) * sdepthz(ns))     &
                               * micpxdef%xav(nopt) * micpdef%av * exp(micpdef%sv*micinput%tavg(np,ns) + micpdef%bv)  * delt
 
-         micparam%V1(np,ns)   =  micpdef%xv1 * vmax(np,ns)
-         micparam%V2(np,ns)   =  micpdef%xv2 * vmax(np,ns)
-         micparam%V3(np,ns)   =  micpdef%xv3 * vmax(np,ns)
+         micparam%V1(np,ns)   =  micpdef%xv1 * vmax(ns)
+         micparam%V2(np,ns)   =  micpdef%xv2 * vmax(ns)
+         micparam%V3(np,ns)   =  micpdef%xv3 * vmax(ns)
 
-         micparam%W1(np,ns)   =  micpdef%xw1 * vmax(np,ns)
-         micparam%W2(np,ns)   =  micpdef%xw2 * vmax(np,ns)
-         micparam%W3(np,ns)   =  micpdef%xw3 * vmax(np,ns)
+         micparam%W1(np,ns)   =  micpdef%xw1 * vmax(ns)
+         micparam%W2(np,ns)   =  micpdef%xw2 * vmax(ns)
+         micparam%W3(np,ns)   =  micpdef%xw3 * vmax(ns)
       end do
 
-
       if(diag==1.and.np==outp) then
-         print *, "Vmaxt",micinput%tavg(outp,1),vmax(outp,1)
+         print *, "Vmaxt",micinput%tavg(outp,1),vmax(1)
          print *, "V1=",micparam%V1(outp,1)
          print *, "V2=",micparam%V2(outp,1)
          print *, "V3=",micparam%V3(outp,1)
@@ -236,41 +136,16 @@ contains
          print *, "W3=",micparam%W3(outp,1)
       end if
 
-      deallocate(vmax)
-      deallocate(sdepthz)
-
-    end subroutine Vmaxt_single
+    end subroutine Vmaxt
 
 
- !> Computes clay-dependent desorption rate (desorp) for all grid points.
+ !> Computes clay-dependent desorption rate (desorp) for one grid point np.
  !! Controls physical protection pool turnover.
- subroutine Desorpt(micpxdef,micparam,micinput)
-      TYPE(mic_param_xscale), INTENT(IN)      :: micpxdef      !! PFT-specific scaling factors
-      TYPE(mic_parameter),    INTENT(INOUT)   :: micparam      !! computed model parameters, desorp updated per (np,ns) here
-      TYPE(mic_input),        INTENT(IN)      :: micinput      !! environmental model inputs
-      integer :: nopt,np,ns
-
-     do np=1,mp
-      do ns=1,ms
-         nopt=micparam%bgctype(np)
-         micparam%desorp(np,ns) = micpxdef%xdesorp(nopt) * (1.5e-5) * exp(-1.5*micinput%clay(np,ns))
-      end do
-     end do
-
-      if(diag==1.and. np==outp) then
-         print *, "Desorpt"
-         print *, "desorpt=",micparam%desorp(outp,:)
-      end if
-
-    end subroutine Desorpt
-
-
- !> Single-point variant of @see Desorpt
- subroutine Desorpt_single(micpxdef,micparam,micinput,np)
-      TYPE(mic_param_xscale), INTENT(IN)      :: micpxdef
-      TYPE(mic_parameter),    INTENT(INOUT)   :: micparam
-      TYPE(mic_input),        INTENT(IN)      :: micinput
-      integer,                INTENT(IN)      :: np
+ subroutine Desorpt(micpxdef,micparam,micinput,np)
+    TYPE(mic_param_xscale), INTENT(IN)      :: micpxdef      !! PFT-specific scaling factors
+    TYPE(mic_parameter),    INTENT(INOUT)   :: micparam      !! computed model parameters; desorp updated at (np,ns)
+    TYPE(mic_input),        INTENT(IN)      :: micinput      !! environmental model inputs
+    integer,                INTENT(IN)      :: np            !! grid point index
       integer :: nopt,ns
 
 
@@ -285,65 +160,17 @@ contains
          print *, "desorpt=",micparam%desorp(outp,:)
       end if
 
-    end subroutine Desorpt_single
+    end subroutine Desorpt
 
 
- !> Computes microbial growth efficiency (mgeR, mgeK) for all grid points.
- subroutine mget(micpdef,micparam,micinput,micnpool)
-     TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters
-     TYPE(mic_parameter),     INTENT(INOUT)  :: micparam      !! computed model parameters. mgeR1:3, mgeK1:3 updated per (np,ns) here
-     TYPE(mic_input),         INTENT(IN)     :: micinput      !! environmental model inputs
-     TYPE(mic_npool),         INTENT(IN)     :: micnpool      !! nitrogen pools (unused at present)
-
-     ! local variables
-     integer :: np,ns
-
-      do np=1,mp
-       do ns=1,ms
-          ! variable mge
-
-         !  micparam%mgeR1(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,1)/micparam%cn_r(np,ns,3)) &
-         !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
-
-         !  micparam%mgeR2(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,2)/micparam%cn_r(np,ns,3)) &
-         !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
-
-         !  micparam%mgeR3(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,7)/micparam%cn_r(np,ns,3)) &
-         !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
-
-         !  micparam%mgeK1(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,1)/micparam%cn_r(np,ns,4)) &
-         !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
-
-         !  micparam%mgeK2(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,2)/micparam%cn_r(np,ns,4)) &
-         !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
-
-         !  micparam%mgeK3(np,ns) = micpdef%cuemax*min(1.0,(micparam%cn_r(np,ns,7)/micparam%cn_r(np,ns,4)) &
-         !                          **(micpdef%cue_coef1*(micnpool%mineralN(np,ns)-micpdef%cue_coef2)))
-         ! fixed mge
-          micparam%mgeR1(np,ns) = micpdef%epislon1 * exp(-0.015 *micinput%tavg(np,ns))
-          micparam%mgeR2(np,ns) = micpdef%epislon2 * exp(-0.015 *micinput%tavg(np,ns))
-          micparam%mgeR3(np,ns) = micpdef%epislon1 * exp(-0.015 *micinput%tavg(np,ns))
-          micparam%mgeK1(np,ns) = micpdef%epislon3 * exp(-0.015 *micinput%tavg(np,ns))
-          micparam%mgeK2(np,ns) = micpdef%epislon4 * exp(-0.015 *micinput%tavg(np,ns))
-          micparam%mgeK3(np,ns) = micpdef%epislon3 * exp(-0.015 *micinput%tavg(np,ns))
-       end do
-      end do
-
-       if(diag==1.and.np==outp) then
-          print *, "mget"
-          print *, "epislon1-4=",micpdef%epislon1,micpdef%epislon2,micpdef%epislon3,micpdef%epislon4
-       end if
-
-  end subroutine mget
-
-
- !> Single-point variant of @see mget
- subroutine mget_single(micpdef,micparam,micinput,micnpool,np)
-     TYPE(mic_param_default), INTENT(IN)     :: micpdef
-     TYPE(mic_parameter),     INTENT(INOUT)  :: micparam
-     TYPE(mic_input),         INTENT(IN)     :: micinput
-     TYPE(mic_npool),         INTENT(IN)     :: micnpool
-     integer,                 INTENT(IN)     :: np
+ !> Computes microbial growth efficiency (mgeR, mgeK) for one grid point np.
+ !! Updates mgeR1:3 and mgeK1:3 over all soil layers at the selected site.
+ subroutine mget(micpdef,micparam,micinput,micnpool,np)
+    TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters
+    TYPE(mic_parameter),     INTENT(INOUT)  :: micparam      !! computed model parameters. mgeR1:3, mgeK1:3 updated at (np,ns)
+    TYPE(mic_input),         INTENT(IN)     :: micinput      !! environmental model inputs
+    TYPE(mic_npool),         INTENT(IN)     :: micnpool      !! nitrogen pools (unused at present)
+    integer,                 INTENT(IN)     :: np            !! grid point index
 
      ! local variables
      integer :: ns
@@ -383,67 +210,25 @@ contains
          print *, "epislon1-4=",micpdef%epislon1,micpdef%epislon2,micpdef%epislon3,micpdef%epislon4
       end if
 
-  end subroutine mget_single
+  end subroutine mget
 
 
- !> Computes microbial turnover rate coefficients (tvmicR/K, betamicR/K) for all grid points.
- !! Turnover is PFT-, P-, and metabolic-fraction-dependent.
- subroutine turnovert(kinetics,micpxdef,micpdef,micparam,micinput)
-      integer,                 INTENT(IN)     :: kinetics      !! kinetics model selector (1/2/3) (unused here)
-      TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef      !! PFT-specific scaling factors
-      TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters
-      TYPE(mic_parameter),     INTENT(INOUT)  :: micparam      !! computed model parameters. tvmicR/K, betamicR/K updated per (np,ns) here
-      TYPE(mic_input),         INTENT(IN)     :: micinput      !! environmental model inputs
+ !> Computes microbial turnover rate coefficients (tvmicR/K, betamicR/K) for one grid point np.
+ !! Turnover is PFT-, NPP-, and metabolic-fraction-dependent.
+ subroutine turnovert(kinetics,micpxdef,micpdef,micparam,micinput,np)
+    integer,                 INTENT(IN)      :: np            !! grid point index
+    integer,                 INTENT(IN)      :: kinetics      !! kinetics model selector (1/2/3)
+    TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef      !! PFT-specific scaling factors
+    TYPE(mic_param_default), INTENT(IN)      :: micpdef       !! fixed default parameters
+    TYPE(mic_parameter),     INTENT(INOUT)   :: micparam      !! computed model parameters. tvmicR/K, betamicR/K updated at (np,ns)
+    TYPE(mic_input),         INTENT(IN)      :: micinput      !! environmental model inputs
 
-      integer :: nx,nopt,np,ns
-      real(dp)  :: xbeta
-      real(dp), dimension(:), allocatable    :: tvref
+    integer :: nopt,ns
+    real(dp)  :: tvref
 
-      allocate(tvref(mp))
-       do np=1,mp
-           nopt=micparam%bgctype(np)
-           tvref(np) = sqrt(micinput%fcnpp(np)/micpdef%xtv)
-           tvref(np) = max(0.6,min(1.3,tvref(np)))          ! 0.8-1.2 based on Wieder et al., 2015
-
-  !         if(kinetics==3) then
-  !            tvref(np) = 1.0
-  !            tvref(np) = 1.0
-  !         endif
-
-           do ns=1,ms
-              micparam%tvmicR(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicR * tvref(np) * exp(0.3 * micparam%fmetave(np,ns)) * delt
-              micparam%tvmicK(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicK * tvref(np) * exp(0.1 * micparam%fmetave(np,ns)) * delt
-              micparam%betamicR(np,ns) = micpdef%betamic * micpxdef%xbeta(nopt)
-              micparam%betamicK(np,ns) = micpdef%betamic * micpxdef%xbeta(nopt)
-           end do
-       end do
-
-        if(diag==1.and.np==outp) then
-          print *, "turnovert"
-          print *, "tvmicR=",micparam%tvmicR(outp,:)
-          print *, "tvmicR=",micparam%tvmicR(outp,:)
-        end if
-      deallocate(tvref)
-  end subroutine turnovert
-
-
- !> Single-point variant of @see turnovert
- subroutine turnovert_single(kinetics,micpxdef,micpdef,micparam,micinput,np)
-      integer,                 INTENT(IN)      :: np
-      integer,                 INTENT(IN)      :: kinetics
-      TYPE(mic_param_xscale),  INTENT(IN)      :: micpxdef
-      TYPE(mic_param_default), INTENT(IN)      :: micpdef
-      TYPE(mic_parameter),     INTENT(INOUT)   :: micparam
-      TYPE(mic_input),         INTENT(IN)      :: micinput
-
-      integer :: nx,nopt,ns
-      real(dp)  :: xbeta
-      real(dp), dimension(:), allocatable    :: tvref
-
-      allocate(tvref(mp))
       nopt=micparam%bgctype(np)
-      tvref(np) = sqrt(micinput%fcnpp(np)/micpdef%xtv)
-      tvref(np) = max(0.6,min(1.3,tvref(np)))          ! 0.8-1.2 based on Wieder et al., 2015
+    tvref = sqrt(micinput%fcnpp(np)/micpdef%xtv)
+    tvref = max(0.6,min(1.3,tvref))          ! 0.8-1.2 based on Wieder et al., 2015
 
 !         if(kinetics==3) then
 !            tvref(np) = 1.0
@@ -451,8 +236,8 @@ contains
 !         endif
 
       do ns=1,ms
-         micparam%tvmicR(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicR * tvref(np) * exp(0.3 * micparam%fmetave(np,ns)) * delt
-         micparam%tvmicK(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicK * tvref(np) * exp(0.1 * micparam%fmetave(np,ns)) * delt
+         micparam%tvmicR(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicR * tvref * exp(0.3 * micparam%fmetave(np,ns)) * delt
+         micparam%tvmicK(np,ns)   = micpxdef%xtvmic(nopt) * micpdef%tvmicK * tvref * exp(0.1 * micparam%fmetave(np,ns)) * delt
          micparam%betamicR(np,ns) = micpdef%betamic * micpxdef%xbeta(nopt)
          micparam%betamicK(np,ns) = micpdef%betamic * micpxdef%xbeta(nopt)
       end do
@@ -460,174 +245,33 @@ contains
 
       if(diag==1.and.np==outp) then
          print *, "turnovert"
-         print *, "tvref fmetave =", tvref(np),micparam%fmetave(np,:)
+         print *, "tvref fmetave =", tvref,micparam%fmetave(np,:)
          print *, "xtvmic xbeta = ", micpxdef%xtvmic(micparam%bgctype(np)),micpxdef%xbeta(micparam%bgctype(np))
          print *, "tvmicR=",micparam%tvmicR(outp,:)
          print *, "tvmicR=",micparam%tvmicR(outp,:)
       end if
-      deallocate(tvref)
-  end subroutine turnovert_single
+  end subroutine turnovert
 
 
 
- !> Computes C input partitioning (metabolic vs structural litter) and SOM routing fractions (fr2*, fk2*).
- !! All-grid-point variant. C:N ratios, fmetave, and clay-dependent routing are computed per layer.
- subroutine bgc_fractions(micpxdef,micpdef,micparam,micinput)
-     TYPE(mic_param_xscale), INTENT(IN)      :: micpxdef       !! PFT-specific scaling factors
-     TYPE(mic_param_default), INTENT(IN)     :: micpdef        !! fixed default parameters (currently unused)
-     TYPE(mic_parameter),     INTENT(INOUT)  :: micparam       !! computed model parameters. cn_r, fmetave, fr2p/c/a, fk2p/c/a updated per (np,ns) here
-     TYPE(mic_input),         INTENT(INOUT)  :: micinput       !! environmental model inputs. Updated here.
-    !local variables
-    integer :: npft,np,ns
-    real(dp), dimension(:),     allocatable :: fmetleaf,fmetroot,fmetwood
-    real(dp), dimension(:,:),   allocatable :: dleafx,drootx,dwoodx
-    real(dp), dimension(:,:),   allocatable :: cinputm,cinputs
-    real(dp), dimension(:,:,:), allocatable :: cninp
-
-
-     allocate(fmetleaf(mp),fmetroot(mp),fmetwood(mp))
-     allocate(dleafx(mp,ms),drootx(mp,ms),dwoodx(mp,ms))
-     allocate(cinputm(mp,ms),cinputs(mp,ms))
-     allocate(cninp(mp,ms,2))
-
-     do np=1,mp
-          npft=micparam%pft(np)
-
-          fmetleaf(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligleaf(np) * micparam%xcnleaf(np)))
-          fmetroot(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligroot(np) * micparam%xcnroot(np)))
-          fmetwood(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligwood(np) * micparam%xcnwood(np)))
-
-          ! Initial C:N ratio of each C pool
-          do ns=1,ms
-
-             ! **this is a temporary solution, to be modified after N cycle is included
-             micparam%cn_r(np,ns,1) = max( 5.0,0.5*(micparam%xcnleaf(np)+micparam%xcnroot(np)))
-             micparam%cn_r(np,ns,2) = max(10.0,0.5*micparam%xcnleaf(np))
-             micparam%cn_r(np,ns,3) =  7.4
-             micparam%cn_r(np,ns,4) = 13.4
-             micparam%cn_r(np,ns,5) = 12.0
-             micparam%cn_r(np,ns,6) = 16.0
-             micparam%cn_r(np,ns,7) = 10.0
-
-
-       ! here zse in m, litter input in g/m2/delt, *0.001 to mgc/cm3/delt and "zse" in m.
-             if(ns==1) then
-                dleafx(np,ns) = micpxdef%xNPP(npft) * 0.001* micinput%dleaf(np)/micparam%sdepth(np,1)                               ! mgc/cm3/delt
-                drootx(np,ns) = micpxdef%xNPP(npft) * 0.001* micparam%fracroot(np,1) * micinput%droot(np)/micparam%sdepth(np,1)     ! mgc/cm3/delt
-                dwoodx(np,ns) = micpxdef%xNPP(npft) * 0.001* micinput%dwood(np)/micparam%sdepth(np,1)                               ! mgc/cm3/delt
-             else
-                dleafx(np,ns) = 0.0
-                drootx(np,ns) = micpxdef%xNPP(npft) * 0.001 * micparam%fracroot(np,ns) * micinput%droot(np)/micparam%sdepth(np,ns)  ! mgc/cm3/delt
-                dwoodx(np,ns) = 0.0
-             end if
-
-           !! calculate soil texture and litter quality dependent parameter values
-           ! C input to metabolic litter
-             micinput%cinputm(np,ns) = dleafx(np,ns)*fmetleaf(np)        &
-                                     + drootx(np,ns)*fmetroot(np)        &
-                                     + dwoodx(np,ns)*fmetwood(np)
-          ! C input to structural litter
-             micinput%cinputs(np,ns) = dleafx(np,ns)*(1.0-fmetleaf(np))  &
-                                     + drootx(np,ns)*(1.0-fmetroot(np))  &
-                                     + dwoodx(np,ns)*(1.0-fmetwood(np))
-
-          ! if((dleafx(np,ns)+drootx(np,ns))>0.0) then
-          ! C:N input of litter input to the metabolic pool
-                cninp(np,ns,1) = micinput%cinputm(np,ns)                          &
-                               /(dleafx(np,ns)*fmetleaf(np)/micparam%xcnleaf(np)  &
-                               +drootx(np,ns)*fmetroot(np)/micparam%xcnroot(np)   &
-                               +dwoodx(np,ns)*fmetwood(np)/micparam%xcnwood(np))
-          ! C:N input of litter input to the structural pool
-                cninp(np,ns,2) = micinput%cinputs(np,ns)                               &
-                               /(dleafx(np,ns)*(1.0-fmetleaf(np))/micparam%xcnleaf(np) &
-                               +drootx(np,ns)*(1.0-fmetroot(np))/micparam%xcnroot(np)  &
-                               +dwoodx(np,ns)*(1.0-fmetwood(np))/micparam%xcnwood(np))
-
-                micparam%fmetave(np,ns) = (dleafx(np,ns)*fmetleaf(np) + drootx(np,ns)*fmetroot(np) + dwoodx(np,ns) * fmetwood(np))  &
-                                        /(dleafx(np,ns) + drootx(np,ns) + dwoodx(np,ns) + 1.0e-10)
-
-            !  else
-            !    if(ns==1) then
-            !       cninp(np,ns,1)          = micparam%xcnleaf(np)
-            !       cninp(np,ns,2)          = micparam%xcnleaf(np)
-            !       micparam%fmetave(np,ns) = fmetleaf(np)
-            !    else
-            !       cninp(np,ns,1)          = micparam%xcnroot(np)
-            !       cninp(np,ns,2)          = micparam%xcnroot(np)
-            !       micparam%fmetave(np,ns) = fmetroot(np)
-            !    endif
-            !  endif
-
-             micparam%cn_r(np,ns,1) = cninp(np,ns,1); micparam%cn_r(np,ns,2)=cninp(np,ns,2)
-
-            ! micparam%fr2p(np,ns) = micpdef%fmicsom1 * 0.30 * exp(1.3*micinput%clay(np,ns)) *1.0                   ! 3.0
-            ! micparam%fk2p(np,ns) = micpdef%fmicsom2 * 0.20 * exp(0.8*micinput%clay(np,ns)) *1.0                   ! 3.0
-            ! micparam%fr2c(np,ns) = min(1.0-micparam%fr2p(np,ns), micpdef%fmicsom3 * 0.10 * exp(-micpdef%fmicsom5 * micparam%fmetave(np,ns))*1.0 )    ! 9.0   to invoid a negative value of fr2a  ZHC
-            ! micparam%fk2c(np,ns) = min(1.0-micparam%fk2p(np,ns), micpdef%fmicsom4 * 0.30 * exp(-micpdef%fmicsom5 * micparam%fmetave(np,ns))*1.0)     ! 9.0   to invoid a negative value of fk2a ZHC
-            ! micparam%fr2a(np,ns) = 1.00 - micparam%fr2p(np,ns) - micparam%fr2c(np,ns)
-            ! micparam%fk2a(np,ns) = 1.00 - micparam%fk2p(np,ns) - micparam%fk2c(np,ns)
-            ! changes made to accommodate added aggregated pools
-
-             micparam%fr2p(np,ns) =  0.30 * exp(1.3*micinput%clay(np,ns))                    ! 3.0
-             micparam%fk2p(np,ns) =  0.20 * exp(0.8*micinput%clay(np,ns))                    ! 3.0
-             micparam%fr2c(np,ns) = min(1.0, micparam%fr2p(np,ns) + 0.10 * exp(-3.0 * micparam%fmetave(np,ns)))     ! 9.0   to invoid a negative value of fr2a  ZHC
-             micparam%fk2c(np,ns) = min(1.0, micparam%fk2p(np,ns) + 0.30 * exp(-3.0 * micparam%fmetave(np,ns)))     ! 9.0   to invoid a negative value of fk2a ZHC
-             micparam%fr2p(np,ns) =  0.0
-             micparam%fk2p(np,ns) =  0.0
-             micparam%fr2a(np,ns) = max(0.0,1.00 - micparam%fr2c(np,ns))
-             micparam%fk2a(np,ns) = max(0.0,1.00 - micparam%fk2c(np,ns))
-          end do   !"ns"
-     end do       !"np"
-
-      if(diag==1.and.np ==outp) then
-         print *,"bgc_fraction parameters"
-         print *, "empirical params1-4=", micpdef%fmicsom1,micpdef%fmicsom2,micpdef%fmicsom3,micpdef%fmicsom4
-         print *, "clay=", micinput%clay(np,:)
-         print *, "cinputm=", micinput%cinputm(outp,:)
-         print *, "cinputs=",micinput%cinputs(outp,:)
-         print *, "fmetave=",micparam%fmetave(outp,:)
-         print *, "cn_r1=",micparam%cn_r(outp,:,1)
-         print *, "cn_r2=",micparam%cn_r(outp,:,2)
-         print *, "fr2p=",micparam%fr2p(outp,:)
-         print *, "fk2p=",micparam%fk2p(outp,:)
-         print *, "fr2c=",micparam%fr2c(outp,:)
-         print *, "fk2c=",micparam%fk2c(outp,:)
-         print *, "fr2a=",micparam%fr2a(outp,:)
-         print *, "fk2a=",micparam%fk2a(outp,:)
-      end if
-     deallocate(fmetleaf,fmetroot,fmetwood)
-     deallocate(dleafx,drootx,dwoodx)
-     deallocate(cinputm,cinputs)
-     deallocate(cninp)
-
-   end subroutine bgc_fractions
-
-
- !> Single-point variant of @see bgc_fractions
- subroutine bgc_fractions_single(micpxdef,micpdef,micparam,micinput,np)
-   integer,                 INTENT(IN)     :: np
-   TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef
-   TYPE(mic_param_default), INTENT(IN)     :: micpdef
-   TYPE(mic_parameter),     INTENT(INOUT)  :: micparam
-   TYPE(mic_input),         INTENT(INOUT)  :: micinput
+ !> Computes C-input partitioning and SOM routing fractions for one grid point np.
+ !! Calculates metabolic vs structural litter inputs and routing terms
+ !! fr2*, fk2* across all soil layers using litter quality and soil texture.
+ subroutine bgc_fractions(micpxdef,micpdef,micparam,micinput,np)
+    integer,                 INTENT(IN)     :: np            !! grid point index
+    TYPE(mic_param_xscale),  INTENT(IN)     :: micpxdef      !! PFT-specific scaling factors
+    TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters (currently unused)
+    TYPE(mic_parameter),     INTENT(INOUT)  :: micparam      !! computed parameters. cn_r, fmetave, fr2*/fk2* updated at (np,ns)
+    TYPE(mic_input),         INTENT(INOUT)  :: micinput      !! environmental model inputs. cinputm/cinputs updated at (np,ns)
       !local variables
       integer :: npft,ns
-      real(dp), dimension(:),     allocatable :: fmetleaf,fmetroot,fmetwood
-      real(dp), dimension(:,:),   allocatable :: dleafx,drootx,dwoodx
-      real(dp), dimension(:,:),   allocatable :: cinputm,cinputs
-      real(dp), dimension(:,:,:), allocatable :: cninp
-
-
-      allocate(fmetleaf(mp),fmetroot(mp),fmetwood(mp))
-      allocate(dleafx(mp,ms),drootx(mp,ms),dwoodx(mp,ms))
-      allocate(cinputm(mp,ms),cinputs(mp,ms))
-      allocate(cninp(mp,ms,2))
-
+         real(dp) :: fmetleaf,fmetroot,fmetwood,cninp1,cninp2
+         real(dp), dimension(ms) :: dleafx,drootx,dwoodx
 
       npft=micparam%pft(np)
-      fmetleaf(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligleaf(np) * micparam%xcnleaf(np)))
-      fmetroot(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligroot(np) * micparam%xcnroot(np)))
-      fmetwood(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligwood(np) * micparam%xcnwood(np)))
+         fmetleaf = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligleaf(np) * micparam%xcnleaf(np)))
+         fmetroot = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligroot(np) * micparam%xcnroot(np)))
+         fmetwood = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligwood(np) * micparam%xcnwood(np)))
 
       ! Initial C:N ratio of each C pool
       do ns=1,ms
@@ -644,39 +288,39 @@ contains
 
          ! here zse in m, litter input in g/m2/delt, *0.001 to mgc/cm3/delt and "zse" in m.
          if(ns==1) then
-            dleafx(np,ns) = micpxdef%xNPP(npft) * 0.001* micinput%dleaf(np)/micparam%sdepth(np,1)                               ! mgc/cm3/delt
-            drootx(np,ns) = micpxdef%xNPP(npft) * 0.001* micparam%fracroot(np,1) * micinput%droot(np)/micparam%sdepth(np,1)     ! mgc/cm3/delt
-            dwoodx(np,ns) = micpxdef%xNPP(npft) * 0.001* micinput%dwood(np)/micparam%sdepth(np,1)                               ! mgc/cm3/delt
+            dleafx(ns) = micpxdef%xNPP(npft) * 0.001* micinput%dleaf(np)/micparam%sdepth(np,1)                               ! mgc/cm3/delt
+            drootx(ns) = micpxdef%xNPP(npft) * 0.001* micparam%fracroot(np,1) * micinput%droot(np)/micparam%sdepth(np,1)     ! mgc/cm3/delt
+            dwoodx(ns) = micpxdef%xNPP(npft) * 0.001* micinput%dwood(np)/micparam%sdepth(np,1)                               ! mgc/cm3/delt
          else
-            dleafx(np,ns) = 0.0
-            drootx(np,ns) = micpxdef%xNPP(npft) * 0.001 * micparam%fracroot(np,ns) * micinput%droot(np)/micparam%sdepth(np,ns)  ! mgc/cm3/delt
-            dwoodx(np,ns) = 0.0
+            dleafx(ns) = 0.0
+            drootx(ns) = micpxdef%xNPP(npft) * 0.001 * micparam%fracroot(np,ns) * micinput%droot(np)/micparam%sdepth(np,ns)  ! mgc/cm3/delt
+            dwoodx(ns) = 0.0
          end if
 
           ! calculate soil texture and litter quality dependent parameter values
           ! C input to metabolic litter
-         micinput%cinputm(np,ns) = dleafx(np,ns)*fmetleaf(np)        &
-                                 + drootx(np,ns)*fmetroot(np)        &
-                                 + dwoodx(np,ns)*fmetwood(np)
+         micinput%cinputm(np,ns) = dleafx(ns)*fmetleaf        &
+                                 + drootx(ns)*fmetroot        &
+                                 + dwoodx(ns)*fmetwood
          ! C input to structural litter
-         micinput%cinputs(np,ns) = dleafx(np,ns)*(1.0-fmetleaf(np))  &
-                                 + drootx(np,ns)*(1.0-fmetroot(np))  &
-                                 + dwoodx(np,ns)*(1.0-fmetwood(np))
+         micinput%cinputs(np,ns) = dleafx(ns)*(1.0-fmetleaf)  &
+                                 + drootx(ns)*(1.0-fmetroot)  &
+                                 + dwoodx(ns)*(1.0-fmetwood)
 
          ! if((dleafx(np,ns)+drootx(np,ns))>0.0) then
          ! C:N input of litter input to the metabolic pool
-         cninp(np,ns,1) = micinput%cinputm(np,ns)                          &
-                        /(dleafx(np,ns)*fmetleaf(np)/micparam%xcnleaf(np)  &
-                        +drootx(np,ns)*fmetroot(np)/micparam%xcnroot(np)   &
-                        +dwoodx(np,ns)*fmetwood(np)/micparam%xcnwood(np))
+          cninp1 = micinput%cinputm(np,ns)                       &
+             /(dleafx(ns)*fmetleaf/micparam%xcnleaf(np)     &
+             +drootx(ns)*fmetroot/micparam%xcnroot(np)      &
+             +dwoodx(ns)*fmetwood/micparam%xcnwood(np))
          ! C:N input of litter input to the structural pool
-         cninp(np,ns,2) = micinput%cinputs(np,ns)                               &
-                        /(dleafx(np,ns)*(1.0-fmetleaf(np))/micparam%xcnleaf(np) &
-                        +drootx(np,ns)*(1.0-fmetroot(np))/micparam%xcnroot(np)  &
-                        +dwoodx(np,ns)*(1.0-fmetwood(np))/micparam%xcnwood(np))
+          cninp2 = micinput%cinputs(np,ns)                               &
+             /(dleafx(ns)*(1.0-fmetleaf)/micparam%xcnleaf(np)      &
+             +drootx(ns)*(1.0-fmetroot)/micparam%xcnroot(np)       &
+             +dwoodx(ns)*(1.0-fmetwood)/micparam%xcnwood(np))
 
-         micparam%fmetave(np,ns) = (dleafx(np,ns)*fmetleaf(np) + drootx(np,ns)*fmetroot(np) + dwoodx(np,ns) * fmetwood(np))  &
-                                 /(dleafx(np,ns) + drootx(np,ns) + dwoodx(np,ns) + 1.0e-10)
+          micparam%fmetave(np,ns) = (dleafx(ns)*fmetleaf + drootx(ns)*fmetroot + dwoodx(ns) * fmetwood)  &
+                   /(dleafx(ns) + drootx(ns) + dwoodx(ns) + 1.0e-10)
 
          !  else
          !    if(ns==1) then
@@ -690,7 +334,8 @@ contains
          !    endif
          !  endif
 
-         micparam%cn_r(np,ns,1) = cninp(np,ns,1); micparam%cn_r(np,ns,2)=cninp(np,ns,2)
+         micparam%cn_r(np,ns,1) = cninp1
+         micparam%cn_r(np,ns,2) = cninp2
 
          ! micparam%fr2p(np,ns) = micpdef%fmicsom1 * 0.30 * exp(1.3*micinput%clay(np,ns)) *1.0                   ! 3.0
          ! micparam%fk2p(np,ns) = micpdef%fmicsom2 * 0.20 * exp(0.8*micinput%clay(np,ns)) *1.0                   ! 3.0
@@ -729,12 +374,7 @@ contains
          print *, "fk2a=",micparam%fk2a(outp,:)
       end if
 
-      deallocate(fmetleaf,fmetroot,fmetwood)
-      deallocate(dleafx,drootx,dwoodx)
-      deallocate(cinputm,cinputs)
-      deallocate(cninp)
-
-   end subroutine bgc_fractions_single
+   end subroutine bgc_fractions
 
 
  !> Treats litter-C and SOC bioturbation as a diffusion process.

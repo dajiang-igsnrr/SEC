@@ -1,1 +1,2 @@
+ford>=7.0.0
 fortitude-lint>=0.9.0

@@ -6,21 +6,21 @@ module mic_constant
   ! All module members are public by default
   public
 
-  integer,  parameter  :: diag=0       !! diagnostic flag: 1 for printout, 0 for silent
-  integer,  parameter  :: outp=1       !! output site index
-  integer                 :: mp           !! number of sites the model runs for
-  integer                 :: ntime        !! number of time steps
-  integer                 :: mpft         !! number of PFTs (17 for CABLE, 19 for ORCHIDEE)
-  integer                 :: mbgc         !! number of soil categories
-  integer                 :: ms           !! number of soil layers
-  integer                 :: nlon         !! number of longitude grid cells
-  integer                 :: nlat         !! number of latitude grid cells
-  integer,  parameter  :: mcpool=10    !! number of carbon pools
-  integer,  parameter  :: nfvar=22     !! number of data input variables
+  integer,  parameter :: diag=0       !! diagnostic flag: 1 for printout, 0 for silent
+  integer,  parameter :: outp=1       !! output site index
+  integer             :: mp           !! number of sites the model runs for
+  integer             :: ntime        !! number of time steps
+  integer             :: mpft         !! number of PFTs (17 for CABLE, 19 for ORCHIDEE)
+  integer             :: mbgc         !! number of soil categories
+  integer             :: ms           !! number of soil layers
+  integer             :: nlon         !! number of longitude grid cells
+  integer             :: nlat         !! number of latitude grid cells
+  integer,  parameter :: mcpool=10    !! number of carbon pools
+  integer,  parameter :: nfvar=22     !! number of data input variables
   real(dp),parameter  :: delt= 1.0    !! model time step in hours
   real(dp),parameter  :: tvc14 = (1.0/(24.0*365.0))* log(2.0)/5730.0    !! 14C decay rate (1/hour)
-  integer,  parameter  :: nyic14=1940  !! start year of 14C record
-  integer,  parameter  :: nyec14=2020  !! end year of 14C calculation
+  integer,  parameter :: nyic14=1940  !! start year of 14C record
+  integer,  parameter :: nyec14=2020  !! end year of 14C calculation
   real(dp),parameter  :: thresh_patchfrac=1.0e-6   !! minimal patch area fraction for numerical filtering
 
   !> C:N ratios and lignin fractions for each of the 17 CABLE PFTs (cnleaf1, cnroot1, cnwood1, ligleaf1, ligroot1, ligwood1)
