@@ -13,6 +13,8 @@
 # ```
 # --------------------------------------------------
 
+set -e
+
 # --------------------------------------------------
 # Set environment variables
 # --------------------------------------------------
@@ -46,24 +48,24 @@ for i in 0 1; do
   # --------------------------------------------------
   # Copy parameter files
   # --------------------------------------------------
-  cp ./input/mesc_${run}_${case}.nml mesc.nml
-  cp ./input/parameters_${run}_${case}.txt parameters.txt
-  cp ./input/params_val_${run}_${case}.txt params_val.txt
+  cp "./input/mesc_${run}_${case}.nml" mesc.nml
+  cp "./input/parameters_${run}_${case}.txt" parameters.txt
+  cp "./input/params_val_${run}_${case}.txt" params_val.txt
 
   # --------------------------------------------------
   # Run the test case
   # --------------------------------------------------
   START="$(date +%s)"
-  ./main >output/outval_${case}_${run}.txt
-  DURATION=$(($(date +%s) - ${START}))
+  ./main >"output/outval_${case}_${run}.txt"
+  DURATION="$(($(date +%s) - START))"
   echo "Time taken: ${DURATION} seconds"
   if [ -e fort.91 ]; then
-    mv fort.91 output/valsoc_91_${case}_${run}.txt
-    diff benchmark/valsoc_91_${case}_${run}.txt output/valsoc_91_${case}_${run}.txt >output/diff_valsoc_91_${case}_${run}.txt
+    mv fort.91 "output/valsoc_91_${case}_${run}.txt"
+    diff "benchmark/valsoc_91_${case}_${run}.txt" "output/valsoc_91_${case}_${run}.txt" >"output/diff_valsoc_91_${case}_${run}.txt"
   fi
   if [ -e fort.92 ]; then
-    mv fort.92 output/valsoc_92_${case}_${run}.txt
-    diff benchmark/valsoc_92_${case}_${run}.txt output/valsoc_92_${case}_${run}.txt >output/diff_valsoc_92_${case}_${run}.txt
+    mv fort.92 "output/valsoc_92_${case}_${run}.txt"
+    diff "benchmark/valsoc_92_${case}_${run}.txt" "output/valsoc_92_${case}_${run}.txt" >"output/diff_valsoc_92_${case}_${run}.txt"
   fi
 done
 
@@ -80,7 +82,7 @@ for i in {0..1}; do
       pass=false
       break
     fi
-    if [ -z "output/valsoc_${id}_${case}_${run}.txt" ]; then
+    if [ ! -s "output/valsoc_${id}_${case}_${run}.txt" ]; then
       pass=false
       break
     fi

@@ -121,7 +121,7 @@ module function_module
       filecluster = config%filecluster
       xopt = config%xopt
       nxopt = config%nxopt
- 
+
       open(1,file=config%fparameter)
       read(1,*) xopt(1:14)
       read(1,*) nxopt(1:nx)
@@ -129,8 +129,9 @@ module function_module
 
       if(jopt) then
          do nparam=1,nx
-            if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &
+            if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) then
               error stop "ERROR functn_c14: nxopt is outside 1:16"
+            end if
             xopt(nxopt(nparam)) = xparam16(nparam)
          end do
       end if
@@ -241,8 +242,9 @@ real(dp) function functn_frc1(nx,xparam16)
 
       if(.not. jopt) then
          do nparam=1,nx
-            if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &
+            if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) then
               error stop "ERROR functn_frc1: nxopt is outside 1:16"
+            end if
             xopt(nxopt(nparam)) = xparam16(nparam)
          end do
       end if
@@ -343,15 +345,16 @@ END function functn_frc1
       fanoc = config%fanoc
       xopt = config%xopt
       nxopt = config%nxopt
-      
+
       open(1,file=config%fparameter)
       read(1,*) xopt(1:14)
       read(1,*) nxopt(1:nx)
-      close(1)      
-      
+      close(1)
+
       do nparam=1,nx
-         if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &
+         if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) then
            error stop "ERROR functn_soc_hwsd: nxopt is outside 1:16"
+         end if
          xopt(nxopt(nparam)) = xparam16(nparam)
       end do
 
@@ -449,7 +452,7 @@ END function functn_soc_hwsd
       frestart_in = config%frestart_in
       frestart_out = config%frestart_out
       foutput = config%foutput
-      fglobal = ''
+      fglobal = ""
       fglobal(1:7) = config%fglobal
       xopt = config%xopt
       nxopt = config%nxopt
@@ -457,11 +460,12 @@ END function functn_soc_hwsd
       open(1,file=config%fparameter)
       read(1,*) xopt(1:14)
       read(1,*) nxopt(1:nx)
-      close(1) 
+      close(1)
 
       do nparam=1,nx
-         if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &
+         if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) then
            error stop "ERROR functn_global4: nxopt is outside 1:16"
+         end if
          xopt(nxopt(nparam)) = xparam16(nparam)
       end do
       print *, xopt
@@ -565,11 +569,12 @@ END function functn_global4
       open(1,file=config%fparameter)
       read(1,*) xopt(1:14)
       read(1,*) nxopt(1:nx)
-      close(1) 
-      
+      close(1)
+
       do nparam=1,nx
-         if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) &
+         if (nxopt(nparam) < 1 .or. nxopt(nparam) > size(xopt)) then
            error stop "ERROR functn_soc_aust: nxopt is outside 1:16"
+         end if
          xopt(nxopt(nparam)) = xparam16(nparam)
       end do
 

@@ -2,3 +2,4 @@
 # Ignored Rules and justification:
 #   C003: 'implicit none' missing 'external' - this is a Fortran 2013 feature and we support older standards
 ignore = ["C003"]
+line-length = 200
