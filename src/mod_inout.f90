@@ -7,6 +7,7 @@ module mesc_inout_module
                      nf90_nowrite, nf90_open, nf90_put_att, nf90_put_var, &
                      nf90_redef, nf90_strerror
   use mic_constant, only : mp, ms, mcpool, nlat, nlon, ntime, mpft, mbgc
+  use mesc_namelist, only : model_cable, model_orchidee, use_modis_npp
   use mic_variable, only : mic_input, mic_parameter, mic_cpool, mic_npool, &
                            mic_global_input, mic_output, mic_param_xscale
   implicit none
@@ -243,13 +244,13 @@ contains
   end subroutine vmic_output_write
 
   !> Get PFT-dependent model parameter values (up to 20 parameters)
-  subroutine getparam_global(fglobalparam,jmodel,micpxdef)
-    use mic_constant, only : xrootcable, xrootorchidee
+  subroutine getparam_global(fglobalparam,rootdepth,micpxdef)
 
     character(len=140),     intent(in)    :: fglobalparam
       !! Parameter filename (currently hard-coded to "parameters_global.csv")
-    integer,                intent(in)    :: jmodel
-      !! Code for land surface model (1=CABLE, 2=ORCHIDEE, 3=ORCHIDEE + modis_npp)
+    real(dp), dimension(:), intent(in)    :: rootdepth
+      !! Per-PFT rooting depths [m] (size mpft). In standalone mode pass xrootcable or
+      !! xrootorchidee from mod_constants.f90; for online coupling ORCHIDEE supplies this.
     TYPE(mic_param_xscale), intent(inout) :: micpxdef
       !! Object holding parameter values
 
@@ -283,11 +284,7 @@ contains
     close(100)
 
     do ipft=1,mpft
-       if (jmodel==1) then
-          micpxdef%xrootbeta(ipft) = xrootcable(ipft)
-       else if (jmodel==2 .or. jmodel==3) then
-          micpxdef%xrootbeta(ipft) = xrootorchidee(ipft)
-       end if
+       micpxdef%xrootbeta(ipft) = rootdepth(ipft)
     end do
   end subroutine getparam_global
 
@@ -311,57 +308,54 @@ contains
     integer :: ncid1,ok,varid !! Variables for handling NetCDF files
 
     print *, "patch filename", fpatch
+
+    mpx = 0
+    ok = NF90_OPEN(fpatch,0,ncid1)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,"Error opening file"//fpatch)
+
     select case (jmodel)
 
-    case (1)
+    case (model_cable)
       allocate(xfield3(nlon,nlat,17))
 
-      ok = NF90_OPEN(fpatch,0,ncid1)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,"Error opening file"//fpatch)
       ok = NF90_INQ_VARID(ncid1,"PFTfrac",varid)
       ok = NF90_GET_VAR(ncid1,varid,xfield3)
-      ok = NF90_close(ncid1)
 
       xfield3 = max(0.0,xfield3)
-      np=0
       do i=1,nlon
-      do j=1,nlat
-         if(sum(xfield3(i,j,:))>0.9) then
-            maxpft= maxloc(xfield3(i,j,:),dim=1)
-            if(maxpft >0 .and. maxpft <14) np=np+1
-         end if
+        do j=1,nlat
+          if(sum(xfield3(i,j,:))>0.9) then
+              maxpft= maxloc(xfield3(i,j,:),dim=1)
+              if(maxpft >0 .and. maxpft <14) mpx=mpx+1
+          end if
+        end do
       end do
-      end do
-
       deallocate(xfield3)
 
-    case (2)
-       allocate(xfield4(nlon,nlat,19,1))
-       ok = NF90_OPEN(fpatch,0,ncid1)
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok,"Error opening file"//fpatch)
-       ok = NF90_INQ_VARID(ncid1,"maxvegetfrac",varid)
-       ok = NF90_GET_VAR(ncid1,varid,xfield4)
-       ok = NF90_close(ncid1)
+    case (model_orchidee)
+      allocate(xfield4(nlon,nlat,19,1))
 
-       xfield4 = max(0.0,xfield4)
-       np=0
-       do i=1,nlon
-       do j=1,nlat
+      ok = NF90_INQ_VARID(ncid1,"maxvegetfrac",varid)
+      ok = NF90_GET_VAR(ncid1,varid,xfield4)
+
+      xfield4 = max(0.0,xfield4)
+      do i=1,nlon
+        do j=1,nlat
           if(sum(xfield4(i,j,:,1))>0.9) then
-             maxpft= maxloc(xfield4(i,j,:,1),dim=1)
-             if(maxpft >0 .and. maxpft <=mpft) np=np+1
+              maxpft= maxloc(xfield4(i,j,:,1),dim=1)
+              if(maxpft >0 .and. maxpft <=mpft) mpx=mpx+1
           end if
-       end do
-       end do
-     deallocate(xfield4)
+        end do
+      end do
+      deallocate(xfield4)
 
-     case default
-     write(6,"(a,i0,a)") "ERROR getpatch_global: Invalid model '", jmodel, "'"
-     stop 999
+    case default
+      write(6,"(a,i0,a)") "ERROR getpatch_global: Invalid model '", jmodel, "'"
+      ok = NF90_close(ncid1)
+      stop 999
 
     end select
-
-    mpx = np
+    ok = NF90_close(ncid1)
   end subroutine getpatch_global
 
   !> Get global forcing from CABLE, averaging for each land cell using PFTfrac
@@ -1107,7 +1101,7 @@ contains
 
 
     ! use modis-npp to rescale the orchidee NPP and carbon inputs to soil
-    if(jmodel==3) then
+    if (use_modis_npp) then
        ok = nf90_open(fglobal(6),nf90_nowrite,ncid3)
        if(ok /= nf90_noerr) print*, "Error opening modisnpp"
 
@@ -1254,7 +1248,7 @@ subroutine cluster_hwsd(jmodel,bgctype,socobs,fclay,fsilt,fph,fald,falo,ffed,ffe
   real(dp), dimension(2)      :: claysd,siltsd,phsd,aldsd,alosd,fedsd,feosd
   real(dp), dimension(7)      :: z
   real(dp), dimension(10,7)   :: xdist
-  integer :: np,m,j
+  integer :: np,m
   ! results from K means cluster analysis  done 20260508 by Lingfei Wang
   data claymid/-0.9525_dp,-0.8011_dp,1.1920_dp,-0.5146_dp,0.1999_dp,-0.2399_dp,-0.7019_dp,1.4337_dp,0.8914_dp,-1.0750_dp,  &
                 1.4969_dp,-1.0316_dp,-0.8065_dp,-0.1341_dp,1.1403_dp,1.5560_dp,-1.082_dp,0.6068_dp,-0.3449_dp,0.1033_dp/
@@ -1294,28 +1288,27 @@ subroutine cluster_hwsd(jmodel,bgctype,socobs,fclay,fsilt,fph,fald,falo,ffed,ffe
   data feosd/0.4149_dp,0.4343_dp/
 
     fcluster(:)=bgctype(:)
-    j=jmodel
     do np=1,mp
        if(bgctype(np)>1 .and. bgctype(np) < 10) then
           fcluster(np) = bgctype(np)
        else
          if(min(fclay(np),fsilt(np),fph(np),fald(np),falo(np),ffed(np),ffeo(np)) >0.0 .and. minval(socobs(np,:)) > 0.0) then
             xdist(:,:) = 1.0e6
-            z(1) = (fclay(np)*100.0 - clayavg(j))/claysd(j)
-            z(2) = (fsilt(np)*100.0 - siltavg(j))/siltsd(j)
-            z(3) = (fph(np)   - phavg(j))/phsd(j)
-            z(4) = (fald(np)  - aldavg(j))/aldsd(j)
-            z(5) = (falo(np)  - aloavg(j))/alosd(j)
-            z(6) = (ffed(np)  - fedavg(j))/fedsd(j)
-            z(7) = (ffeo(np)  - feoavg(j))/feosd(j)
+            z(1) = (fclay(np)*100.0 - clayavg(jmodel))/claysd(jmodel)
+            z(2) = (fsilt(np)*100.0 - siltavg(jmodel))/siltsd(jmodel)
+            z(3) = (fph(np)   - phavg(jmodel))/phsd(jmodel)
+            z(4) = (fald(np)  - aldavg(jmodel))/aldsd(jmodel)
+            z(5) = (falo(np)  - aloavg(jmodel))/alosd(jmodel)
+            z(6) = (ffed(np)  - fedavg(jmodel))/fedsd(jmodel)
+            z(7) = (ffeo(np)  - feoavg(jmodel))/feosd(jmodel)
             do m=1,10
-               xdist(m,1) = (z(1) - claymid(m,j))**2
-               xdist(m,2) = (z(2) - siltmid(m,j))**2
-               xdist(m,3) = (z(3) - phmid(m,j))**2
-               xdist(m,4) = (z(4) - aldmid(m,j))**2
-               xdist(m,5) = (z(5) - alomid(m,j))**2
-               xdist(m,6) = (z(6) - fedmid(m,j))**2
-               xdist(m,7) = (z(7) - feomid(m,j))**2
+               xdist(m,1) = (z(1) - claymid(m,jmodel))**2
+               xdist(m,2) = (z(2) - siltmid(m,jmodel))**2
+               xdist(m,3) = (z(3) - phmid(m,jmodel))**2
+               xdist(m,4) = (z(4) - aldmid(m,jmodel))**2
+               xdist(m,5) = (z(5) - alomid(m,jmodel))**2
+               xdist(m,6) = (z(6) - fedmid(m,jmodel))**2
+               xdist(m,7) = (z(7) - feomid(m,jmodel))**2
             end do
             fcluster(np) = MINLOC(sum(xdist,dim=2),dim=1)
          end if
@@ -2298,20 +2291,23 @@ end subroutine lonlat2mpx4b
     if(status /= nf90_noerr) print*,"Error reading soil order"
     micglobal%sorder = ivarx1
 
-    if(jmodel==1) then
+    select case (jmodel)
+    case (model_cable)
        status = nf90_inq_varid(ncid,"isoil",varid)
        if(status /= nf90_noerr) print*, "Error inquiring soil texturep"
        status = nf90_get_var(ncid,varid,ivarx1)
        if(status /= nf90_noerr) print*,"Error reading soil texure"
        micglobal%isoil = ivarx1
-    end if
-    if(jmodel==2 .or.jmodel==3) then
+    case (model_orchidee)
        status = nf90_inq_varid(ncid,"USDA_Soil_texture_class",varid)
        if(status /= nf90_noerr) print*, "Error inquiring soil texturep"
        status = nf90_get_var(ncid,varid,ivarx1)
        if(status /= nf90_noerr) print*,"Error reading soil texure"
        micglobal%isoil = ivarx1
-    end if
+    case default
+      write(6,"(a,i0,a)") "ERROR getdata_hwsd: Invalid model '", jmodel, "'"
+      stop 999
+    end select
 
     status = nf90_inq_varid(ncid,"max_PFTfrac",varid)
     if(status /= nf90_noerr) print*, "Error inquiring max_PFTfrac"
@@ -2425,7 +2421,7 @@ end subroutine lonlat2mpx4b
     ! Close netcdf file
     status = NF90_CLOSE(ncid)
 
-   ! now calculate soil cluster using parameters for ORCHIDEE (jmodel=2)
+   ! now calculate soil cluster using parameters for ORCHIDEE
     do np=1,mp
        do ns=1,ms
           micparam%csoilobs(np,ns) = real(fsoc7(np,ns),kind=dp)
@@ -2450,8 +2446,8 @@ end subroutine lonlat2mpx4b
      ! Close netcdf file
      status = NF90_CLOSE(ncid)
 
-   ! if jmodel=3 use the annual modis NPP to scale the orchidee npp
-    if(jmodel==3) then
+    if(use_modis_npp) then
+       ! use the annual modis NPP to scale the orchidee npp
        status = nf90_open(fmodis,nf90_nowrite,ncid)
        if(status /= nf90_noerr) print*, "Error opening modisnpp"
 
@@ -2488,32 +2484,36 @@ end subroutine lonlat2mpx4b
        micparam%pft(np)      = micglobal%pft(np)
        micparam%isoil(np)    = micglobal%isoil(np)
        micparam%sorder(np)   = micglobal%sorder(np)
-       if(jmodel==1) then      !CABLE
-          ipft =  micglobal%pft(np)
-          if(ipft<1 .or. ipft >17) then
-             print *, "PFT error at  np", jmodel,ipft,np
-             stop
-          end if
-          micparam%xcnleaf(np)  = cnleaf1(ipft)
-          micparam%xcnroot(np)  = cnroot1(ipft)
-          micparam%xcnwood(np)  = cnwood1(ipft)
-          micparam%fligleaf(np) = ligleaf1(ipft)
-          micparam%fligroot(np) = ligroot1(ipft)
-          micparam%fligwood(np) = ligwood1(ipft)
-       end if
-       if(jmodel==2 .or.jmodel==3) then      !ORCHIDEE
-          ipft =  micglobal%pft(np)
-          if(ipft<1 .or. ipft >19) then
-             print *, "PFT error at  np", jmodel,ipft,np
-             stop
-          end if
-          micparam%xcnleaf(np)  = cnleaf2(ipft)
-          micparam%xcnroot(np)  = cnroot2(ipft)
-          micparam%xcnwood(np)  = cnwood2(ipft)
-          micparam%fligleaf(np) = ligleaf2(ipft)
-          micparam%fligroot(np) = ligroot2(ipft)
-          micparam%fligwood(np) = ligwood2(ipft)
-       end if
+
+       select case (jmodel)
+       case (model_cable)
+         ipft =  micglobal%pft(np)
+         if(ipft<1 .or. ipft >17) then
+           write(6,"(a,i0,a,i0)") "PFT error for CABLE at ipft=", ipft, ", np=", np
+           stop
+         end if
+         micparam%xcnleaf(np)  = cnleaf1(ipft)
+         micparam%xcnroot(np)  = cnroot1(ipft)
+         micparam%xcnwood(np)  = cnwood1(ipft)
+         micparam%fligleaf(np) = ligleaf1(ipft)
+         micparam%fligroot(np) = ligroot1(ipft)
+         micparam%fligwood(np) = ligwood1(ipft)
+       case (model_orchidee)
+         ipft =  micglobal%pft(np)
+         if(ipft<1 .or. ipft >19) then
+           write(6,"(a,i0,a,i0)") "PFT error for ORCHIDEE at ipft=", ipft, ", np=", np
+           stop
+         end if
+         micparam%xcnleaf(np)  = cnleaf2(ipft)
+         micparam%xcnroot(np)  = cnroot2(ipft)
+         micparam%xcnwood(np)  = cnwood2(ipft)
+         micparam%fligleaf(np) = ligleaf2(ipft)
+         micparam%fligroot(np) = ligroot2(ipft)
+         micparam%fligwood(np) = ligwood2(ipft)
+       case default
+         write(6,"(a,i0,a)") "ERROR getdata_hwsd: Invalid model '", jmodel, "'"
+         stop 999
+       end select
 
        nsocobs=0
 
@@ -2535,7 +2535,7 @@ end subroutine lonlat2mpx4b
 
        ! using "micglobal%area" to filter out some sites
        micglobal%npp(np) = sum(micglobal%dleaf(np,:) + micglobal%dwood(np,:) + micglobal%droot(np,:))
-       if(jmodel==3) then ! scale orchidee NPP using midNPP
+       if (use_modis_npp) then
           micglobal%dleaf(np,:) = micglobal%dleaf(np,:) * modisnpp_mp(np)/micglobal%npp(np)
           micglobal%dwood(np,:) = micglobal%dwood(np,:) * modisnpp_mp(np)/micglobal%npp(np)
           micglobal%droot(np,:) = micglobal%droot(np,:) * modisnpp_mp(np)/micglobal%npp(np)

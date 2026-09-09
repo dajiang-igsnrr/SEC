@@ -3,12 +3,13 @@
     runcase = 3
 
     ! Model options.
-    jglobal = .true.  ! Global output
-    kinetics = 3      ! 1: forward MM; 2: reverse MM; 3: MES-C
-    bgcopt = 3        ! Biogeochemical type to simulate
-    jopt = .false.    ! .false.: forward simulation; .true.: SCE-UA optimisation
-    jrestart = 0      ! 0: cold start; 1: read frestart_in
-    jmodel = 1        ! 1: CABLE; 2: ORCHIDEE
+    jglobal = .true.        ! Global output
+    kinetics = 3            ! 1: forward MM; 2: reverse MM; 3: MES-C
+    bgcopt = 3              ! Biogeochemical type to simulate
+    jopt = .false.          ! .false.: forward simulation; .true.: SCE-UA optimisation
+    jrestart = 0            ! 0: cold start; 1: read frestart_in
+    jmodel = 1              ! 1: CABLE; 2: ORCHIDEE
+    use_modis_npp = .false. ! .true.: rescale ORCHIDEE NPP and carbon inputs using MODIS NPP
 
     ! Common files.
     frestart_in  = 'miccpool_in.nc'

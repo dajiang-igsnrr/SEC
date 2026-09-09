@@ -35,7 +35,8 @@
 
 module mesc_interface_module
   use precision_module, only : dp
-  use mic_constant, only : diag, delt, mp, ms, mpft, mcpool, outp, tvc14, xrootcable, xrootorchidee
+  use mic_constant, only : diag, delt, mp, ms, mpft, mcpool, outp, tvc14, &
+                           xrootcable, xrootorchidee
   use mic_variable, only : mic_param_xscale, mic_param_default, mic_parameter, &
                            mic_input, mic_npool, mic_cpool, mic_output, mic_global_input
   use mesc_inout_module, only: vmic_restart_read ! , vmic_restart_write, vmic_output_write
@@ -204,7 +205,7 @@ end subroutine vmic_init
 !> First sets all scaling factors to unity defaults, then overwrites entries
 !> for the target BGC type (`bgcopt`) with optimized values from `xopt`. If a
 !> forcing model is specified (`jmodel`), also sets PFT-specific root-beta
-!> profiles for CABLE (1) or ORCHIDEE (2).
+!> profiles for CABLE or ORCHIDEE.
 !>
 !> The order is fixed:
 !> ```txt
@@ -226,17 +227,20 @@ end subroutine vmic_init
 !> ```
 !>
 !> NOTE: This routine is called before all run modes and is not specific to ORCHIDEE.
-!> The ORCHIDEE-specific behaviour is the jmodel==2 branch, which sets PFT root-beta profiles
-!> using xrootorchidee (as opposed to xrootcable for CABLE). In the global ORCHIDEE run
-!> (functn_global4 in mod_functions.f90), vmic_param_xscale is only called when jopt=.true.
-!> (optimisation mode); otherwise getparam_global reads parameters from a lookup table instead.
-subroutine vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
-    real(dp), dimension(16), intent(in)    :: xopt     !! optimized parameter values (16-element vector)
-    integer,                 intent(in)    :: bgcopt   !! BGC type index to apply `xopt` to
-    integer,                 intent(in)    :: jmodel   !! forcing model selector (1=CABLE, 2=ORCHIDEE)
-    TYPE(mic_param_xscale),  intent(inout) :: micpxdef !! scaling factors (populated here)
-
-    ! Local variables
+!>
+!> In the global ORCHIDEE run (functn_global4 in mod_functions.f90), vmic_param_xscale is
+!> only called when jopt=.true. (optimisation mode); otherwise getparam_global reads
+!> parameters from a lookup table instead.
+!>
+!> The rootdepth argument accepts the per-PFT rooting depths for the land-surface model
+!> being used. In standalone mode the caller passes xrootcable (17 PFTs) or xrootorchidee
+!> (19 PFTs) from mod_constants.f90. For online coupling, ORCHIDEE supplies this array
+!> directly.
+subroutine vmic_param_xscale(xopt,bgcopt,rootdepth,micpxdef)
+    real(dp), dimension(16), intent(in)  :: xopt              !! optimized parameter values (16-element vector)
+    integer,                 intent(in)  :: bgcopt            !! BGC type index to apply `xopt` to
+    real(dp), dimension(:),  intent(in)  :: rootdepth         !! per-PFT rooting depths [m] (size mpft)
+    TYPE(mic_param_xscale),  intent(inout) :: micpxdef        !! scaling factors (populated here)
     integer :: i
 
      ! assign the default values
@@ -261,12 +265,7 @@ subroutine vmic_param_xscale(xopt,bgcopt,jmodel,micpxdef)
       micpxdef%xdesorp   = 1.0
 
       do i=1,mpft
-         if(jmodel==1) then
-            micpxdef%xrootbeta(i) = xrootcable(i)
-         end if
-         if(jmodel==2) then
-            micpxdef%xrootbeta(i) = xrootorchidee(i)
-         end if
+         micpxdef%xrootbeta(i) = rootdepth(i)
       end do
 
       ! assign the values to the optimized parameters
@@ -741,21 +740,11 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
     TYPE(mic_output),        intent(inout) :: micoutput    !! output fluxes and diagnostics
 
     ! local variables
-    real(dp),    dimension(:), allocatable  :: xpool0,xpool1
-    real(dp),    dimension(:), allocatable  :: ypooli,ypoole,fluxsoc,cfluxa
-
- !   real(dp),    dimension(mcpool)  :: xpool0,xpool1
- !   real(dp),    dimension(ms)      :: ypooli,ypoole,fluxsoc,cfluxa
-
-    integer       :: ndelt,i,j,year,ip,np,ns,ny
-    integer       :: nyrun,ip5
-    real(dp)     :: timex,delty,fluxdocsx,diffsocxx
-    real(dp)      :: cpool0, cpool1, totcinput
+    integer       :: i,j,year,np,ny
+    integer       :: nyrun
+    real(dp)      :: fluxdocsx
     integer       :: station_count, station_index
     integer, dimension(:), allocatable :: stations_used
-
-       allocate(xpool0(mcpool),xpool1(mcpool))
-       allocate(ypooli(ms),ypoole(ms),fluxsoc(ms),cfluxa(ms))
 
     !   print *, 'calling vmic_param_constant'
        call vmic_param_constant(kinetics,micpxdef,micpdef,micparam,zse)
@@ -764,8 +753,6 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
        call vmic_init(miccpool,micnpool)
 
        if(jrestart==1) call vmic_restart_read(miccpool,micnpool,frestart_in)
-
-       ndelt   = int(24*365/delt) ! number of time step per year in "delt" unit
 
    !check which stations to calculate
    station_count = 0
@@ -778,9 +765,8 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
    end do
 
 !$OMP PARALLEL DEFAULT(NONE) SHARED (micparam,micpxdef,micnpool,micinput,micglobal,miccpool,micoutput,micpdef,&
-!$OMP kinetics,isoc14,nyeqpool,bgcopt,ndelt,zse,mp,ms,stations_used) &
-!$OMP PRIVATE (np,timex,delty,ns,ip,station_index,&
-!$OMP xpool0,xpool1,fluxsoc,diffsocxx,ypooli,ypoole,cpool0,cpool1,totcinput,cfluxa,ny,i,year) &
+!$OMP kinetics,isoc14,nyeqpool,bgcopt,zse,mp,ms,stations_used) &
+!$OMP PRIVATE (np,station_index,ny,i,year) &
 !$OMP FIRSTPRIVATE (station_count)
 !!$OMP REDUCTION (+:data_count,data_used)  &,
 !$OMP DO
@@ -795,97 +781,9 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
          micoutput%fluxcinput(np)=0.0; micoutput%fluxrsoil(np) = 0.0; micoutput%fluxcleach(np)= 0.0    ! yearly fluxes
 
          do i=1,365   !ntime
-            call variable_time(year,i,micglobal,micinput,micnpool,np)
-         ! calculate parameter values that depend on soil temperature or moisture (varying with time)
-            call vmic_param_time(kinetics,micpxdef,micpdef,micparam,micinput,micnpool,np)
-
-               ! for each soil layer
-               ! sum last all C pools of all layers for compute the soil respiration = input - sum(delCpool)
-               ! before leaching is computed
-                cpool0 =0.0; cpool1 =0.0; totcinput = 0.0
-               do ns=1,ms
-                 ! micinput%cinputm(np,ns)+micinput%cinputs(np,ns) in mg C/cm3/delt
-                  totcinput =totcinput + (micinput%cinputm(np,ns)+micinput%cinputs(np,ns)) *1000.0 * zse(ns)   ! convert to g C/m2/delt/zse
-
-                  do ip=1,mcpool
-                     xpool0(ip) = miccpool%cpool(np,ns,ip)
-                     cpool0     = cpool0  + xpool0(ip) * zse(ns) * 1000.0  ! 1000 for mg C/cm3 to g C/m2/zse
-                  end do
-
-                 ! here the integration step is "delty" in rk4 and "ndelt" is number of "delt (hour) per year
-                  timex=real(i*delt)
-                  delty = real(ndelt)/(365.0*delt)  ! time step in rk4 in "24 * delt (or daily)", all C input are in " per delt"
-                  call rk4modelx(timex,delty,ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,xpool0,xpool1)
-
-                  do ip=1,mcpool
-                     miccpool%cpool(np,ns,ip) = max(xpool1(ip),1.0e-8)
-                     cpool1 = cpool1 + miccpool%cpool(np,ns,ip) * zse(ns) * 1000.0  ! 1000 for mg C/cm3 to g C/m2/zse
-                  end do
-
-                ! for checking mass balance
-        !          write(*,101) np,ns, micinput%cinputm(np,ns)+micinput%cinputs(np,ns),sum(xpool1(1:7)-xpool0(1:7))/real(delty), &
-        !                              micinput%cinputm(np,ns)+micinput%cinputs(np,ns)-sum(xpool1(1:7)-xpool0(1:7))/real(delty)
-101 format("vmicsoil input sumdelC rsoil",2(i3,1x),3(f10.6,1x))
-
-               end do    ! "ns"
-
-               micoutput%fluxcinput(np)= micoutput%fluxcinput(np) + totcinput * real(delty)
-               micoutput%fluxrsoil(np) = micoutput%fluxrsoil(np)  + totcinput * real(delty) + (cpool1 - cpool0)
-
-            !! do labile carbon leaching only for kinetics=3
-            !! the following leachate transport calculations caused mass imbalance: disabled temporarily
-            !   if(kinetics==3) then
-            !      cfluxa(:)=0.0
-            !      do ns=1,ms
-            !         cfluxa(ns) = sqrt(micinput%wavg(np,ns)/micinput%porosity(np,ns)) * micparam%tvac(np,ns) * miccpool%cpool(np,ns,7) * delty
-            !         cfluxa(ns) = 0.0
-            !         miccpool%cpool(np,ns,7) = miccpool%cpool(np,ns,7) - cfluxa(ns)
-            !         if(ns==1) then
-            !            miccpool%cpool(np,ns,7) = miccpool%cpool(np,ns,7) - cfluxa(ns)
-            !         else
-            !            miccpool%cpool(np,ns,7) = miccpool%cpool(np,ns,7) + cfluxa(ns-1) -cfluxa(ns)
-            !         endif
-            !      enddo
-            !     ! converting flux from mg C cm-3 delty-1 to g C m-2 delty-1
-            !      micoutput%fluxcleach(np) = micoutput%fluxcleach(np) + cfluxa(ms) * zse(ms) * 1000.0
-            !   endif
-
-            ! only do leaching the bottom layer, as other layers are done via bioturb
-               cfluxa(:) = 0.0
-               ! "tvac" in hourly, so times 24 to convert into daily rate
-               cfluxa(ms) = micparam%tvac(np,ms) * sqrt(micinput%wavg(np,ms)/micinput%porosity(np,ms))  &
-                          * max(0.0, miccpool%cpool(np,ms,7)) * delty * 24.0
-            ! converting flux from mg C cm-3 delty-1 to g C m-2 delty-1
-               micoutput%fluxcleach(np) = cfluxa(ms) * zse(ms) * 1000.0
-               miccpool%cpool(np,ms,7)  = miccpool%cpool(np,ms,7)  - cfluxa(ms)
-
-                if(diag==1) then
-                   print *, "year day site np1", year, i, outp,micparam%diffsocx(outp)
-                    do ns=1,ms
-                       print *, ns, miccpool%cpool(outp,ns,:)
-                    end do
-                end if
-
-               do ip=1,mcpool
-                  do ns=1,ms
-                     ypooli(ns) = miccpool%cpool(np,ns,ip)      ! in mg c/cm3
-                  end do  !"ns"
-
-                  fluxsoc(:) = 0.0  ! This flux is added in "modelx"
-                  diffsocxx= micparam%diffsocx(np)
-
-                  call bioturb(int(delty/delty),ms,zse,delty,diffsocxx,fluxsoc,ypooli,ypoole)  ! only do every 24*delt
-
-                  do ns=1,ms
-                     miccpool%cpool(np,ns,ip) = ypoole(ns)
-                  end do
-               end do ! "ip=1,mcpool"
-
-            ! print out the time series of pool sizes
-            ! if(micglobal%bgctype(np)==bgcopt) then
-            !   write(*,201) year, np, miccpool%cpool(np,1,:),miccpool%cpool(np,ms,:)
-201             format("vmicsoil:cpool",2(i5,1x),30(f7.4,1x))
-            ! endif
+            call mesc_step(np, i, year, ny, kinetics, isoc14, zse, &
+                           micpxdef, micpdef, micparam, micinput, micglobal, &
+                           miccpool, micnpool, micoutput)
          end do   !"i: day of year (ntime)"
       end do !"year (nyeqpool)"
 
@@ -897,9 +795,6 @@ subroutine vmicsoil_hwsd_cpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
 
     ! call vmic_output_write(foutput,micinput,micoutput)
     ! call vmic_restart_write(frestart_out,miccpool,micnpool)
-
-    deallocate(xpool0,xpool1)
-    deallocate(ypooli,ypoole,fluxsoc,cfluxa)
 
     end subroutine vmicsoil_hwsd_cpu
 
@@ -1148,6 +1043,121 @@ subroutine vmicsoil_hwsd_gpu(jrestart,frestart_in,frestart_out,foutput,kinetics,
   !  deallocate(xpool)
 
 end subroutine vmicsoil_hwsd_gpu
+
+
+  !> Advance MESC state for a single patch (`np`) for one day (`doy`).
+  !!
+  !! This subroutine contains the inner-loop body that was previously inlined
+  !! inside [[vmicsoil_hwsd_cpu]]. It provides a clean, single-timestep entry
+  !! point suitable for coupling to ORCHIDEE or for unit testing.
+  !!
+  !! The caller is responsible for zeroing the annual flux accumulators
+  !! (`micoutput%fluxcinput`, `micoutput%fluxrsoil`, `micoutput%fluxcleach`)
+  !! at the start of each year, as [[vmicsoil_hwsd_cpu]] does.
+  subroutine mesc_step(np, doy, year, ny, kinetics, isoc14, zse, &
+                      micpxdef, micpdef, micparam, micinput, micglobal, &
+                      miccpool, micnpool, micoutput)
+    integer,                     intent(in)    :: np
+      !! patch index (1-based)
+    integer,                     intent(in)    :: doy
+      !! day of year (1–365)
+    integer,                     intent(in)    :: year
+      !! simulation year (1-based, used by [[variable_time_single]])
+    integer,                     intent(in)    :: ny
+      !! year offset passed to [[rk4modelx]] (year - nyeqpool)
+    integer,                     intent(in)    :: kinetics
+      !! kinetics model selector (1, 2, or 3)
+    integer,                     intent(in)    :: isoc14
+      !! 14C tracking flag
+    real(dp),                    intent(in)    :: zse(ms)
+      !! soil layer thicknesses [m]  (size ms)
+    TYPE(mic_param_xscale),      intent(inout) :: micpxdef
+      !! BGC-type scaling factors
+    TYPE(mic_param_default),     intent(in)    :: micpdef
+      !! default parameter values
+    TYPE(mic_parameter),         intent(inout) :: micparam
+      !! working parameter array (updated by [[vmic_param_time_single]])
+    TYPE(mic_input),             intent(inout) :: micinput
+      !! time-varying environmental inputs (updated by [[variable_time_single]])
+    TYPE(mic_global_input),      intent(inout) :: micglobal
+      !! global forcing data
+    TYPE(mic_cpool),             intent(inout) :: miccpool
+      !! carbon pool state (updated on output)
+    TYPE(mic_npool),             intent(inout) :: micnpool
+      !! nitrogen pool state
+    TYPE(mic_output),            intent(inout) :: micoutput
+      !! output fluxes and diagnostics
+
+    ! Local variables
+    real(dp), dimension(mcpool) :: xpool0, xpool1
+    real(dp), dimension(ms)     :: ypooli, ypoole, fluxsoc, cfluxa
+    integer   :: ip, ns, ndelt
+    real(dp)  :: timex, delty, diffsocxx
+    real(dp)  :: cpool0, cpool1, totcinput
+
+    ndelt = int(24*365/delt)  ! number of time steps per year in "delt" units
+
+    call variable_time(year, doy, micglobal, micinput, micnpool, np)
+    ! calculate parameter values that depend on soil temperature or moisture (varying with time)
+    call vmic_param_time(kinetics, micpxdef, micpdef, micparam, micinput, micnpool, np)
+
+    ! for each soil layer
+    ! sum all C pools across layers to compute soil respiration = input - sum(delCpool)
+    ! before leaching is applied
+    cpool0 = 0.0; cpool1 = 0.0; totcinput = 0.0
+    do ns = 1, ms
+      ! micinput%cinputm + micinput%cinputs in mg C/cm3/delt
+      totcinput = totcinput + (micinput%cinputm(np,ns) + micinput%cinputs(np,ns)) * 1000.0 * zse(ns)  ! g C/m2/delt
+
+      do ip = 1, mcpool
+        xpool0(ip) = miccpool%cpool(np,ns,ip)
+        cpool0     = cpool0 + xpool0(ip) * zse(ns) * 1000.0  ! mg C/cm3 -> g C/m2
+      end do
+
+      ! integration step: delty in rk4; ndelt is number of delt-steps per year
+      timex = real(doy * delt)
+      delty = real(ndelt) / (365.0 * delt)  ! time step in "24*delt (daily)" units
+      call rk4modelx(timex, delty, ny, isoc14, np, ns, kinetics, micpdef, micparam, micinput, xpool0, xpool1)
+
+      do ip = 1, mcpool
+        miccpool%cpool(np,ns,ip) = max(xpool1(ip), 1.0e-8)
+        cpool1 = cpool1 + miccpool%cpool(np,ns,ip) * zse(ns) * 1000.0  ! mg C/cm3 -> g C/m2
+      end do
+    end do  ! ns
+
+    micoutput%fluxcinput(np) = micoutput%fluxcinput(np) + totcinput * real(delty)
+    micoutput%fluxrsoil(np)  = micoutput%fluxrsoil(np)  + totcinput * real(delty) + (cpool1 - cpool0)
+
+    ! bottom-layer DOC leaching (other layers handled via bioturbation)
+    ! "tvac" is hourly; multiply by 24 to convert to daily rate
+    cfluxa(:) = 0.0
+    cfluxa(ms) = micparam%tvac(np,ms) * sqrt(micinput%wavg(np,ms) / micinput%porosity(np,ms)) &
+                * max(0.0_dp, miccpool%cpool(np,ms,7)) * delty * 24.0
+    ! convert from mg C cm-3 delty-1 to g C m-2 delty-1
+    micoutput%fluxcleach(np) = cfluxa(ms) * zse(ms) * 1000.0
+    miccpool%cpool(np,ms,7)  = miccpool%cpool(np,ms,7) - cfluxa(ms)
+
+    if (diag == 1) then
+      print *, "year day site np1", year, doy, outp, micparam%diffsocx(outp)
+      do ns = 1, ms
+        print *, ns, miccpool%cpool(outp,ns,:)
+      end do
+    end if
+
+    ! bioturbation: diffuse each pool across soil layers
+    do ip = 1, mcpool
+      do ns = 1, ms
+        ypooli(ns) = miccpool%cpool(np,ns,ip)  ! mg C/cm3
+      end do
+      fluxsoc(:) = 0.0
+      diffsocxx = micparam%diffsocx(np)
+      call bioturb(int(delty/delty), ms, zse, delty, diffsocxx, fluxsoc, ypooli, ypoole)
+      do ns = 1, ms
+        miccpool%cpool(np,ns,ip) = ypoole(ns)
+      end do
+    end do  ! ip
+
+  end subroutine mesc_step
 
 end module mesc_interface_module
 
