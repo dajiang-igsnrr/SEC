@@ -35,7 +35,8 @@
 
 module mesc_interface_module
   use precision_module, only : dp
-  use mic_constant, only : diag, delt, mp, ms, mpft, mcpool, outp, tvc14
+  use mic_constant, only : diag, delt, mp, ms, mpft, mcpool, outp, tvc14, &
+                           xrootcable, xrootorchidee
   use mic_variable, only : mic_param_xscale, mic_param_default, mic_parameter, &
                            mic_input, mic_npool, mic_cpool, mic_output, mic_global_input
   use mesc_inout_module, only: vmic_restart_read ! , vmic_restart_write, vmic_output_write
@@ -204,7 +205,7 @@ end subroutine vmic_init
 !> First sets all scaling factors to unity defaults, then overwrites entries
 !> for the target BGC type (`bgcopt`) with optimized values from `xopt`. If a
 !> forcing model is specified (`jmodel`), also sets PFT-specific root-beta
-!> profiles for CABLE (1) or ORCHIDEE (2).
+!> profiles for CABLE or ORCHIDEE.
 !>
 !> The order is fixed:
 !> ```txt
@@ -226,6 +227,7 @@ end subroutine vmic_init
 !> ```
 !>
 !> NOTE: This routine is called before all run modes and is not specific to ORCHIDEE.
+!>
 !> In the global ORCHIDEE run (functn_global4 in mod_functions.f90), vmic_param_xscale is
 !> only called when jopt=.true. (optimisation mode); otherwise getparam_global reads
 !> parameters from a lookup table instead.
