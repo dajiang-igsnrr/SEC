@@ -35,6 +35,7 @@ add_executable(main
   src/mod_model_core.f90
   src/mod_inout.f90
   src/mod_interface.f90
+  src/mod_coupling.f90
   src/mod_calcost.f90
   src/mod_functions.f90
   src/main.f90
