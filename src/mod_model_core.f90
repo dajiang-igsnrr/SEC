@@ -540,10 +540,18 @@ end subroutine bioturb
 
 
  !> ODE right-hand side: computes carbon fluxes (dxpool/dt) for all pools in a single grid layer.
- !! Implements three kinetics variants (1=MIMICS forward MM, 2=reverse MM, 3=combined with adsorption/desorption).
- !! Pools: metabolic litter (1), structural litter (2), microbe-R (3), microbe-K (4),
- !! physically protected (5), chemically protected (6), active/LWC (7), and additional pools (8-10) for kinetics 3.
- !! Pools in mg C/cm3, time step in hours. Adapted from Zhang et al. (2019, GCB) and Abramoff et al. (2022).
+ !! Implements kinetics=3
+ !! Pools: 1: unaggregated metabolic litter
+ !!        2: unaggregated structural litter
+ !!        3: microbe-R (3)
+ !!        4: microbe-K (4)
+ !!        5: aggregated metabolic litter
+ !!        6: unaggregated MAOC
+ !!        7: low-mass weighted carbon
+ !!        8: aggregated structural litter
+ !!        9: aggregated MAOC 
+ !!       10: dummy (unsed)
+ !!        aggregated metabolic pool (5)
  subroutine vmic_c(ny,isoc14,np,ns,kinetics,micpdef,micparam,micinput,xpool,y)
 
      TYPE(mic_param_default), INTENT(IN)     :: micpdef       !! fixed default parameters
